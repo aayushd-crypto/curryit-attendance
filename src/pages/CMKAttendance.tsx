@@ -1,0 +1,275 @@
+import { useEffect, useState } from 'react'
+import { format } from 'date-fns'
+import { Search, Save, CheckSquare, Square, ChevronDown, Users, AlertCircle } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
+import { Spinner } from '../components/Common/Spinner'
+import { formatDate, logAudit } from '../utils/helpers'
+
+type AttStatus = 'present' | 'absent' | 'leave'
+
+interface CMKEmployee {
+  id: string
+  employee_code: string
+  name: string
+  department: string
+  status: AttStatus | null
+  saved: boolean
+}
+
+export default function CMKAttendancePage() {
+  const { user, profile, role } = useAuth()
+  const [employees, setEmployees]     = useState<CMKEmployee[]>([])
+  const [filtered, setFiltered]       = useState<CMKEmployee[]>([])
+  const [search, setSearch]           = useState('')
+  const [deptFilter, setDeptFilter]   = useState('all')
+  const [departments, setDepartments] = useState<string[]>([])
+  const [loading, setLoading]         = useState(true)
+  const [saving, setSaving]           = useState(false)
+  const [savedCount, setSavedCount]   = useState(0)
+  const [error, setError]             = useState<string | null>(null)
+
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+
+  const loadEmployees = async () => {
+    setLoading(true)
+    const { data: emps } = await supabase
+      .from('employees')
+      .select('id, employee_code, name, departments(name)')
+      .eq('location', 'cmk')
+      .eq('status', 'active')
+      .order('name')
+
+    // Check existing records for today
+    const { data: existing } = await supabase
+      .from('attendance')
+      .select('employee_id, status')
+      .eq('date', todayStr)
+      .in('location', ['cmk'])
+
+    const existingMap = new Map((existing ?? []).map(r => [r.employee_id, r.status]))
+
+    const list: CMKEmployee[] = (emps ?? []).map((e: any) => ({
+      id: e.id,
+      employee_code: e.employee_code,
+      name: e.name,
+      department: e.departments?.name ?? 'General',
+      status: (existingMap.get(e.id) as AttStatus) ?? null,
+      saved: existingMap.has(e.id),
+    }))
+
+    setEmployees(list)
+    setFiltered(list)
+    setDepartments([...new Set(list.map(e => e.department))])
+    setLoading(false)
+  }
+
+  useEffect(() => { loadEmployees() }, [])
+
+  useEffect(() => {
+    let f = employees
+    if (search) f = f.filter(e => e.name.toLowerCase().includes(search.toLowerCase()) || e.employee_code.toLowerCase().includes(search.toLowerCase()))
+    if (deptFilter !== 'all') f = f.filter(e => e.department === deptFilter)
+    setFiltered(f)
+  }, [search, deptFilter, employees])
+
+  const setStatus = (id: string, status: AttStatus) => {
+    setEmployees(prev => prev.map(e => e.id === id ? { ...e, status } : e))
+  }
+
+  const markAllPresent = () => {
+    setEmployees(prev => prev.map(e => filtered.find(f => f.id === e.id) ? { ...e, status: 'present' } : e))
+  }
+
+  const saveAttendance = async () => {
+    if (!user || !profile) return
+    const unmarked = filtered.filter(e => !e.status && !e.saved)
+    if (unmarked.length > 0) {
+      setError(`Please mark attendance for all employees before saving. ${unmarked.length} unmarked.`)
+      return
+    }
+    setError(null)
+    setSaving(true)
+
+    const toSave = filtered.filter(e => e.status && !e.saved)
+    if (toSave.length === 0) { setSaving(false); return }
+
+    const now = format(new Date(), 'HH:mm:ss')
+    const records = toSave.map(e => ({
+      employee_id: e.id,
+      date: todayStr,
+      check_in_time: now,
+      location: 'cmk' as const,
+      work_mode: null,
+      status: e.status!,
+      source: 'coordinator_marked' as const,
+      marked_by: user.id,
+    }))
+
+    const { error: insertError } = await supabase.from('attendance').insert(records)
+
+    if (insertError) {
+      setError('Failed to save attendance. Please try again.')
+    } else {
+      setSavedCount(toSave.length)
+      await logAudit({
+        userId: user.id,
+        userName: profile.full_name,
+        userRole: role!,
+        action: `Saved CMK attendance for ${toSave.length} employees`,
+      })
+      await loadEmployees()
+    }
+    setSaving(false)
+  }
+
+  if (loading) return <div className="flex items-center justify-center h-64"><Spinner size="lg" /></div>
+
+  const unsaved = filtered.filter(e => e.status && !e.saved).length
+  const total   = filtered.length
+  const marked  = filtered.filter(e => e.status !== null).length
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-5">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">CMK Daily Attendance</h1>
+          <p className="page-subtitle">{formatDate(todayStr)} · {employees.filter(e => e.saved).length} of {employees.length} saved</p>
+        </div>
+        <button onClick={markAllPresent} className="btn-secondary">
+          <CheckSquare size={15} />
+          Mark all present
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search employee name or ID..."
+            className="input pl-9"
+          />
+        </div>
+        <div className="relative">
+          <select
+            value={deptFilter}
+            onChange={e => setDeptFilter(e.target.value)}
+            className="input pr-8 appearance-none min-w-[160px]"
+          >
+            <option value="all">All departments</option>
+            {departments.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between text-sm mb-2">
+          <span className="text-gray-600">Attendance progress</span>
+          <span className="font-medium text-gray-900">{marked}/{total} marked</span>
+        </div>
+        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-brand-500 rounded-full transition-all duration-300"
+            style={{ width: total ? `${(marked / total) * 100}%` : '0%' }}
+          />
+        </div>
+      </div>
+
+      {/* Attendance table */}
+      <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr>
+                <th>Employee ID</th>
+                <th>Name</th>
+                <th>Department</th>
+                <th className="text-center">Present</th>
+                <th className="text-center">Absent</th>
+                <th className="text-center">Leave</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={7} className="text-center py-10 text-gray-400">
+                  <Users size={24} className="mx-auto mb-2" />
+                  No CMK employees found.
+                </td></tr>
+              ) : (
+                filtered.map(emp => (
+                  <tr key={emp.id} className={emp.saved ? 'opacity-60' : ''}>
+                    <td className="font-mono text-xs text-gray-500">{emp.employee_code}</td>
+                    <td className="font-medium text-gray-900">{emp.name}</td>
+                    <td className="text-gray-500">{emp.department}</td>
+                    {(['present', 'absent', 'leave'] as AttStatus[]).map(s => (
+                      <td key={s} className="text-center">
+                        <button
+                          onClick={() => !emp.saved && setStatus(emp.id, s)}
+                          disabled={emp.saved}
+                          className={`w-6 h-6 rounded-full border-2 mx-auto flex items-center justify-center transition-colors ${
+                            emp.status === s
+                              ? s === 'present' ? 'bg-green-500 border-green-500'
+                                : s === 'absent' ? 'bg-red-500 border-red-500'
+                                : 'bg-orange-500 border-orange-500'
+                              : 'border-gray-200 hover:border-gray-400'
+                          }`}
+                        >
+                          {emp.status === s && (
+                            <div className="w-2 h-2 bg-white rounded-full" />
+                          )}
+                        </button>
+                      </td>
+                    ))}
+                    <td>
+                      {emp.saved ? (
+                        emp.status === 'present' ? <span className="badge-present">Present</span>
+                        : emp.status === 'absent' ? <span className="badge-absent">Absent</span>
+                        : <span className="badge-leave">Leave</span>
+                      ) : (
+                        !emp.status ? <span className="text-xs text-gray-400">Not marked</span>
+                        : <span className="text-xs text-gray-500 italic">Unsaved</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-700 flex items-center gap-2">
+          <AlertCircle size={16} />
+          {error}
+        </div>
+      )}
+
+      {/* Success */}
+      {savedCount > 0 && (
+        <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3 text-sm text-green-700">
+          ✓ Attendance saved for {savedCount} employees.
+        </div>
+      )}
+
+      {/* Save button */}
+      <div className="flex justify-end">
+        <button
+          onClick={saveAttendance}
+          disabled={saving || unsaved === 0}
+          className="btn-primary px-8 py-3 rounded-xl disabled:opacity-50"
+        >
+          {saving ? <Spinner size="sm" /> : <Save size={16} />}
+          {saving ? 'Saving...' : `Save attendance${unsaved > 0 ? ` (${unsaved})` : ''}`}
+        </button>
+      </div>
+    </div>
+  )
+}
