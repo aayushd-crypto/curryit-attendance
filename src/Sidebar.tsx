@@ -1,9 +1,9 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Clock, Calendar, Users, FileText,
-  ClipboardList, Settings, LogOut, X, ChevronRight
+  ClipboardList, Settings, LogOut, X, ChevronRight,
+  Zap
 } from 'lucide-react'
-import { Logo } from './Logo'
 import { useAuth } from './AuthContext'
 import type { UserRole } from './database'
 
@@ -12,12 +12,13 @@ interface NavItem {
   icon: React.ElementType
   label: string
   roles: UserRole[]
+  badge?: string
 }
 
 const navItems: NavItem[] = [
   { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard',      roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/attendance',     icon: Clock,           label: 'Attendance',     roles: ['super_admin','admin','employee'] },
-  { to: '/cmk-attendance', icon: Clock,           label: 'CMK Attendance', roles: ['super_admin','admin','cmk_coordinator'] },
+  { to: '/cmk-attendance', icon: Zap,             label: 'CMK Attendance', roles: ['super_admin','admin','cmk_coordinator'] },
   { to: '/leave',          icon: Calendar,        label: 'Leave',          roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/employees',      icon: Users,           label: 'Employees',      roles: ['super_admin','admin'] },
   { to: '/reports',        icon: FileText,        label: 'Reports',        roles: ['super_admin','admin','cmk_coordinator'] },
@@ -25,53 +26,53 @@ const navItems: NavItem[] = [
   { to: '/settings',       icon: Settings,        label: 'Settings',       roles: ['super_admin'] },
 ]
 
-interface SidebarProps {
-  open: boolean
-  onClose: () => void
+const roleLabel: Record<UserRole, string> = {
+  super_admin: 'Super Admin', admin: 'Admin',
+  cmk_coordinator: 'CMK Coordinator', employee: 'Employee',
 }
+
+interface SidebarProps { open: boolean; onClose: () => void }
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const { profile, role, signOut } = useAuth()
-
   const visible = navItems.filter(i => role && i.roles.includes(role))
-
-  const roleLabel: Record<UserRole, string> = {
-    super_admin:     'Super Admin',
-    admin:           'Admin',
-    cmk_coordinator: 'CMK Coordinator',
-    employee:        'Employee',
-  }
-
-  const roleColor: Record<UserRole, string> = {
-    super_admin:     'bg-purple-100 text-purple-700',
-    admin:           'bg-blue-100 text-blue-700',
-    cmk_coordinator: 'bg-amber-100 text-amber-700',
-    employee:        'bg-green-100 text-green-700',
-  }
 
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden" onClick={onClose} />
+        <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden" onClick={onClose} />
       )}
-
       <aside className={`
         fixed top-0 left-0 z-40 h-full w-64 flex flex-col
-        bg-white border-r border-gray-100
-        transition-transform duration-200 ease-in-out
+        transition-transform duration-300 ease-out
         ${open ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:z-auto
-      `}>
-        {/* Logo area */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-gray-100">
-          <Logo size="md" />
-          <button onClick={onClose} className="lg:hidden p-1.5 rounded-xl hover:bg-gray-100 text-gray-400">
-            <X size={16} />
-          </button>
+      `}
+        style={{
+          background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+          borderRight: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        {/* Logo */}
+        <div className="px-5 py-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src="/logo.png" alt="CURRYiT" className="h-9 w-auto" />
+            </div>
+            <button onClick={onClose} className="lg:hidden p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors">
+              <X size={16} />
+            </button>
+          </div>
+          <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest mt-3 ml-0.5">
+            Attendance Management
+          </p>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
+          <p className="text-[10px] font-extrabold text-white/20 uppercase tracking-widest px-3 mb-3">
+            Navigation
+          </p>
           {visible.map(item => (
             <NavLink
               key={item.to}
@@ -79,42 +80,47 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               onClick={onClose}
               className={({ isActive }) => `
                 flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium
-                transition-all duration-150 group
+                transition-all duration-150 group relative
                 ${isActive
-                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'text-white'
+                  : 'text-white/50 hover:text-white/90 hover:bg-white/6'
                 }
               `}
+              style={({ isActive }) => isActive ? {
+                background: 'linear-gradient(135deg, rgba(232,83,29,0.9) 0%, rgba(196,64,16,0.9) 100%)',
+                boxShadow: '0 4px 20px rgba(232,83,29,0.4)',
+              } : {}}
             >
               {({ isActive }) => (
                 <>
-                  <item.icon size={17} className={isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'} />
+                  <item.icon size={17} className={isActive ? 'text-white' : 'text-white/40 group-hover:text-white/70'} />
                   <span className="flex-1">{item.label}</span>
-                  {isActive && <ChevronRight size={14} className="text-white/70" />}
+                  {isActive && <ChevronRight size={13} className="text-white/60" />}
                 </>
               )}
             </NavLink>
           ))}
         </nav>
 
-        {/* User footer */}
-        <div className="px-4 py-4 border-t border-gray-100">
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl mb-2">
-            <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+        {/* User */}
+        <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center gap-3 p-3 rounded-xl mb-2"
+            style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, #E8531D, #C44010)', boxShadow: '0 4px 12px rgba(232,83,29,0.4)' }}>
               {profile?.full_name?.[0]?.toUpperCase() ?? 'U'}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-gray-900 truncate">{profile?.full_name ?? 'User'}</p>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${role ? roleColor[role] : 'bg-gray-100 text-gray-500'}`}>
-                {role ? roleLabel[role] : ''}
-              </span>
+              <p className="text-sm font-semibold text-white truncate">{profile?.full_name ?? 'User'}</p>
+              <p className="text-xs text-white/40 truncate">{role ? roleLabel[role] : ''}</p>
             </div>
           </div>
           <button
             onClick={signOut}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium"
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-white/40 hover:text-red-400 rounded-xl transition-colors"
+            style={{ hover: { background: 'rgba(239,68,68,0.1)' } }}
           >
-            <LogOut size={16} />
+            <LogOut size={15} />
             Sign out
           </button>
         </div>

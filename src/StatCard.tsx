@@ -6,34 +6,33 @@ interface StatCardProps {
   icon: LucideIcon
   color: 'green' | 'red' | 'orange' | 'purple' | 'blue' | 'gray'
   sub?: string
-  trend?: number
 }
 
 const colorMap = {
-  green:  { bg: 'bg-green-50',  icon: 'bg-green-500',  text: 'text-green-600',  shadow: 'shadow-green-500/20'  },
-  red:    { bg: 'bg-red-50',    icon: 'bg-red-500',    text: 'text-red-600',    shadow: 'shadow-red-500/20'    },
-  orange: { bg: 'bg-orange-50', icon: 'bg-brand-500',  text: 'text-brand-600',  shadow: 'shadow-brand-500/20'  },
-  purple: { bg: 'bg-purple-50', icon: 'bg-purple-500', text: 'text-purple-600', shadow: 'shadow-purple-500/20' },
-  blue:   { bg: 'bg-blue-50',   icon: 'bg-blue-500',   text: 'text-blue-600',   shadow: 'shadow-blue-500/20'   },
-  gray:   { bg: 'bg-gray-50',   icon: 'bg-gray-500',   text: 'text-gray-700',   shadow: 'shadow-gray-500/20'   },
+  green:  { grad: 'linear-gradient(135deg, #10B981, #059669)', glow: 'rgba(16,185,129,0.25)',  bg: '#F0FDF4', text: '#065F46' },
+  red:    { grad: 'linear-gradient(135deg, #EF4444, #DC2626)', glow: 'rgba(239,68,68,0.25)',   bg: '#FEF2F2', text: '#991B1B' },
+  orange: { grad: 'linear-gradient(135deg, #E8531D, #C44010)', glow: 'rgba(232,83,29,0.25)',   bg: '#FFF7F4', text: '#9A3412' },
+  purple: { grad: 'linear-gradient(135deg, #8B5CF6, #7C3AED)', glow: 'rgba(139,92,246,0.25)',  bg: '#F5F3FF', text: '#5B21B6' },
+  blue:   { grad: 'linear-gradient(135deg, #3B82F6, #2563EB)', glow: 'rgba(59,130,246,0.25)',  bg: '#EFF6FF', text: '#1E40AF' },
+  gray:   { grad: 'linear-gradient(135deg, #6B7280, #4B5563)', glow: 'rgba(107,114,128,0.2)',  bg: '#F9FAFB', text: '#1F2937' },
 }
 
-export function StatCard({ label, value, icon: Icon, color, sub, trend }: StatCardProps) {
+export function StatCard({ label, value, icon: Icon, color, sub }: StatCardProps) {
   const c = colorMap[color]
   return (
-    <div className={`card p-5 ${c.bg} border-0`}>
+    <div className="rounded-2xl p-5 transition-all duration-200 hover:-translate-y-0.5"
+      style={{
+        background: c.bg,
+        border: `1px solid ${c.glow.replace('0.25', '0.2')}`,
+        boxShadow: `0 2px 8px ${c.glow}, 0 1px 3px rgba(0,0,0,0.04)`,
+      }}>
       <div className="flex items-start justify-between mb-4">
-        <div className={`p-2.5 rounded-xl ${c.icon} shadow-lg ${c.shadow}`}>
+        <div className="p-2.5 rounded-xl" style={{ background: c.grad, boxShadow: `0 4px 14px ${c.glow}` }}>
           <Icon size={18} className="text-white" />
         </div>
-        {trend !== undefined && (
-          <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${trend >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-            {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}%
-          </span>
-        )}
       </div>
-      <p className={`text-3xl font-black ${c.text} leading-none mb-1`}>{value}</p>
-      <p className="text-sm font-medium text-gray-600">{label}</p>
+      <p className="text-4xl font-black leading-none mb-2 tracking-tight" style={{ color: c.text }}>{value}</p>
+      <p className="text-sm font-semibold text-gray-600">{label}</p>
       {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
     </div>
   )
