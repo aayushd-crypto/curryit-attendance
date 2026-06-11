@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
-import { Logo } from '../components/Common/Logo'
-import { useAuth } from '../context/AuthContext'
-import { Spinner } from '../components/Common/Spinner'
+import { Logo } from '../Logo'
+import { useAuth } from '../AuthContext'
+import { Spinner } from '../Spinner'
 
 export default function LoginPage() {
   const [email, setEmail]       = useState('')

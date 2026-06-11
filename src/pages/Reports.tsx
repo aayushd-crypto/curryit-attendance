@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { format, subDays } from 'date-fns'
 import { Download, FileSpreadsheet, FileText, ChevronDown, Filter } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import { Spinner } from '../components/Common/Spinner'
-import { formatDate, formatTime, statusLabel, exportToExcel, exportToCSV, exportToPDF } from '../utils/helpers'
-import { useAuth } from '../context/AuthContext'
+import { supabase } from '../supabase'
+import { Spinner } from '../Spinner'
+import { formatDate, formatTime, statusLabel, exportToExcel, exportToCSV, exportToPDF } from '../helpers'
+import { useAuth } from '../AuthContext'
 
 interface ReportRow {
   date: string

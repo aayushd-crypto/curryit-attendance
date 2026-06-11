@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
-import { Spinner } from '../components/Common/Spinner'
-import { formatDateTime } from '../utils/helpers'
+import { supabase } from '../supabase'
+import { Spinner } from '../Spinner'
+import { formatDateTime } from '../helpers'
 import { ClipboardList } from 'lucide-react'
 
 interface AuditEntry {

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Key, AlertCircle } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../context/AuthContext'
-import { Modal } from '../components/Common/Modal'
-import { Spinner } from '../components/Common/Spinner'
-import type { Department, Location } from '../types/database'
+import { supabase } from '../supabase'
+import { useAuth } from '../AuthContext'
+import { Modal } from '../Modal'
+import { Spinner } from '../Spinner'
+import type { Department, Location } from '../database'
 
 export default function SettingsPage() {
   const { user, profile } = useAuth()

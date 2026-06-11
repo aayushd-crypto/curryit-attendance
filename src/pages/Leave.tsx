@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { Plus, Check, X, Calendar, ChevronDown, AlertCircle } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../context/AuthContext'
-import { Modal } from '../components/Common/Modal'
-import { Spinner } from '../components/Common/Spinner'
-import { formatDate, getLeaveDays, statusLabel, logAudit } from '../utils/helpers'
-import type { LeaveRequest, LeaveType } from '../types/database'
+import { supabase } from '../supabase'
+import { useAuth } from '../AuthContext'
+import { Modal } from '../Modal'
+import { Spinner } from '../Spinner'
+import { formatDate, getLeaveDays, statusLabel, logAudit } from '../helpers'
+import type { LeaveRequest, LeaveType } from '../database'
 
 export default function LeavePage() {
   const { user, profile, role } = useAuth()

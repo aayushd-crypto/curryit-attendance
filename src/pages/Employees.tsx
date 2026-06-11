@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Plus, Search, Edit2, UserX, UserCheck, ChevronDown } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../context/AuthContext'
-import { Modal } from '../components/Common/Modal'
-import { Spinner } from '../components/Common/Spinner'
-import { formatDate, logAudit } from '../utils/helpers'
-import type { Employee, Department, Location, EmployeeStatus } from '../types/database'
+import { supabase } from '../supabase'
+import { useAuth } from '../AuthContext'
+import { Modal } from '../Modal'
+import { Spinner } from '../Spinner'
+import { formatDate, logAudit } from '../helpers'
+import type { Employee, Department, Location, EmployeeStatus } from '../database'
 
 export default function EmployeesPage() {
   const { user, profile, role } = useAuth()

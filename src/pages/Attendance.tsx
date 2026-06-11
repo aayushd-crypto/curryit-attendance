@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { CheckCircle, Clock, Building2, Wifi, CalendarDays, AlertCircle } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../context/AuthContext'
-import { Spinner } from '../components/Common/Spinner'
-import { formatDate, formatTime, logAudit } from '../utils/helpers'
+import { supabase } from '../supabase'
+import { useAuth } from '../AuthContext'
+import { Spinner } from '../Spinner'
+import { formatDate, formatTime, logAudit } from '../helpers'
 
 interface AttRecord {
   id: string
