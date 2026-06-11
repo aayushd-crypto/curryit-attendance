@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900&display=swap');
 
 @layer base {
   * { box-sizing: border-box; }
@@ -19,7 +19,6 @@
 
 @layer components {
 
-  /* ── Buttons ───────────────────────────────────── */
   .btn-primary {
     @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white
            transition-all duration-200 select-none cursor-pointer;
@@ -47,7 +46,6 @@
            transition-all duration-150;
   }
 
-  /* ── Cards ─────────────────────────────────────── */
   .card {
     @apply bg-white rounded-2xl;
     border: 1px solid rgba(255,255,255,0.8);
@@ -66,11 +64,10 @@
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 10px 40px -5px rgba(0,0,0,0.1);
   }
 
-  /* ── Inputs ─────────────────────────────────────── */
   .input {
     @apply w-full px-4 py-3 text-sm text-gray-800 bg-gray-50 border border-gray-200
            rounded-xl placeholder-gray-400 outline-none
-           focus:bg-white focus:border-brand-400 focus:ring-0
+           focus:bg-white focus:border-brand-400
            transition-all duration-200;
     box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
   }
@@ -81,7 +78,6 @@
     @apply block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2;
   }
 
-  /* ── Badges ─────────────────────────────────────── */
   .badge-present  { @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50  text-emerald-700 ring-1 ring-emerald-200/60; }
   .badge-absent   { @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50    text-red-700    ring-1 ring-red-200/60; }
   .badge-leave    { @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50   text-amber-700  ring-1 ring-amber-200/60; }
@@ -90,12 +86,10 @@
   .badge-approved { @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60; }
   .badge-rejected { @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50    text-red-700    ring-1 ring-red-200/60; }
 
-  /* ── Page layout ────────────────────────────────── */
   .page-header   { @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-7; }
   .page-title    { @apply text-2xl font-black text-gray-900 tracking-tight; }
   .page-subtitle { @apply text-sm text-gray-400 mt-0.5 font-medium; }
 
-  /* ── Tables ─────────────────────────────────────── */
   .table-header {
     @apply px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3
            border-b border-gray-50;
@@ -110,13 +104,8 @@
   tr:last-child  { @apply border-b-0; }
 }
 
-/* ── Animations ─────────────────────────────────── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
 }
 .animate-fadeUp { animation: fadeUp 0.4s ease forwards; }
