@@ -3,7 +3,7 @@ export type AttendanceStatus = 'present' | 'absent' | 'leave' | 'holiday'
 export type WorkMode = 'office' | 'remote'
 export type AttendanceSource = 'self_marked' | 'coordinator_marked' | 'admin_marked'
 export type LeaveStatus = 'pending' | 'approved' | 'rejected'
-export type LeaveType = 'casual' | 'sick' | 'emergency'
+export type LeaveType = 'casual' | 'sick' | 'emergency' | 'paid' | 'unpaid'
 export type EmployeeStatus = 'active' | 'inactive'
 export type Location = 'office' | 'cmk'
 
@@ -36,6 +36,9 @@ export interface AttendanceRecord {
   employee_id: string
   date: string
   check_in_time: string | null
+  check_out_time: string | null
+  worked_minutes: number
+  overtime_minutes: number
   location: Location
   work_mode: WorkMode | null
   status: AttendanceStatus
@@ -70,6 +73,8 @@ export interface LeaveBalance {
   sick_used: number
   emergency_total: number
   emergency_used: number
+  paid_total: number
+  paid_used: number
 }
 
 export interface Holiday {

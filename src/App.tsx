@@ -14,6 +14,7 @@ const EmployeesPage   = lazy(() => import('./pages/Employees'))
 const ReportsPage     = lazy(() => import('./pages/Reports'))
 const AuditLogPage    = lazy(() => import('./pages/AuditLog'))
 const SettingsPage    = lazy(() => import('./pages/Settings'))
+const ResetPassword   = lazy(() => import('./pages/ResetPassword'))
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Routes>
             {/* Public */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/"      element={<Navigate to="/dashboard" replace />} />
 
             {/* Protected app routes */}
@@ -34,7 +36,7 @@ export default function App() {
               <Route path="/dashboard"       element={<Dashboard />} />
 
               <Route path="/attendance"      element={
-                <ProtectedRoute allowedRoles={['super_admin','admin','employee']}>
+                <ProtectedRoute allowedRoles={['employee']}>
                   <Attendance />
                 </ProtectedRoute>
               } />

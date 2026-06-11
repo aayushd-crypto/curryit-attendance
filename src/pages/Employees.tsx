@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Plus, Search, Edit2, UserX, UserCheck, ChevronDown } from 'lucide-react'
+import { Plus, Search, Edit2, UserX, UserCheck, ChevronDown, Wallet } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useAuth } from '../AuthContext'
 import { Modal } from '../Modal'
@@ -12,13 +13,17 @@ export default function EmployeesPage() {
   const [employees, setEmployees]   = useState<Employee[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
   const [loading, setLoading]       = useState(true)
-  const [search, setSearch]         = useState('')
+  const [params] = useSearchParams()
+  const [search, setSearch]         = useState(params.get('q') ?? '')
   const [locFilter, setLocFilter]   = useState<'all' | Location>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | EmployeeStatus>('all')
   const [modalOpen, setModalOpen]   = useState(false)
   const [editing, setEditing]       = useState<Employee | null>(null)
   const [saving, setSaving]         = useState(false)
   const [error, setError]           = useState<string | null>(null)
+  const [balEmp, setBalEmp]         = useState<Employee | null>(null)
+  const [bal, setBal]               = useState({ casual_total: 12, sick_total: 12, emergency_total: 6, paid_total: 15 })
+  const [balBusy, setBalBusy]       = useState(false)
 
   // Form state
   const [form, setForm] = useState({
@@ -39,6 +44,7 @@ export default function EmployeesPage() {
   }
 
   useEffect(() => { loadData() }, [])
+  useEffect(() => { const q = params.get('q'); if (q) setSearch(q) }, [params])
 
   const openAdd = () => {
     setEditing(null)
@@ -90,6 +96,28 @@ export default function EmployeesPage() {
     await supabase.from('employees').update({ status: newStatus }).eq('id', emp.id)
     await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!, action: `Set employee ${emp.name} to ${newStatus}`, affectedEmployeeId: emp.id })
     await loadData()
+  }
+
+  const openBalance = async (emp: Employee) => {
+    const { data } = await supabase.from('leave_balances').select('*')
+      .eq('employee_id', emp.id).eq('year', new Date().getFullYear()).maybeSingle()
+    if (data) setBal({ casual_total: data.casual_total, sick_total: data.sick_total, emergency_total: data.emergency_total, paid_total: (data as any).paid_total ?? 15 })
+    else setBal({ casual_total: 12, sick_total: 12, emergency_total: 6, paid_total: 15 })
+    setBalEmp(emp)
+  }
+
+  const saveBalance = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!balEmp || !user || !profile) return
+    setBalBusy(true)
+    const year = new Date().getFullYear()
+    await supabase.from('leave_balances').upsert(
+      { employee_id: balEmp.id, year, ...bal } as any,
+      { onConflict: 'employee_id,year' }
+    )
+    await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!, action: `Set leave balance for ${balEmp.name}`, affectedEmployeeId: balEmp.id })
+    setBalBusy(false)
+    setBalEmp(null)
   }
 
   const filtered = employees.filter(e => {
@@ -190,6 +218,9 @@ export default function EmployeesPage() {
                         <button onClick={() => openEdit(emp)} className="p-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-lg transition-colors" title="Edit">
                           <Edit2 size={14} />
                         </button>
+                        <button onClick={() => openBalance(emp)} className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition-colors" title="Leave balance">
+                          <Wallet size={14} />
+                        </button>
                         <button onClick={() => toggleStatus(emp)} className={`p-1.5 rounded-lg transition-colors ${emp.status === 'active' ? 'bg-red-50 hover:bg-red-100 text-red-600' : 'bg-green-50 hover:bg-green-100 text-green-600'}`} title={emp.status === 'active' ? 'Deactivate' : 'Activate'}>
                           {emp.status === 'active' ? <UserX size={14} /> : <UserCheck size={14} />}
                         </button>
@@ -264,6 +295,27 @@ export default function EmployeesPage() {
             <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center">
               {saving ? <Spinner size="sm" /> : null}
               {saving ? 'Saving...' : (editing ? 'Save changes' : 'Add employee')}
+            </button>
+          </div>
+        </form>
+      </Modal>
+      {/* Leave balance modal */}
+      <Modal isOpen={!!balEmp} onClose={() => setBalEmp(null)} title={`Leave balance — ${balEmp?.name ?? ''} (${new Date().getFullYear()})`} size="sm">
+        <form onSubmit={saveBalance} className="space-y-4">
+          {([
+            ['casual_total','Casual leaves'], ['sick_total','Sick leaves'],
+            ['emergency_total','Emergency leaves'], ['paid_total','Paid leaves'],
+          ] as const).map(([key, label]) => (
+            <div key={key}>
+              <label className="label">{label} per year</label>
+              <input type="number" min={0} max={365} value={(bal as any)[key]}
+                onChange={e => setBal({ ...bal, [key]: parseInt(e.target.value) || 0 })} className="input" />
+            </div>
+          ))}
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={() => setBalEmp(null)} className="btn-secondary flex-1 justify-center">Cancel</button>
+            <button type="submit" disabled={balBusy} className="btn-primary flex-1 justify-center">
+              {balBusy ? 'Saving...' : 'Save balance'}
             </button>
           </div>
         </form>

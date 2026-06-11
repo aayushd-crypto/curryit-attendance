@@ -10,8 +10,19 @@ export default function LoginPage() {
   const [showPw, setShowPw]   = useState(false)
   const [error, setError]     = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
   const { signIn } = useAuth()
   const navigate = useNavigate()
+
+  const forgotPassword = async () => {
+    if (!email.trim()) { setError('Enter your email above first, then click Forgot password.'); return }
+    setError(null)
+    const { error } = await (await import('../supabase')).supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin + '/reset-password',
+    })
+    if (error) setError('Could not send reset email. Check the address and try again.')
+    else setResetSent(true)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -124,9 +135,15 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <p className="text-center text-xs text-gray-400 mt-6">
-              Forgot your password? Contact your admin.
-            </p>
+            <button type="button" onClick={forgotPassword}
+              className="block mx-auto text-center text-xs font-semibold text-brand-600 hover:text-brand-700 mt-6">
+              Forgot password? Send reset email
+            </button>
+            {resetSent && (
+              <p className="text-center text-xs text-emerald-600 font-semibold mt-2">
+                ✓ Reset link sent — check your email inbox.
+              </p>
+            )}
           </div>
 
           <p className="text-center text-xs text-gray-400 mt-5">

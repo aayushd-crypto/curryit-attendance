@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Users, UserCheck, Monitor, Plane, TrendingUp, RefreshCw, CheckSquare, ChevronLeft, ChevronRight } from 'lucide-react'
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, parseISO, addMonths, subMonths, isSameMonth, isToday, isSunday } from 'date-fns'
@@ -43,6 +44,7 @@ interface PendingLeave {
 function AttendanceCalendar({ employeeId, location }: { employeeId?: string | null, location?: string }) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [records, setRecords] = useState<DayRecord[]>([])
+  const [holidays, setHolidays] = useState<{ holiday_date: string; name: string }[]>([])
   const [loading, setLoading] = useState(false)
 
   const loadMonth = async () => {
@@ -60,6 +62,9 @@ function AttendanceCalendar({ employeeId, location }: { employeeId?: string | nu
 
     const { data } = await query
     setRecords(data ?? [])
+    const { data: hols } = await supabase.from('holidays').select('holiday_date, name')
+      .gte('holiday_date', start).lte('holiday_date', end)
+    setHolidays(hols ?? [])
     setLoading(false)
   }
 
@@ -68,7 +73,10 @@ function AttendanceCalendar({ employeeId, location }: { employeeId?: string | nu
   const days = eachDayOfInterval({ start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) })
   const firstDayOfWeek = getDay(startOfMonth(currentMonth)) // 0=Sun
 
+  const getHoliday = (date: Date) => holidays.find(h => h.holiday_date === format(date, 'yyyy-MM-dd'))
+
   const getDayStatus = (date: Date) => {
+    if (getHoliday(date)) return 'festival'
     if (isSunday(date)) return 'sunday'
     const rec = records.find(r => r.date === format(date, 'yyyy-MM-dd'))
     if (!rec) return 'none'
@@ -82,6 +90,7 @@ function AttendanceCalendar({ employeeId, location }: { employeeId?: string | nu
     absent:  'bg-red-100 text-red-600 font-semibold border border-red-200',
     leave:   'bg-orange-100 text-orange-700 font-semibold border border-orange-200',
     sunday:  'bg-gray-100 text-gray-400 border border-gray-200',
+    festival: 'bg-sky-100 text-sky-700 font-bold border border-sky-200',
     none:    'bg-white text-gray-400 border border-gray-100',
   }
 
@@ -117,6 +126,7 @@ function AttendanceCalendar({ employeeId, location }: { employeeId?: string | nu
           { label: 'Absent',  cls: 'bg-red-100 text-red-600 border border-red-200' },
           { label: 'Leave',   cls: 'bg-orange-100 text-orange-700 border border-orange-200' },
           { label: 'Sunday',  cls: 'bg-gray-100 text-gray-400 border border-gray-200' },
+          { label: 'Holiday', cls: 'bg-sky-100 text-sky-700 border border-sky-200' },
         ].map(l => (
           <span key={l.label} className={`text-xs px-2 py-0.5 rounded-full ${l.cls}`}>{l.label}</span>
         ))}
@@ -145,6 +155,7 @@ function AttendanceCalendar({ employeeId, location }: { employeeId?: string | nu
             return (
               <div
                 key={day.toISOString()}
+                title={getHoliday(day)?.name ?? ''}
                 className={`
                   aspect-square flex items-center justify-center rounded-xl text-xs
                   ${statusStyle[status]}
@@ -172,6 +183,20 @@ function AttendanceCalendar({ employeeId, location }: { employeeId?: string | nu
           </div>
         ))}
       </div>
+
+      {holidays.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-2">Holidays this month</p>
+          <div className="flex flex-wrap gap-2">
+            {holidays.map(h => (
+              <span key={h.holiday_date} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-sky-700"
+                style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
+                🎉 {h.name} · {format(parseISO(h.holiday_date), 'dd MMM')}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -408,7 +433,7 @@ export default function Dashboard() {
               <h3 className="font-semibold text-gray-900">Pending leave approvals</h3>
               <p className="text-xs text-gray-500 mt-0.5">{pendingLeaves.length} request{pendingLeaves.length > 1 ? 's' : ''} awaiting review</p>
             </div>
-            <a href="/leave" className="text-sm text-brand-600 hover:text-brand-700 font-medium">View all →</a>
+            <Link to="/leave" className="text-sm text-brand-600 hover:text-brand-700 font-medium">View all →</Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
