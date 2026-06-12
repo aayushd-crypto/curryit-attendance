@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import {
-  LayoutDashboard, Clock, Calendar, Users, FileText,
+  LayoutDashboard, Calendar, Users, FileText,
   ClipboardList, Settings, LogOut, X, ChevronRight,
   Zap
 } from 'lucide-react'
@@ -17,7 +17,6 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard',      roles: ['super_admin','admin','cmk_coordinator','employee'] },
-  { to: '/attendance',     icon: Clock,           label: 'Attendance',     roles: ['employee'] },
   { to: '/cmk-attendance', icon: Zap,             label: 'CMK Attendance', roles: ['super_admin','admin','cmk_coordinator'] },
   { to: '/leave',          icon: Calendar,        label: 'Leave & WFH',          roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/employees',      icon: Users,           label: 'Employees',      roles: ['super_admin','admin'] },
