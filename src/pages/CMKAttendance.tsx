@@ -15,6 +15,7 @@ interface CMKEmployee {
   department: string
   status: AttStatus | null
   saved: boolean
+  editing: boolean
 }
 
 export default function CMKAttendancePage() {
@@ -56,6 +57,7 @@ export default function CMKAttendancePage() {
       department: e.departments?.name ?? 'General',
       status: (existingMap.get(e.id) as AttStatus) ?? null,
       saved: existingMap.has(e.id),
+      editing: false,
     }))
 
     setEmployees(list)
@@ -77,6 +79,10 @@ export default function CMKAttendancePage() {
     setEmployees(prev => prev.map(e => e.id === id ? { ...e, status } : e))
   }
 
+  const toggleEdit = (id: string) => {
+    setEmployees(prev => prev.map(e => e.id === id ? { ...e, editing: !e.editing } : e))
+  }
+
   const markAllPresent = () => {
     setEmployees(prev => prev.map(e => filtered.find(f => f.id === e.id) ? { ...e, status: 'present' } : e))
   }
@@ -91,7 +97,7 @@ export default function CMKAttendancePage() {
     setError(null)
     setSaving(true)
 
-    const toSave = filtered.filter(e => e.status && !e.saved)
+    const toSave = filtered.filter(e => e.status && (!e.saved || e.editing))
     if (toSave.length === 0) { setSaving(false); return }
 
     const now = format(new Date(), 'HH:mm:ss')
@@ -106,9 +112,11 @@ export default function CMKAttendancePage() {
       marked_by: user.id,
     }))
 
-    const { error: insertError } = await supabase.from('attendance').insert(records)
+    const { error: upsertError } = await supabase
+      .from('attendance')
+      .upsert(records, { onConflict: 'employee_id,date' })
 
-    if (insertError) {
+    if (upsertError) {
       setError('Failed to save attendance. Please try again.')
     } else {
       setSavedCount(toSave.length)
@@ -116,7 +124,7 @@ export default function CMKAttendancePage() {
         userId: user.id,
         userName: profile.full_name,
         userRole: role!,
-        action: `Saved CMK attendance for ${toSave.length} employees`,
+        action: `Saved/updated CMK attendance for ${toSave.length} employees`,
       })
       await loadEmployees()
     }
@@ -125,7 +133,7 @@ export default function CMKAttendancePage() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size="lg" /></div>
 
-  const unsaved = filtered.filter(e => e.status && !e.saved).length
+  const unsaved = filtered.filter(e => e.status && (!e.saved || e.editing)).length
   const total   = filtered.length
   const marked  = filtered.filter(e => e.status !== null).length
 
@@ -203,15 +211,15 @@ export default function CMKAttendancePage() {
                 </td></tr>
               ) : (
                 filtered.map(emp => (
-                  <tr key={emp.id} className={emp.saved ? 'opacity-60' : ''}>
+                  <tr key={emp.id} className={emp.saved && !emp.editing ? 'opacity-60' : ''}>
                     <td className="font-mono text-xs text-gray-500">{emp.employee_code}</td>
                     <td className="font-medium text-gray-900">{emp.name}</td>
                     <td className="text-gray-500">{emp.department}</td>
                     {(['present', 'absent', 'leave'] as AttStatus[]).map(s => (
                       <td key={s} className="text-center">
                         <button
-                          onClick={() => !emp.saved && setStatus(emp.id, s)}
-                          disabled={emp.saved}
+                          onClick={() => (!emp.saved || emp.editing) && setStatus(emp.id, s)}
+                          disabled={emp.saved && !emp.editing}
                           className={`w-6 h-6 rounded-full border-2 mx-auto flex items-center justify-center transition-colors ${
                             emp.status === s
                               ? s === 'present' ? 'bg-green-500 border-green-500'
@@ -227,14 +235,25 @@ export default function CMKAttendancePage() {
                       </td>
                     ))}
                     <td>
-                      {emp.saved ? (
-                        emp.status === 'present' ? <span className="badge-present">Present</span>
-                        : emp.status === 'absent' ? <span className="badge-absent">Absent</span>
-                        : <span className="badge-leave">Leave</span>
-                      ) : (
-                        !emp.status ? <span className="text-xs text-gray-400">Not marked</span>
-                        : <span className="text-xs text-gray-500 italic">Unsaved</span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {emp.saved && !emp.editing ? (
+                          emp.status === 'present' ? <span className="badge-present">Present</span>
+                          : emp.status === 'absent' ? <span className="badge-absent">Absent</span>
+                          : <span className="badge-leave">Leave</span>
+                        ) : (
+                          !emp.status ? <span className="text-xs text-gray-400">Not marked</span>
+                          : <span className="text-xs text-gray-500 italic">Unsaved</span>
+                        )}
+                        {emp.saved && (
+                          <button
+                            type="button"
+                            onClick={() => toggleEdit(emp.id)}
+                            className="text-xs font-medium text-brand-600 hover:text-brand-700 underline"
+                          >
+                            {emp.editing ? 'Cancel' : 'Edit'}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
