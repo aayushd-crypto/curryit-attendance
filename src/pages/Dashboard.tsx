@@ -59,6 +59,7 @@ function AttendanceCalendar({ employeeId, location }: { employeeId?: string | nu
       .lte('date', end)
 
     if (employeeId) query = query.eq('employee_id', employeeId)
+    if (!employeeId && location) query = query.eq('location', location)
 
     const { data } = await query
     setRecords(data ?? [])
@@ -68,7 +69,7 @@ function AttendanceCalendar({ employeeId, location }: { employeeId?: string | nu
     setLoading(false)
   }
 
-  useEffect(() => { loadMonth() }, [currentMonth, employeeId])
+  useEffect(() => { loadMonth() }, [currentMonth, employeeId, location])
 
   const days = eachDayOfInterval({ start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) })
   const firstDayOfWeek = getDay(startOfMonth(currentMonth)) // 0=Sun
@@ -209,6 +210,7 @@ export default function Dashboard() {
   const [loading, setLoading]       = useState(true)
   const [empId, setEmpId]           = useState<string | null>(null)
   const [empLocation, setEmpLocation] = useState<string>('office')
+  const [calendarLocation, setCalendarLocation] = useState<string>('office')
   const todayStr = format(new Date(), 'yyyy-MM-dd')
 
   const isAdmin = role === 'admin' || role === 'super_admin'
@@ -407,8 +409,32 @@ export default function Dashboard() {
 
       {/* Calendar + Pie chart row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          <AttendanceCalendar />
+        <div className="lg:col-span-2 space-y-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCalendarLocation('office')}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                calendarLocation === 'office'
+                  ? 'bg-blue-500 text-white border-blue-500'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1.5 align-middle" style={{ background: calendarLocation === 'office' ? '#fff' : '#3b82f6' }} />
+              Office
+            </button>
+            <button
+              onClick={() => setCalendarLocation('cmk')}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                calendarLocation === 'cmk'
+                  ? 'bg-brand-500 text-white border-brand-500'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <span className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" style={{ background: calendarLocation === 'cmk' ? '#fff' : '#E8531D' }} />
+              CMK
+            </button>
+          </div>
+          <AttendanceCalendar location={calendarLocation} />
         </div>
 
         <div className="card p-5">
