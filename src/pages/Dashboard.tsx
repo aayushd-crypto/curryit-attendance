@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Users, UserCheck, Monitor, Plane, TrendingUp, RefreshCw, CheckSquare, ChevronLeft, ChevronRight, CheckCircle2, Clock, Building2, Wifi, CalendarDays, AlertCircle, LogIn, LogOut, Timer, Zap, Lock } from 'lucide-react'
+import { Users, UserCheck, Monitor, Plane, TrendingUp, RefreshCw, CheckSquare, ChevronLeft, ChevronRight, CheckCircle2, Clock, Building2, Wifi, AlertCircle, LogIn, LogOut, Zap, Lock } from 'lucide-react'
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, parseISO, addMonths, subMonths, isSameMonth, isToday, isSunday } from 'date-fns'
 import { supabase } from '../supabase'
@@ -249,7 +249,6 @@ export default function Dashboard() {
 
   // ── Attendance check-in/out state (merged from Attendance page) ──────────
   const [todayRecord, setTodayRecord] = useState<AttRecord | null>(null)
-  const [history, setHistory]         = useState<AttRecord[]>([])
   const [workMode, setWorkMode]       = useState<'office' | 'remote'>('office')
   const [wfhApproved, setWfhApproved] = useState(false)
   const [attBusy, setAttBusy]         = useState(false)
@@ -338,18 +337,12 @@ export default function Dashboard() {
 
   useEffect(() => { loadDashboard() }, [role, profile])
 
-  // ── Load today's attendance + history for employee ────────────────────────
+  // ── Load today's attendance for employee ──────────────────────────────────
   const loadAttendance = async (employeeId: string) => {
     const { data: today } = await supabase
       .from('attendance').select('*')
       .eq('employee_id', employeeId).eq('date', todayStr).maybeSingle()
     setTodayRecord(today ?? null)
-
-    const { data: hist } = await supabase
-      .from('attendance').select('*')
-      .eq('employee_id', employeeId)
-      .order('date', { ascending: false }).limit(30)
-    setHistory(hist ?? [])
 
     try {
       const { data: wfh } = await supabase
@@ -476,66 +469,62 @@ export default function Dashboard() {
         {/* Check-in/out widget + compact calendar side by side */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Check-in/out card */}
-          <div className="lg:col-span-2 card-elevated rounded-3xl p-7">
+          <div className="lg:col-span-1 card-elevated rounded-3xl p-4">
             {/* ── NOT CHECKED IN ── */}
             {!checkedIn && !attError && (
               <>
-                <h2 className="font-black text-gray-900 text-xl mb-1 tracking-tight">Check in</h2>
-                <p className="text-sm text-gray-400 mb-6">
-                  Time is recorded by the server and cannot be edited.
+                <h2 className="font-bold text-gray-900 text-base mb-1 tracking-tight">Check in</h2>
+                <p className="text-xs text-gray-400 mb-3">
+                  Time is recorded by the server.
                 </p>
 
-                <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="grid grid-cols-2 gap-2 mb-3">
                   {/* Office */}
                   <button onClick={() => setWorkMode('office')}
-                    className={`flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all ${
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
                       workMode === 'office'
-                        ? 'border-brand-500 shadow-xl shadow-brand-500/15'
+                        ? 'border-brand-500 shadow-md shadow-brand-500/15'
                         : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
                     }`}>
-                    <div className="p-3 rounded-xl"
+                    <div className="p-2 rounded-lg"
                       style={{ background: workMode === 'office' ? 'linear-gradient(135deg,#E8531D,#C44010)' : '#E5E7EB' }}>
-                      <Building2 size={22} className={workMode === 'office' ? 'text-white' : 'text-gray-400'} />
+                      <Building2 size={16} className={workMode === 'office' ? 'text-white' : 'text-gray-400'} />
                     </div>
                     <div className="text-center">
-                      <p className={`font-bold text-sm ${workMode === 'office' ? 'text-brand-700' : 'text-gray-500'}`}>In Office</p>
-                      <p className="text-xs text-gray-400 mt-0.5">Working from office</p>
+                      <p className={`font-bold text-xs ${workMode === 'office' ? 'text-brand-700' : 'text-gray-500'}`}>In Office</p>
                     </div>
                   </button>
 
                   {/* Remote — locked without WFH approval */}
                   <button
                     onClick={() => { if (wfhApproved) setWorkMode('remote') }}
-                    className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all ${
+                    className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
                       !wfhApproved
                         ? 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
                         : workMode === 'remote'
-                          ? 'border-violet-500 shadow-xl shadow-violet-500/15'
+                          ? 'border-violet-500 shadow-md shadow-violet-500/15'
                           : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
                     }`}>
                     {!wfhApproved && (
-                      <Lock size={12} className="absolute top-3 right-3 text-gray-400" />
+                      <Lock size={10} className="absolute top-1.5 right-1.5 text-gray-400" />
                     )}
-                    <div className="p-3 rounded-xl"
+                    <div className="p-2 rounded-lg"
                       style={{ background: workMode === 'remote' && wfhApproved ? 'linear-gradient(135deg,#8B5CF6,#7C3AED)' : '#E5E7EB' }}>
-                      <Wifi size={22} className={workMode === 'remote' && wfhApproved ? 'text-white' : 'text-gray-400'} />
+                      <Wifi size={16} className={workMode === 'remote' && wfhApproved ? 'text-white' : 'text-gray-400'} />
                     </div>
                     <div className="text-center">
-                      <p className={`font-bold text-sm ${workMode === 'remote' && wfhApproved ? 'text-violet-700' : 'text-gray-500'}`}>Remote</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {wfhApproved ? 'WFH approved ✓' : 'Needs WFH approval'}
-                      </p>
+                      <p className={`font-bold text-xs ${workMode === 'remote' && wfhApproved ? 'text-violet-700' : 'text-gray-500'}`}>Remote</p>
                     </div>
                   </button>
                 </div>
 
                 <button onClick={checkIn} disabled={attBusy}
-                  className="btn-primary w-full justify-center py-4 rounded-2xl text-base">
-                  {attBusy ? <Spinner size="sm" /> : <LogIn size={19} />}
+                  className="btn-primary w-full justify-center py-2.5 rounded-xl text-sm">
+                  {attBusy ? <Spinner size="sm" /> : <LogIn size={16} />}
                   {attBusy ? 'Checking in...' : 'Check In'}
                 </button>
-                <p className="text-xs text-center text-gray-400 mt-3 flex items-center justify-center gap-1.5">
-                  <Clock size={11} /> One entry per day · time is server-stamped
+                <p className="text-[11px] text-center text-gray-400 mt-2 flex items-center justify-center gap-1">
+                  <Clock size={10} /> One entry per day
                 </p>
               </>
             )}
@@ -551,68 +540,68 @@ export default function Dashboard() {
 
             {/* ── CHECKED IN, NOT OUT ── */}
             {checkedIn && !checkedOut && (
-              <div className="text-center py-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5"
+              <div className="text-center py-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-3"
                   style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                  <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Working now</span>
+                  <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Working now</span>
                 </div>
 
-                <p className="text-5xl font-black text-gray-900 tracking-tight mb-1 tabular-nums">
+                <p className="text-3xl font-black text-gray-900 tracking-tight mb-1 tabular-nums">
                   {liveWorked !== null ? fmtMins(liveWorked) : '—'}
                 </p>
-                <p className="text-sm text-gray-400 mb-2">
-                  Checked in at {formatTime(todayRecord!.check_in_time ?? '')}
+                <p className="text-xs text-gray-400 mb-2">
+                  In at {formatTime(todayRecord!.check_in_time ?? '')}
                   {' · '}
                   {todayRecord!.work_mode === 'remote' ? '🏠 Remote' : '🏢 Office'}
                 </p>
                 {liveWorked !== null && liveWorked > 480 && (
-                  <p className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 mb-3">
-                    <Zap size={12} /> Overtime: {fmtMins(liveWorked - 480)}
+                  <p className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 mb-2">
+                    <Zap size={11} /> OT: {fmtMins(liveWorked - 480)}
                   </p>
                 )}
 
                 {attError && (
-                  <div className="mb-4 px-4 py-3 rounded-xl text-sm text-red-600 text-left"
+                  <div className="mb-3 px-3 py-2 rounded-xl text-xs text-red-600 text-left"
                     style={{ background: 'rgba(239,68,68,0.06)' }}>{attError}</div>
                 )}
 
                 <button onClick={checkOut} disabled={attBusy}
-                  className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl text-base font-semibold text-white transition-all"
+                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
                   style={{ background: 'linear-gradient(135deg,#374151,#1F2937)', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
-                  {attBusy ? <Spinner size="sm" /> : <LogOut size={19} />}
+                  {attBusy ? <Spinner size="sm" /> : <LogOut size={16} />}
                   {attBusy ? 'Checking out...' : 'Check Out'}
                 </button>
-                <p className="text-xs text-gray-400 mt-3 flex items-center justify-center gap-1.5">
-                  <Clock size={11} /> Standard day: 8 hours · overtime tracked automatically
+                <p className="text-[11px] text-gray-400 mt-2 flex items-center justify-center gap-1">
+                  <Clock size={10} /> 8h standard day
                 </p>
               </div>
             )}
 
             {/* ── CHECKED OUT ── */}
             {checkedOut && (
-              <div className="text-center py-4">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5"
+              <div className="text-center py-2">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
                   style={{ background: 'linear-gradient(135deg,#D1FAE5,#A7F3D0)', boxShadow: '0 8px 30px rgba(16,185,129,0.2)' }}>
-                  <CheckCircle2 size={38} className="text-emerald-600" />
+                  <CheckCircle2 size={24} className="text-emerald-600" />
                 </div>
-                <h2 className="text-xl font-black text-gray-900 mb-4">Day complete!</h2>
-                <div className="grid grid-cols-3 gap-3 mb-4">
+                <h2 className="text-base font-black text-gray-900 mb-3">Day complete!</h2>
+                <div className="grid grid-cols-3 gap-2 mb-2">
                   {[
-                    { label: 'Check in',  val: formatTime(todayRecord!.check_in_time ?? '') },
-                    { label: 'Check out', val: formatTime(todayRecord!.check_out_time ?? '') },
+                    { label: 'In',  val: formatTime(todayRecord!.check_in_time ?? '') },
+                    { label: 'Out', val: formatTime(todayRecord!.check_out_time ?? '') },
                     { label: 'Worked',    val: fmtMins(todayRecord!.worked_minutes ?? 0) },
                   ].map(s => (
-                    <div key={s.label} className="p-3 rounded-2xl bg-gray-50">
-                      <p className="text-sm font-black text-gray-900">{s.val}</p>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">{s.label}</p>
+                    <div key={s.label} className="p-2 rounded-xl bg-gray-50">
+                      <p className="text-xs font-black text-gray-900">{s.val}</p>
+                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">{s.label}</p>
                     </div>
                   ))}
                 </div>
                 {(todayRecord!.overtime_minutes ?? 0) > 0 && (
-                  <p className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-amber-700"
+                  <p className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold text-amber-700"
                     style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                    <Zap size={12} /> Overtime: {fmtMins(todayRecord!.overtime_minutes)}
+                    <Zap size={11} /> OT: {fmtMins(todayRecord!.overtime_minutes)}
                   </p>
                 )}
               </div>
@@ -620,54 +609,8 @@ export default function Dashboard() {
           </div>
 
           {/* Compact monthly calendar */}
-          <AttendanceCalendar employeeId={empId} location={empLocation} compact />
-        </div>
-
-        {/* History table */}
-        <div className="card overflow-hidden">
-          <div className="table-header">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
-                <CalendarDays size={15} style={{ color: '#E8531D' }} />
-              </div>
-              <h3 className="font-bold text-gray-900">Last 30 days</h3>
-            </div>
-            {history.some(r => r.overtime_minutes > 0) && (
-              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600">
-                <Timer size={13} />
-                Total OT: {fmtMins(history.reduce((a, r) => a + (r.overtime_minutes || 0), 0))}
-              </div>
-            )}
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr><th>Date</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th><th>OT</th></tr>
-              </thead>
-              <tbody>
-                {history.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-10 text-gray-400 text-sm">No records yet.</td></tr>
-                ) : history.map(r => (
-                  <tr key={r.id}>
-                    <td className="font-semibold whitespace-nowrap">{formatDate(r.date)}</td>
-                    <td>
-                      {r.status === 'present' && r.work_mode !== 'remote' && <span className="badge-present">Present</span>}
-                      {r.work_mode === 'remote' && <span className="badge-remote">Remote</span>}
-                      {r.status === 'absent'  && <span className="badge-absent">Absent</span>}
-                      {r.status === 'leave'   && <span className="badge-leave">Leave</span>}
-                    </td>
-                    <td className="text-gray-400">{r.check_in_time  ? formatTime(r.check_in_time)  : '—'}</td>
-                    <td className="text-gray-400">{r.check_out_time ? formatTime(r.check_out_time) : '—'}</td>
-                    <td className="font-medium text-gray-600">{r.worked_minutes ? fmtMins(r.worked_minutes) : '—'}</td>
-                    <td>
-                      {(r.overtime_minutes ?? 0) > 0
-                        ? <span className="text-xs font-bold text-amber-600">+{fmtMins(r.overtime_minutes)}</span>
-                        : <span className="text-gray-300 text-xs">—</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="lg:col-span-2">
+            <AttendanceCalendar employeeId={empId} location={empLocation} />
           </div>
         </div>
       </div>
