@@ -114,6 +114,7 @@ function AttendanceCalendar({ employeeId, location }: { employeeId?: string | nu
     setDayDetails(data ?? [])
     setDayLoading(false)
   }
+  const statusStyle: Record<string, string> = {
     present: 'bg-green-100 text-green-700 font-semibold border border-green-200',
     remote:  'bg-purple-100 text-purple-700 font-semibold border border-purple-200',
     absent:  'bg-red-100 text-red-600 font-semibold border border-red-200',
