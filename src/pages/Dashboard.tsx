@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Users, UserCheck, Monitor, Plane, TrendingUp, RefreshCw, CheckSquare, ChevronLeft, ChevronRight, CheckCircle2, Clock, Building2, Wifi, CalendarDays, AlertCircle, LogIn, LogOut, Timer, Zap, Lock } from 'lucide-react'
+import { Users, UserCheck, Monitor, Plane, TrendingUp, RefreshCw, CheckSquare, ChevronLeft, ChevronRight, LogIn, LogOut, Building2, Wifi, Clock } from 'lucide-react'
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, parseISO, addMonths, subMonths, isSameMonth, isToday, isSunday } from 'date-fns'
 import { supabase } from '../supabase'
@@ -29,23 +29,6 @@ interface DayRecord {
   date: string
   status: string
   work_mode: string | null
-  worked_minutes: number | null
-}
-
-interface AttRecord {
-  id: string; status: string; work_mode: string | null
-  check_in_time: string | null; check_out_time: string | null
-  worked_minutes: number; overtime_minutes: number; date: string
-}
-
-const fmtMins = (m: number) => {
-  const h = Math.floor(m / 60); const min = m % 60
-  return h > 0 ? `${h}h ${min}m` : `${min}m`
-}
-
-const fmtHrsShort = (m: number) => {
-  const h = m / 60
-  return `${h.toFixed(1)}h`
 }
 
 interface PendingLeave {
@@ -58,11 +41,15 @@ interface PendingLeave {
 }
 
 // ── Monthly Calendar Component ────────────────────────────────────────────────
-function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: string | null, location?: string, compact?: boolean }) {
+function AttendanceCalendar({ employeeId, location }: { employeeId?: string | null, location?: string }) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [records, setRecords] = useState<DayRecord[]>([])
   const [holidays, setHolidays] = useState<{ holiday_date: string; name: string }[]>([])
   const [loading, setLoading] = useState(false)
+  const [totalEmp, setTotalEmp] = useState(0)
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [dayDetails, setDayDetails] = useState<any[]>([])
+  const [dayLoading, setDayLoading] = useState(false)
 
   const loadMonth = async () => {
     setLoading(true)
@@ -71,7 +58,7 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
 
     let query = supabase
       .from('attendance')
-      .select('date, status, work_mode, worked_minutes')
+      .select('date, status, work_mode')
       .gte('date', start)
       .lte('date', end)
 
@@ -83,6 +70,14 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
     const { data: hols } = await supabase.from('holidays').select('holiday_date, name')
       .gte('holiday_date', start).lte('holiday_date', end)
     setHolidays(hols ?? [])
+
+    if (!employeeId) {
+      let empQ = supabase.from('employees').select('*', { count: 'exact', head: true }).eq('status', 'active')
+      if (location) empQ = empQ.eq('location', location)
+      const { count } = await empQ
+      setTotalEmp(count ?? 0)
+    }
+
     setLoading(false)
   }
 
@@ -102,6 +97,23 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
     return rec.status
   }
 
+  const getPresentCount = (date: Date) =>
+    records.filter(r => r.date === format(date, 'yyyy-MM-dd') && (r.status === 'present')).length
+
+  const openDay = async (date: Date) => {
+    if (employeeId) return
+    const dateStr = format(date, 'yyyy-MM-dd')
+    setSelectedDate(dateStr)
+    setDayLoading(true)
+    let q = supabase
+      .from('attendance')
+      .select('status, work_mode, check_in_time, check_out_time, employees(name, employee_code)')
+      .eq('date', dateStr)
+    if (location) q = q.eq('location', location)
+    const { data } = await q
+    setDayDetails(data ?? [])
+    setDayLoading(false)
+  }
   const statusStyle: Record<string, string> = {
     present: 'bg-green-100 text-green-700 font-semibold border border-green-200',
     remote:  'bg-purple-100 text-purple-700 font-semibold border border-purple-200',
@@ -113,60 +125,50 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
   }
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const weekDaysShort = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-
-  const getWorkedMins = (date: Date) => {
-    const rec = records.find(r => r.date === format(date, 'yyyy-MM-dd'))
-    return rec?.worked_minutes ?? null
-  }
 
   return (
-    <div className={compact ? 'card p-3' : 'card p-5'}>
+    <div className="card p-5">
       {/* Calendar header */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className={compact ? 'font-semibold text-gray-900 text-sm' : 'font-semibold text-gray-900'}>
-          {compact ? 'My calendar' : 'Monthly attendance'}
-        </h3>
-        <div className="flex items-center gap-1">
-          <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500">
-            <ChevronLeft size={14} />
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-gray-900">Monthly attendance</h3>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+            <ChevronLeft size={16} />
           </button>
-          <span className={`text-xs font-medium text-gray-700 text-center ${compact ? 'w-20' : 'w-28 text-sm'}`}>
-            {format(currentMonth, compact ? 'MMM yyyy' : 'MMMM yyyy')}
+          <span className="text-sm font-medium text-gray-700 w-28 text-center">
+            {format(currentMonth, 'MMMM yyyy')}
           </span>
           <button
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
             disabled={isSameMonth(currentMonth, new Date())}
-            className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 disabled:opacity-30"
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 disabled:opacity-30"
           >
-            <ChevronRight size={14} />
+            <ChevronRight size={16} />
           </button>
         </div>
       </div>
 
       {/* Legend */}
-      {!compact && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {[
-            { label: 'Present', cls: 'bg-green-100 text-green-700 border border-green-200' },
-            { label: 'Remote',  cls: 'bg-purple-100 text-purple-700 border border-purple-200' },
-            { label: 'Absent',  cls: 'bg-red-100 text-red-600 border border-red-200' },
-            { label: 'Leave',   cls: 'bg-orange-100 text-orange-700 border border-orange-200' },
-            { label: 'Sunday',  cls: 'bg-gray-100 text-gray-400 border border-gray-200' },
-            { label: 'Holiday', cls: 'bg-sky-100 text-sky-700 border border-sky-200' },
-          ].map(l => (
-            <span key={l.label} className={`text-xs px-2 py-0.5 rounded-full ${l.cls}`}>{l.label}</span>
-          ))}
-        </div>
-      )}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {[
+          { label: 'Present', cls: 'bg-green-100 text-green-700 border border-green-200' },
+          { label: 'Remote',  cls: 'bg-purple-100 text-purple-700 border border-purple-200' },
+          { label: 'Absent',  cls: 'bg-red-100 text-red-600 border border-red-200' },
+          { label: 'Leave',   cls: 'bg-orange-100 text-orange-700 border border-orange-200' },
+          { label: 'Sunday',  cls: 'bg-gray-100 text-gray-400 border border-gray-200' },
+          { label: 'Holiday', cls: 'bg-sky-100 text-sky-700 border border-sky-200' },
+        ].map(l => (
+          <span key={l.label} className={`text-xs px-2 py-0.5 rounded-full ${l.cls}`}>{l.label}</span>
+        ))}
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-8"><Spinner size="md" /></div>
       ) : (
-        <div className="grid grid-cols-7 gap-0.5">
+        <div className="grid grid-cols-7 gap-1">
           {/* Week day headers */}
-          {(compact ? weekDaysShort : weekDays).map((d, i) => (
-            <div key={`${d}-${i}`} className={`text-center font-medium py-1 ${compact ? 'text-[10px]' : 'text-xs'} ${i === 0 ? 'text-red-400' : 'text-gray-400'}`}>
+          {weekDays.map(d => (
+            <div key={d} className={`text-center text-xs font-medium py-1 ${d === 'Sun' ? 'text-red-400' : 'text-gray-400'}`}>
               {d}
             </div>
           ))}
@@ -180,23 +182,23 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
           {days.map(day => {
             const status = getDayStatus(day)
             const today  = isToday(day)
-            const worked = getWorkedMins(day)
+            const present = getPresentCount(day)
+            const clickable = !employeeId && !isSunday(day) && day <= new Date()
             return (
               <div
                 key={day.toISOString()}
                 title={getHoliday(day)?.name ?? ''}
+                onClick={() => clickable && openDay(day)}
                 className={`
-                  flex flex-col items-center justify-center rounded-lg
-                  ${compact ? 'py-1' : 'aspect-square text-xs'}
+                  aspect-square flex flex-col items-center justify-center rounded-xl text-xs gap-0.5
                   ${statusStyle[status]}
                   ${today ? 'ring-2 ring-brand-500 ring-offset-1' : ''}
+                  ${clickable ? 'cursor-pointer hover:opacity-80' : ''}
                 `}
               >
-                <span className={compact ? 'text-[10px] leading-tight' : ''}>{format(day, 'd')}</span>
-                {worked != null && worked > 0 && (
-                  <span className={`leading-tight font-normal opacity-70 ${compact ? 'text-[8px]' : 'text-[10px]'}`}>
-                    {fmtHrsShort(worked)}
-                  </span>
+                <span>{format(day, 'd')}</span>
+                {!employeeId && status !== 'sunday' && status !== 'festival' && totalEmp > 0 && (
+                  <span className="text-[9px] font-normal opacity-70">{present}/{totalEmp}</span>
                 )}
               </div>
             )
@@ -205,7 +207,7 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
       )}
 
       {/* Monthly summary */}
-      <div className={`grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-gray-100 ${compact ? 'gap-1' : ''}`}>
+      <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-gray-100">
         {[
           { label: 'Present', count: records.filter(r => r.status === 'present' && r.work_mode !== 'remote').length, cls: 'text-green-600' },
           { label: 'Remote',  count: records.filter(r => r.work_mode === 'remote').length, cls: 'text-purple-600' },
@@ -213,13 +215,13 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
           { label: 'Leave',   count: records.filter(r => r.status === 'leave').length,   cls: 'text-orange-600' },
         ].map(s => (
           <div key={s.label} className="text-center">
-            <p className={`font-bold ${s.cls} ${compact ? 'text-sm' : 'text-xl'}`}>{s.count}</p>
-            <p className={`text-gray-400 mt-0.5 ${compact ? 'text-[10px]' : 'text-xs'}`}>{s.label}</p>
+            <p className={`text-xl font-bold ${s.cls}`}>{s.count}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
           </div>
         ))}
       </div>
 
-      {holidays.length > 0 && !compact && (
+      {holidays.length > 0 && (
         <div className="mt-4 pt-4 border-t border-gray-100">
           <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-2">Holidays this month</p>
           <div className="flex flex-wrap gap-2">
@@ -229,6 +231,48 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
                 🎉 {h.name} · {format(parseISO(h.holiday_date), 'dd MMM')}
               </span>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Day detail modal */}
+      {selectedDate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}
+          onClick={() => setSelectedDate(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-y-auto p-5"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">
+                {format(parseISO(selectedDate), 'EEEE, dd MMM yyyy')}
+              </h3>
+              <button onClick={() => setSelectedDate(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+            </div>
+            {dayLoading ? (
+              <div className="flex justify-center py-8"><Spinner size="md" /></div>
+            ) : dayDetails.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-8">No attendance records for this date.</p>
+            ) : (
+              <div className="space-y-2">
+                {dayDetails.map((r, i) => (
+                  <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{r.employees?.name ?? '—'}</p>
+                      <p className="text-xs text-gray-400">{r.employees?.employee_code}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${statusStyle[r.status === 'present' && r.work_mode === 'remote' ? 'remote' : r.status]}`}>
+                        {r.status === 'present' && r.work_mode === 'remote' ? 'Remote' : statusLabel(r.status)}
+                      </span>
+                      {r.check_in_time && (
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          {formatTime(r.check_in_time)}{r.check_out_time ? ` – ${formatTime(r.check_out_time)}` : ''}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -245,22 +289,11 @@ export default function Dashboard() {
   const [empId, setEmpId]           = useState<string | null>(null)
   const [empLocation, setEmpLocation] = useState<string>('office')
   const [calendarLocation, setCalendarLocation] = useState<string>('office')
-  const todayStr = format(new Date(), 'yyyy-MM-dd')
-
-  // ── Attendance check-in/out state (merged from Attendance page) ──────────
-  const [todayRecord, setTodayRecord] = useState<AttRecord | null>(null)
-  const [history, setHistory]         = useState<AttRecord[]>([])
-  const [workMode, setWorkMode]       = useState<'office' | 'remote'>('office')
+  const [todayRecord, setTodayRecord] = useState<any>(null)
+  const [ciBusy, setCiBusy] = useState(false)
+  const [ciError, setCiError] = useState<string | null>(null)
   const [wfhApproved, setWfhApproved] = useState(false)
-  const [attBusy, setAttBusy]         = useState(false)
-  const [attError, setAttError]       = useState<string | null>(null)
-  const [now, setNow]                 = useState(new Date())
-
-  // live clock
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(t)
-  }, [])
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
 
   const isAdmin = role === 'admin' || role === 'super_admin'
   const isEmployee = role === 'employee'
@@ -278,6 +311,21 @@ export default function Dashboard() {
         if (emp) {
           setEmpId(emp.id)
           setEmpLocation(emp.location)
+
+          const { data: today } = await supabase
+            .from('attendance').select('*')
+            .eq('employee_id', emp.id).eq('date', todayStr).maybeSingle()
+          setTodayRecord(today ?? null)
+
+          try {
+            const { data: wfh } = await supabase
+              .from('wfh_requests').select('id')
+              .eq('employee_id', emp.id).eq('status', 'approved')
+              .lte('start_date', todayStr).gte('end_date', todayStr).limit(1)
+            setWfhApproved((wfh ?? []).length > 0)
+          } catch {
+            setWfhApproved(false)
+          }
         }
       }
 
@@ -338,91 +386,51 @@ export default function Dashboard() {
 
   useEffect(() => { loadDashboard() }, [role, profile])
 
-  // ── Load today's attendance + history for employee ────────────────────────
-  const loadAttendance = async (employeeId: string) => {
-    const { data: today } = await supabase
-      .from('attendance').select('*')
-      .eq('employee_id', employeeId).eq('date', todayStr).maybeSingle()
-    setTodayRecord(today ?? null)
-
-    const { data: hist } = await supabase
-      .from('attendance').select('*')
-      .eq('employee_id', employeeId)
-      .order('date', { ascending: false }).limit(30)
-    setHistory(hist ?? [])
-
-    try {
-      const { data: wfh } = await supabase
-        .from('wfh_requests').select('id')
-        .eq('employee_id', employeeId).eq('status', 'approved')
-        .lte('start_date', todayStr).gte('end_date', todayStr).limit(1)
-      setWfhApproved((wfh ?? []).length > 0)
-    } catch {
-      setWfhApproved(false)
-    }
-  }
-
-  useEffect(() => {
-    if (role === 'employee' && empId) loadAttendance(empId)
-  }, [role, empId])
-
-  const checkIn = async () => {
+  const checkIn = async (workMode: 'office' | 'remote') => {
     if (!user || !profile || !empId) return
-    setAttBusy(true); setAttError(null)
-
+    setCiBusy(true); setCiError(null)
     const { error: e } = await supabase.from('attendance').insert({
       employee_id: empId,
       date: todayStr,
-      check_in_time: '00:00:00', // server trigger overwrites with real IST time
+      check_in_time: '00:00:00',
       location: empLocation as any,
       work_mode: workMode,
       status: 'present',
       source: 'self_marked',
       marked_by: user.id,
     })
-
     if (e) {
       if (e.message?.includes('WFH_NOT_APPROVED'))
-        setAttError('Remote check-in requires an approved WFH request for today. Apply from Leave & WFH page.')
+        setCiError('Remote check-in requires an approved WFH request for today.')
       else if (e.code === '23505')
-        setAttError('You have already checked in today.')
+        setCiError('You have already checked in today.')
       else
-        setAttError(`Check-in failed: ${e.message}`)
+        setCiError(`Check-in failed: ${e.message}`)
     } else {
       await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!, action: `Checked in — ${workMode}` })
-      await loadAttendance(empId)
+      await loadDashboard()
     }
-    setAttBusy(false)
+    setCiBusy(false)
   }
 
   const checkOut = async () => {
-    if (!user || !profile || !todayRecord || !empId) return
-    setAttBusy(true); setAttError(null)
-
+    if (!user || !profile || !todayRecord) return
+    setCiBusy(true); setCiError(null)
     const { error: e } = await supabase
       .from('attendance')
-      .update({ check_out_time: '00:00:00' }) // server trigger overwrites with real IST time
+      .update({ check_out_time: '00:00:00' })
       .eq('id', todayRecord.id)
-
     if (e) {
       if (e.message?.includes('ALREADY_CHECKED_OUT'))
-        setAttError('You have already checked out today.')
+        setCiError('You have already checked out today.')
       else
-        setAttError(`Check-out failed: ${e.message}`)
+        setCiError(`Check-out failed: ${e.message}`)
     } else {
       await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!, action: 'Checked out' })
-      await loadAttendance(empId)
+      await loadDashboard()
     }
-    setAttBusy(false)
+    setCiBusy(false)
   }
-
-  // live worked time counter
-  const liveWorked = (() => {
-    if (!todayRecord?.check_in_time || todayRecord.check_out_time) return null
-    const [h, m, s] = todayRecord.check_in_time.split(':').map(Number)
-    const start = new Date(); start.setHours(h, m, s ?? 0, 0)
-    return Math.max(0, Math.floor((now.getTime() - start.getTime()) / 60000))
-  })()
 
   const pieData = summary ? [
     { name: 'Present',  value: summary.presentTotal + summary.remoteTotal, color: '#16a34a' },
@@ -438,15 +446,12 @@ export default function Dashboard() {
 
   // ── EMPLOYEE VIEW ─────────────────────────────────────────────────────────
   if (isEmployee) {
-    const checkedIn  = !!todayRecord
-    const checkedOut = !!todayRecord?.check_out_time
-
     return (
-      <div className="space-y-5 max-w-5xl mx-auto">
+      <div className="space-y-5 max-w-3xl mx-auto">
         <div className="page-header">
           <div>
             <h1 className="page-title">My Dashboard</h1>
-            <p className="page-subtitle">{formatDate(todayStr)} · {format(now, 'hh:mm:ss a')} · {empLocation === 'office' ? 'Office' : 'CMK'}</p>
+            <p className="page-subtitle">{formatDate(todayStr)} · {empLocation === 'office' ? 'Office' : 'CMK'}</p>
           </div>
           <button onClick={loadDashboard} className="btn-secondary">
             <RefreshCw size={15} /> Refresh
@@ -454,7 +459,11 @@ export default function Dashboard() {
         </div>
 
         {/* Employee stats — only their location */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <div className="card p-4 text-center bg-gray-50">
+            <p className="text-3xl font-bold text-gray-700">{summary?.totalEmployees ?? 0}</p>
+            <p className="text-xs text-gray-500 mt-1">Total employees</p>
+          </div>
           <div className="card p-4 text-center bg-green-50">
             <p className="text-3xl font-bold text-green-600">{summary?.presentTotal ?? 0}</p>
             <p className="text-xs text-gray-500 mt-1">Present today</p>
@@ -473,203 +482,74 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Check-in/out widget + compact calendar side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Check-in/out card */}
-          <div className="lg:col-span-2 card-elevated rounded-3xl p-7">
-            {/* ── NOT CHECKED IN ── */}
-            {!checkedIn && !attError && (
-              <>
-                <h2 className="font-black text-gray-900 text-xl mb-1 tracking-tight">Check in</h2>
-                <p className="text-sm text-gray-400 mb-6">
-                  Time is recorded by the server and cannot be edited.
-                </p>
-
-                <div className="grid grid-cols-2 gap-3 mb-6">
-                  {/* Office */}
-                  <button onClick={() => setWorkMode('office')}
-                    className={`flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all ${
-                      workMode === 'office'
-                        ? 'border-brand-500 shadow-xl shadow-brand-500/15'
-                        : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
-                    }`}>
-                    <div className="p-3 rounded-xl"
-                      style={{ background: workMode === 'office' ? 'linear-gradient(135deg,#E8531D,#C44010)' : '#E5E7EB' }}>
-                      <Building2 size={22} className={workMode === 'office' ? 'text-white' : 'text-gray-400'} />
-                    </div>
-                    <div className="text-center">
-                      <p className={`font-bold text-sm ${workMode === 'office' ? 'text-brand-700' : 'text-gray-500'}`}>In Office</p>
-                      <p className="text-xs text-gray-400 mt-0.5">Working from office</p>
-                    </div>
-                  </button>
-
-                  {/* Remote — locked without WFH approval */}
-                  <button
-                    onClick={() => { if (wfhApproved) setWorkMode('remote') }}
-                    className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all ${
-                      !wfhApproved
-                        ? 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
-                        : workMode === 'remote'
-                          ? 'border-violet-500 shadow-xl shadow-violet-500/15'
-                          : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
-                    }`}>
-                    {!wfhApproved && (
-                      <Lock size={12} className="absolute top-3 right-3 text-gray-400" />
-                    )}
-                    <div className="p-3 rounded-xl"
-                      style={{ background: workMode === 'remote' && wfhApproved ? 'linear-gradient(135deg,#8B5CF6,#7C3AED)' : '#E5E7EB' }}>
-                      <Wifi size={22} className={workMode === 'remote' && wfhApproved ? 'text-white' : 'text-gray-400'} />
-                    </div>
-                    <div className="text-center">
-                      <p className={`font-bold text-sm ${workMode === 'remote' && wfhApproved ? 'text-violet-700' : 'text-gray-500'}`}>Remote</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {wfhApproved ? 'WFH approved ✓' : 'Needs WFH approval'}
-                      </p>
-                    </div>
-                  </button>
-                </div>
-
-                <button onClick={checkIn} disabled={attBusy}
-                  className="btn-primary w-full justify-center py-4 rounded-2xl text-base">
-                  {attBusy ? <Spinner size="sm" /> : <LogIn size={19} />}
-                  {attBusy ? 'Checking in...' : 'Check In'}
+        {/* Check in / Check out */}
+        <div className="card p-5">
+          {!todayRecord ? (
+            <>
+              <h3 className="font-semibold text-gray-900 mb-3">Mark your attendance</h3>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => checkIn('office')}
+                  disabled={ciBusy}
+                  className="btn-primary flex-1 justify-center py-3 rounded-xl"
+                >
+                  {ciBusy ? <Spinner size="sm" /> : <Building2 size={16} />}
+                  Check In — Office
                 </button>
-                <p className="text-xs text-center text-gray-400 mt-3 flex items-center justify-center gap-1.5">
-                  <Clock size={11} /> One entry per day · time is server-stamped
-                </p>
-              </>
-            )}
-
-            {/* Error banner for missing employee record */}
-            {attError && !checkedIn && (
-              <div className="flex items-start gap-3 px-5 py-4 rounded-2xl text-sm text-red-700"
-                style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-                <span>{attError}</span>
+                <button
+                  onClick={() => wfhApproved && checkIn('remote')}
+                  disabled={ciBusy || !wfhApproved}
+                  title={!wfhApproved ? 'Needs approved WFH request for today' : ''}
+                  className="btn-secondary flex-1 justify-center py-3 rounded-xl disabled:opacity-50"
+                >
+                  <Wifi size={16} />
+                  Check In — Remote
+                </button>
               </div>
-            )}
-
-            {/* ── CHECKED IN, NOT OUT ── */}
-            {checkedIn && !checkedOut && (
-              <div className="text-center py-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5"
+              {!wfhApproved && (
+                <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                  <Clock size={11} /> Remote check-in needs an approved WFH request for today.
+                </p>
+              )}
+            </>
+          ) : !todayRecord.check_out_time ? (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="font-semibold text-gray-900">You're checked in</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Since {formatTime(todayRecord.check_in_time)} · {todayRecord.work_mode === 'remote' ? '🏠 Remote' : '🏢 Office'}
+                  </p>
+                </div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-emerald-700"
                   style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
-                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                  <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Working now</span>
-                </div>
-
-                <p className="text-5xl font-black text-gray-900 tracking-tight mb-1 tabular-nums">
-                  {liveWorked !== null ? fmtMins(liveWorked) : '—'}
-                </p>
-                <p className="text-sm text-gray-400 mb-2">
-                  Checked in at {formatTime(todayRecord!.check_in_time ?? '')}
-                  {' · '}
-                  {todayRecord!.work_mode === 'remote' ? '🏠 Remote' : '🏢 Office'}
-                </p>
-                {liveWorked !== null && liveWorked > 480 && (
-                  <p className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 mb-3">
-                    <Zap size={12} /> Overtime: {fmtMins(liveWorked - 480)}
-                  </p>
-                )}
-
-                {attError && (
-                  <div className="mb-4 px-4 py-3 rounded-xl text-sm text-red-600 text-left"
-                    style={{ background: 'rgba(239,68,68,0.06)' }}>{attError}</div>
-                )}
-
-                <button onClick={checkOut} disabled={attBusy}
-                  className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl text-base font-semibold text-white transition-all"
-                  style={{ background: 'linear-gradient(135deg,#374151,#1F2937)', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
-                  {attBusy ? <Spinner size="sm" /> : <LogOut size={19} />}
-                  {attBusy ? 'Checking out...' : 'Check Out'}
-                </button>
-                <p className="text-xs text-gray-400 mt-3 flex items-center justify-center gap-1.5">
-                  <Clock size={11} /> Standard day: 8 hours · overtime tracked automatically
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Working now
+                </span>
+              </div>
+              <button onClick={checkOut} disabled={ciBusy} className="btn-primary w-full justify-center py-3 rounded-xl">
+                {ciBusy ? <Spinner size="sm" /> : <LogOut size={16} />}
+                Check Out
+              </button>
+            </>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-gray-900">Today's attendance done ✓</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {formatTime(todayRecord.check_in_time)} – {formatTime(todayRecord.check_out_time)}
+                  {' · '}{todayRecord.work_mode === 'remote' ? '🏠 Remote' : '🏢 Office'}
                 </p>
               </div>
-            )}
-
-            {/* ── CHECKED OUT ── */}
-            {checkedOut && (
-              <div className="text-center py-4">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5"
-                  style={{ background: 'linear-gradient(135deg,#D1FAE5,#A7F3D0)', boxShadow: '0 8px 30px rgba(16,185,129,0.2)' }}>
-                  <CheckCircle2 size={38} className="text-emerald-600" />
-                </div>
-                <h2 className="text-xl font-black text-gray-900 mb-4">Day complete!</h2>
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  {[
-                    { label: 'Check in',  val: formatTime(todayRecord!.check_in_time ?? '') },
-                    { label: 'Check out', val: formatTime(todayRecord!.check_out_time ?? '') },
-                    { label: 'Worked',    val: fmtMins(todayRecord!.worked_minutes ?? 0) },
-                  ].map(s => (
-                    <div key={s.label} className="p-3 rounded-2xl bg-gray-50">
-                      <p className="text-sm font-black text-gray-900">{s.val}</p>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">{s.label}</p>
-                    </div>
-                  ))}
-                </div>
-                {(todayRecord!.overtime_minutes ?? 0) > 0 && (
-                  <p className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-amber-700"
-                    style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                    <Zap size={12} /> Overtime: {fmtMins(todayRecord!.overtime_minutes)}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Compact monthly calendar */}
-          <AttendanceCalendar employeeId={empId} location={empLocation} compact />
-        </div>
-
-        {/* History table */}
-        <div className="card overflow-hidden">
-          <div className="table-header">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
-                <CalendarDays size={15} style={{ color: '#E8531D' }} />
-              </div>
-              <h3 className="font-bold text-gray-900">Last 30 days</h3>
+              <CheckSquare className="text-green-500" size={28} />
             </div>
-            {history.some(r => r.overtime_minutes > 0) && (
-              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600">
-                <Timer size={13} />
-                Total OT: {fmtMins(history.reduce((a, r) => a + (r.overtime_minutes || 0), 0))}
-              </div>
-            )}
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr><th>Date</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th><th>OT</th></tr>
-              </thead>
-              <tbody>
-                {history.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-10 text-gray-400 text-sm">No records yet.</td></tr>
-                ) : history.map(r => (
-                  <tr key={r.id}>
-                    <td className="font-semibold whitespace-nowrap">{formatDate(r.date)}</td>
-                    <td>
-                      {r.status === 'present' && r.work_mode !== 'remote' && <span className="badge-present">Present</span>}
-                      {r.work_mode === 'remote' && <span className="badge-remote">Remote</span>}
-                      {r.status === 'absent'  && <span className="badge-absent">Absent</span>}
-                      {r.status === 'leave'   && <span className="badge-leave">Leave</span>}
-                    </td>
-                    <td className="text-gray-400">{r.check_in_time  ? formatTime(r.check_in_time)  : '—'}</td>
-                    <td className="text-gray-400">{r.check_out_time ? formatTime(r.check_out_time) : '—'}</td>
-                    <td className="font-medium text-gray-600">{r.worked_minutes ? fmtMins(r.worked_minutes) : '—'}</td>
-                    <td>
-                      {(r.overtime_minutes ?? 0) > 0
-                        ? <span className="text-xs font-bold text-amber-600">+{fmtMins(r.overtime_minutes)}</span>
-                        : <span className="text-gray-300 text-xs">—</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          )}
+          {ciError && (
+            <p className="text-sm text-red-600 mt-3 px-3 py-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.06)' }}>{ciError}</p>
+          )}
         </div>
+
+        {/* Monthly calendar for this employee */}
+        <AttendanceCalendar employeeId={empId} location={empLocation} />
       </div>
     )
   }
