@@ -7,7 +7,6 @@ import { Suspense, lazy } from 'react'
 
 const LoginPage       = lazy(() => import('./pages/Login'))
 const Dashboard       = lazy(() => import('./pages/Dashboard'))
-const Attendance      = lazy(() => import('./pages/Attendance'))
 const CMKAttendance   = lazy(() => import('./pages/CMKAttendance'))
 const LeavePage       = lazy(() => import('./pages/Leave'))
 const EmployeesPage   = lazy(() => import('./pages/Employees'))
@@ -34,12 +33,6 @@ export default function App() {
               </ProtectedRoute>
             }>
               <Route path="/dashboard"       element={<Dashboard />} />
-
-              <Route path="/attendance"      element={
-                <ProtectedRoute allowedRoles={['employee']}>
-                  <Attendance />
-                </ProtectedRoute>
-              } />
 
               <Route path="/cmk-attendance"  element={
                 <ProtectedRoute allowedRoles={['super_admin','admin','cmk_coordinator']}>
