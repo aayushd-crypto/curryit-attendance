@@ -435,6 +435,7 @@ export default function Dashboard() {
       <Spinner size="lg" />
     </div>
   )
+
   // ── EMPLOYEE VIEW ─────────────────────────────────────────────────────────
   if (isEmployee) {
     const checkedIn  = !!todayRecord
@@ -672,6 +673,7 @@ export default function Dashboard() {
       </div>
     )
   }
+
   // ── ADMIN / SUPER ADMIN VIEW ──────────────────────────────────────────────
   return (
     <div className="space-y-5 max-w-7xl mx-auto">
