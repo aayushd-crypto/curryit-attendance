@@ -88,27 +88,35 @@ export default function EmployeesPage() {
     if (!user) return
     setSaving(true); setError(null)
 
-    const { data: { session } } = await supabase.auth.getSession()
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-employee`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify(form),
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-employee`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify(form),
+        }
+      )
+      const text = await res.text()
+      let json: any = {}
+      try { json = JSON.parse(text) } catch { json = { error: text || 'Empty response from server' } }
+
+      if (!res.ok) {
+        setError(json.error ?? `Failed to create employee (status ${res.status}).`)
+      } else {
+        setSuccessMsg(json.message)
+        await logAudit({ userId: user.id, userName: profile!.full_name, userRole: role!, action: `Created employee: ${form.name}` })
+        await loadData()
       }
-    )
-    const json = await res.json()
-    if (!res.ok) {
-      setError(json.error ?? 'Failed to create employee.')
-    } else {
-      setSuccessMsg(json.message)
-      await logAudit({ userId: user.id, userName: profile!.full_name, userRole: role!, action: `Created employee: ${form.name}` })
-      await loadData()
+    } catch (err: any) {
+      setError(err?.message ?? 'Network error while creating employee.')
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
   }
 
   // ── Edit: only updates employee fields, does NOT touch auth
