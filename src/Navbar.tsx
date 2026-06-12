@@ -1,35 +1,35 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, Search } from 'lucide-react'
+import { Menu, Bell, Search } from 'lucide-react'
 import { format } from 'date-fns'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabase'
 
+interface NavbarProps { onMenuClick: () => void; notifCount?: number }
 interface Hit { id: string; name: string; employee_code: string; designation: string; location: string }
 
-export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
-  const { role } = useAuth()
+export function Navbar({ onMenuClick, notifCount = 0 }: NavbarProps) {
+  const { profile, role } = useAuth()
   const navigate = useNavigate()
   const isAdmin = role === 'admin' || role === 'super_admin'
-  const today = format(new Date(), 'EEEE, d MMMM')
+  const today = format(new Date(), 'EEE, dd MMM yyyy')
 
-  const [q, setQ] = useState('')
-  const [hits, setHits] = useState<Hit[]>([])
-  const [open, setOpen] = useState(false)
+  const [q, setQ]         = useState('')
+  const [hits, setHits]   = useState<Hit[]>([])
+  const [open, setOpen]   = useState(false)
   const boxRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!q.trim() || !isAdmin) { setHits([]); setOpen(false); return }
+    if (!q.trim() || !isAdmin) { setHits([]); return }
     const t = setTimeout(async () => {
       const { data } = await supabase.from('employees')
         .select('id, name, employee_code, designation, location')
         .or(`name.ilike.%${q}%,employee_code.ilike.%${q}%,email.ilike.%${q}%`)
-        .limit(6)
-      setHits((data ?? []) as Hit[])
-      setOpen(true)
-    }, 220)
+        .eq('status', 'active').limit(6)
+      setHits((data ?? []) as Hit[]); setOpen(true)
+    }, 250)
     return () => clearTimeout(t)
-  }, [q, isAdmin])
+  }, [q])
 
   useEffect(() => {
     const close = (e: MouseEvent) => { if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false) }
@@ -37,54 +37,77 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
     return () => document.removeEventListener('mousedown', close)
   }, [])
 
+  const go = (hit: Hit) => {
+    setQ(''); setOpen(false)
+    navigate(`/employees?q=${encodeURIComponent(hit.name)}`)
+  }
+
   return (
-    <header className="sticky top-0 z-20 px-5 sm:px-8 py-3.5"
-      style={{
-        background: 'rgba(245,245,247,0.8)',
-        backdropFilter: 'blur(30px)',
-        WebkitBackdropFilter: 'blur(30px)',
-        borderBottom: '0.5px solid rgba(0,0,0,0.07)',
-      }}>
-      <div className="flex items-center gap-4">
-        <button onClick={onMenuClick} className="lg:hidden p-2 -ml-2 rounded-full hover:bg-black/5 text-gray-600">
+    <header className="sticky top-0 z-20 px-4 sm:px-6 py-3"
+      style={{ background: 'rgba(240,242,247,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+      <div className="flex items-center gap-3">
+        <button onClick={onMenuClick} className="lg:hidden p-2 rounded-xl bg-white text-gray-500" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
           <Menu size={20} />
         </button>
 
-        <span className="text-[15px] font-semibold text-gray-900">{today}</span>
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.7)' }}>
+          <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+          <span className="text-xs font-semibold text-gray-500">{today}</span>
+        </div>
 
         <div className="flex-1" />
 
+        {/* Live search — admin only */}
         {isAdmin && (
           <div ref={boxRef} className="relative hidden md:block">
-            <div className="flex items-center gap-2 px-3.5 py-2 rounded-full min-w-[240px]"
-              style={{ background: 'rgba(0,0,0,0.05)' }}>
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl min-w-[260px]"
+              style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
               <Search size={14} className="text-gray-400 flex-shrink-0" />
               <input value={q} onChange={e => setQ(e.target.value)} onFocus={() => q && setOpen(true)}
-                placeholder="Search employees"
-                className="bg-transparent outline-none text-[14px] text-gray-800 placeholder-gray-400 w-full" />
+                placeholder="Search employees..."
+                className="bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400 w-full" />
             </div>
             {open && hits.length > 0 && (
-              <div className="absolute top-full mt-2 left-0 right-0 rounded-2xl overflow-hidden z-50 py-1"
-                style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(30px)',
-                  boxShadow: '0 8px 40px rgba(0,0,0,0.14)', border: '0.5px solid rgba(0,0,0,0.08)' }}>
+              <div className="absolute top-full mt-2 left-0 right-0 rounded-2xl overflow-hidden z-50 bg-white"
+                style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid rgba(0,0,0,0.06)' }}>
                 {hits.map(h => (
-                  <button key={h.id}
-                    onClick={() => { setQ(''); setOpen(false); navigate(`/employees?q=${encodeURIComponent(h.name)}`) }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-black/[0.04] transition-colors text-left">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                      style={{ background: '#E8531D' }}>
+                  <button key={h.id} onClick={() => go(h)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-brand-50/60 transition-colors text-left">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                      style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
                       {h.name[0]}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[14px] font-medium text-gray-900 truncate">{h.name}</p>
+                      <p className="text-sm font-semibold text-gray-900 truncate">{h.name}</p>
                       <p className="text-xs text-gray-400">{h.employee_code} · {h.designation}</p>
                     </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${h.location === 'office' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'}`}>
+                      {h.location === 'office' ? 'Office' : 'CMK'}
+                    </span>
                   </button>
                 ))}
               </div>
             )}
           </div>
         )}
+
+        <button className="relative p-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.07)' }}>
+          <Bell size={17} className="text-gray-500" />
+          {notifCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 text-white text-[9px] font-black rounded-full flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>{notifCount}</span>
+          )}
+        </button>
+
+        <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.07)' }}>
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs text-white"
+            style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
+            {profile?.full_name?.[0]?.toUpperCase() ?? 'U'}
+          </div>
+          <span className="hidden sm:block text-sm font-semibold text-gray-700 max-w-[120px] truncate">
+            {profile?.full_name?.split(' ')[0] ?? 'User'}
+          </span>
+        </div>
       </div>
     </header>
   )
