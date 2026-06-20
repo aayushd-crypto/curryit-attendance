@@ -31,6 +31,10 @@ interface DayRecord {
   status: string
   work_mode: string | null
   worked_minutes: number | null
+  check_in_time?: string | null
+  check_out_time?: string | null
+  employee_id?: string
+  employee_name?: string
 }
 
 interface AttRecord {
@@ -59,7 +63,7 @@ interface PendingLeave {
 }
 
 // ── Monthly Calendar Component ────────────────────────────────────────────────
-function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: string | null, location?: string, compact?: boolean }) {
+function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick }: { employeeId?: string | null, location?: string, compact?: boolean, empMap?: Record<string, string>, onDayClick?: (dateStr: string, records: DayRecord[]) => void }) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [records, setRecords] = useState<DayRecord[]>([])
   const [holidays, setHolidays] = useState<{ holiday_date: string; name: string }[]>([])
@@ -72,7 +76,7 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
 
     let query = supabase
       .from('attendance')
-      .select('date, status, work_mode, worked_minutes')
+      .select('date, status, work_mode, worked_minutes, check_in_time, check_out_time, employee_id')
       .gte('date', start)
       .lte('date', end)
 
@@ -80,7 +84,11 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
     if (!employeeId && location) query = query.eq('location', location)
 
     const { data } = await query
-    setRecords(data ?? [])
+    const enriched = (data ?? []).map((r: any) => ({
+      ...r,
+      employee_name: empMap?.[r.employee_id] ?? undefined,
+    }))
+    setRecords(enriched)
     const { data: hols } = await supabase.from('holidays').select('holiday_date, name')
       .gte('holiday_date', start).lte('holiday_date', end)
     setHolidays(hols ?? [])
@@ -183,14 +191,21 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
             const today  = isToday(day)
             const worked = getWorkedMins(day)
             return (
-              <div
+              <button
                 key={day.toISOString()}
-                title={getHoliday(day)?.name ?? ''}
+                title={getHoliday(day)?.name ?? (onDayClick && status !== 'none' && status !== 'sunday' && status !== 'festival' ? 'Click for details' : '')}
+                onClick={() => {
+                  if (!onDayClick || status === 'sunday' || status === 'festival' || status === 'none') return
+                  const dateStr = format(day, 'yyyy-MM-dd')
+                  const dayRecs = records.filter(r => r.date === dateStr)
+                  onDayClick(dateStr, dayRecs)
+                }}
                 className={`
-                  flex flex-col items-center justify-center rounded-lg
+                  flex flex-col items-center justify-center rounded-lg w-full
                   ${compact ? 'py-1' : 'aspect-square text-xs'}
                   ${statusStyle[status]}
                   ${today ? 'ring-2 ring-brand-500 ring-offset-1' : ''}
+                  ${onDayClick && status !== 'none' && status !== 'sunday' && status !== 'festival' ? 'hover:brightness-95 cursor-pointer' : 'cursor-default'}
                 `}
               >
                 <span className={compact ? 'text-[10px] leading-tight' : ''}>{format(day, 'd')}</span>
@@ -199,7 +214,7 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
                     {fmtHrsShort(worked)}
                   </span>
                 )}
-              </div>
+              </button>
             )
           })}
         </div>
@@ -266,6 +281,7 @@ export default function Dashboard() {
   const [attError, setAttError]       = useState<string | null>(null)
   const [now, setNow]                 = useState(new Date())
 
+  const [empMap, setEmpMap]             = useState<Record<string, string>>({})
   const [todayAttFull, setTodayAttFull] = useState<any[]>([])
   const [drillModal, setDrillModal]   = useState<{ title: string; rows: { name: string; sub?: string }[] } | null>(null)
 
@@ -302,6 +318,7 @@ export default function Dashboard() {
       // Fetch employee name map
       const { data: allEmps } = await supabase.from('employees').select('id, name, employee_code')
       const empMap: Record<string, string> = Object.fromEntries((allEmps ?? []).map((e: any) => [e.id, e.name]))
+      setEmpMap(empMap)
 
       // Today's attendance
       let attQuery = supabase.from('attendance').select('status, work_mode, location, employee_id').eq('date', todayStr)
@@ -648,7 +665,17 @@ export default function Dashboard() {
           </div>
 
           {/* Compact monthly calendar */}
-          <AttendanceCalendar employeeId={empId} location={empLocation} compact />
+          <AttendanceCalendar employeeId={empId} location={empLocation} compact onDayClick={(dateStr, recs) => {
+            const r = recs[0]
+            if (!r) return
+            setDrillModal({
+              title: format(parseISO(dateStr), 'EEEE, dd MMM yyyy'),
+              rows: [{
+                name: r.status === 'present' && r.work_mode === 'remote' ? 'Remote' : r.status === 'present' ? 'Present (office)' : r.status === 'leave' ? 'On leave' : 'Absent',
+                sub: r.check_in_time ? `${r.check_in_time.slice(0,5)} → ${r.check_out_time ? r.check_out_time.slice(0,5) : 'ongoing'}` : undefined,
+              }]
+            })
+          }} />
         </div>
 
         {/* History table */}
@@ -832,7 +859,15 @@ export default function Dashboard() {
               CMK
             </button>
           </div>
-          <AttendanceCalendar location={calendarLocation} />
+          <AttendanceCalendar location={calendarLocation} empMap={empMap} onDayClick={(dateStr, recs) => {
+            setDrillModal({
+              title: format(parseISO(dateStr), 'EEEE, dd MMM yyyy'),
+              rows: recs.map(r => ({
+                name: r.employee_name ?? '—',
+                sub: `${r.status}${r.work_mode === 'remote' ? ' · remote' : ''} · in: ${r.check_in_time ? r.check_in_time.slice(0,5) : '—'} out: ${r.check_out_time ? r.check_out_time.slice(0,5) : '—'}`,
+              }))
+            })
+          }} />
         </div>
 
         <div className="card p-5">
