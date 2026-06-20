@@ -13,7 +13,8 @@ const EmployeesPage   = lazy(() => import('./pages/Employees'))
 const ReportsPage     = lazy(() => import('./pages/Reports'))
 const AuditLogPage    = lazy(() => import('./pages/AuditLog'))
 const SettingsPage    = lazy(() => import('./pages/Settings'))
-const ResetPassword   = lazy(() => import('./pages/ResetPassword'))
+const ResetPassword      = lazy(() => import('./pages/ResetPassword'))
+const AttendanceDayPage  = lazy(() => import('./pages/AttendanceDay'))
 
 export default function App() {
   return (
@@ -41,6 +42,7 @@ export default function App() {
               } />
 
               <Route path="/leave"           element={<LeavePage />} />
+              <Route path="/attendance/:date" element={<AttendanceDayPage />} />
 
               <Route path="/employees"       element={
                 <ProtectedRoute allowedRoles={['super_admin','admin']}>

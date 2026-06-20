@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Users, UserCheck, Monitor, Plane, TrendingUp, RefreshCw, CheckSquare, ChevronLeft, ChevronRight, CheckCircle2, Clock, Building2, Wifi, CalendarDays, AlertCircle, LogIn, LogOut, Timer, Zap, X } from 'lucide-react'
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, parseISO, addMonths, subMonths, isSameMonth, isToday, isSunday } from 'date-fns'
@@ -263,6 +263,7 @@ interface MonthSummary {
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user, role, profile } = useAuth()
+  const navigate = useNavigate()
   const [summary, setSummary]           = useState<TodaySummary | null>(null)
   const [monthSummary, setMonthSummary] = useState<MonthSummary | null>(null)
   const [pendingLeaves, setPending]     = useState<PendingLeave[]>([])
@@ -675,19 +676,7 @@ export default function Dashboard() {
           </div>
 
           {/* Compact monthly calendar */}
-          <AttendanceCalendar employeeId={empId} location={empLocation} compact onDayClick={(dateStr, recs) => {
-            const r = recs[0]
-            if (!r) return
-            setDrillModal({
-              title: format(parseISO(dateStr), 'EEEE, dd MMM yyyy'),
-              rows: [{
-                name: r.status === 'present' && r.work_mode === 'remote' ? 'Remote (WFH)' : r.status === 'present' ? `Present · ${r.location === 'cmk' ? 'CMK' : 'Office'}` : r.status === 'leave' ? 'On leave' : 'Absent',
-                sub: r.check_in_time
-                  ? `In: ${r.check_in_time.slice(0,5)}${r.check_out_time ? ' · Out: ' + r.check_out_time.slice(0,5) : ' · ongoing'}`
-                  : undefined,
-              }]
-            })
-          }} />
+          <AttendanceCalendar employeeId={empId} location={empLocation} compact onDayClick={(dateStr) => navigate(`/attendance/${dateStr}`)} />
         </div>
 
         {/* History table */}
@@ -871,20 +860,7 @@ export default function Dashboard() {
               CMK
             </button>
           </div>
-          <AttendanceCalendar location={calendarLocation} empMap={empMap} onDayClick={(dateStr, recs) => {
-            setDrillModal({
-              title: format(parseISO(dateStr), 'EEEE, dd MMM yyyy'),
-              rows: recs.map(r => ({
-                name: r.employee_name ?? '—',
-                sub: [
-                  r.location === 'cmk' ? 'CMK' : 'Office',
-                  r.work_mode === 'remote' ? '(Remote)' : '',
-                  r.check_in_time ? `In: ${r.check_in_time.slice(0,5)}` : 'No check-in',
-                  r.check_out_time ? `Out: ${r.check_out_time.slice(0,5)}` : '',
-                ].filter(Boolean).join(' · '),
-              }))
-            })
-          }} />
+          <AttendanceCalendar location={calendarLocation} empMap={empMap} onDayClick={(dateStr) => navigate(`/attendance/${dateStr}`)} />
         </div>
 
         <div className="card p-5">
