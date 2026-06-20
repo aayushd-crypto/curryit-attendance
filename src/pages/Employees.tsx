@@ -171,21 +171,10 @@ export default function EmployeesPage() {
 
   // ── CSV import ─────────────────────────────────────────────────────────────
   const downloadTemplate = () => {
-    const rows = [
-      'name,email,mobile,designation,department_name,location,role,joining_date,password',
-      '# ROLES: employee | admin | super_admin | cmk_coordinator',
-      '# LOCATION: office | cmk',
-      '# joining_date: YYYY-MM-DD format  |  password: leave blank to auto-generate',
-      '# -----------------------------------------------------------------------',
-      'Ravi Kumar,ravi@curryit.in,9876543210,Sales Executive,Sales,office,employee,2026-01-15,',
-      'Priya Sharma,priya@curryit.in,9988776655,HR Manager,HR,office,admin,2025-06-01,Welcome@123',
-      'Ajay Singh,ajay@curryit.in,9123456789,CMK Coordinator,Operations,cmk,cmk_coordinator,2025-09-10,',
-      'Sunita Rao,sunita@curryit.in,9000011111,Packing Supervisor,Production,cmk,employee,2026-03-20,',
-      'Mohit Verma,mohit@curryit.in,9871234567,Operations Head,Operations,office,super_admin,2024-12-01,Admin@2024',
-    ]
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
-    a.download = 'employee_import_template.csv'; a.click()
+    const a = document.createElement('a')
+    a.href = '/employee_template.xlsx'
+    a.download = 'CURRYiT_Employee_Import_Template.xlsx'
+    a.click()
   }
 
   const handleCSVFile = (e: React.ChangeEvent<HTMLInputElement>) => {
