@@ -35,6 +35,7 @@ interface DayRecord {
   check_out_time?: string | null
   employee_id?: string
   employee_name?: string
+  location?: string
 }
 
 interface AttRecord {
@@ -76,7 +77,7 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick 
 
     let query = supabase
       .from('attendance')
-      .select('date, status, work_mode, worked_minutes, check_in_time, check_out_time, employee_id')
+      .select('date, status, work_mode, worked_minutes, check_in_time, check_out_time, employee_id, location')
       .gte('date', start)
       .lte('date', end)
 
@@ -476,21 +477,30 @@ export default function Dashboard() {
     </div>
   )
 
-  // ── Drill-down modal rendered via Modal component ───────────────────────
-  const DrillModal = (
-    <Modal isOpen={!!drillModal} onClose={() => setDrillModal(null)} title={drillModal?.title ?? ''}>
-      <div className="divide-y divide-gray-50 max-h-96 overflow-y-auto -mx-1 px-1">
-        {!drillModal || drillModal.rows.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-8">No records found.</p>
-        ) : drillModal.rows.map((row, i) => (
-          <div key={i} className="flex items-center justify-between py-3">
-            <p className="text-sm font-medium text-gray-800">{row.name}</p>
-            {row.sub && <p className="text-xs text-gray-400 font-mono">{row.sub}</p>}
-          </div>
-        ))}
+  // ── Drill-down modal (top-anchored) ──────────────────────────────────────
+  const DrillModal = drillModal ? (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 px-4 pb-4" style={{ background: 'rgba(0,0,0,0.45)' }} onClick={() => setDrillModal(null)}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h3 className="font-bold text-gray-900 text-sm">{drillModal.title}</h3>
+          <button onClick={() => setDrillModal(null)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={16} /></button>
+        </div>
+        <div className="overflow-y-auto max-h-[70vh] divide-y divide-gray-50">
+          {drillModal.rows.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-10">No records found.</p>
+          ) : drillModal.rows.map((row, i) => (
+            <div key={i} className="flex items-center justify-between px-5 py-3">
+              <p className="text-sm font-semibold text-gray-800">{row.name}</p>
+              {row.sub && <p className="text-xs text-gray-500 font-mono text-right ml-3">{row.sub}</p>}
+            </div>
+          ))}
+        </div>
+        <div className="px-5 py-4 border-t border-gray-100">
+          <button onClick={() => setDrillModal(null)} className="btn-secondary w-full justify-center">Close</button>
+        </div>
       </div>
-    </Modal>
-  )
+    </div>
+  ) : null
 
   // ── EMPLOYEE VIEW ─────────────────────────────────────────────────────────
   if (isEmployee) {
@@ -671,8 +681,10 @@ export default function Dashboard() {
             setDrillModal({
               title: format(parseISO(dateStr), 'EEEE, dd MMM yyyy'),
               rows: [{
-                name: r.status === 'present' && r.work_mode === 'remote' ? 'Remote' : r.status === 'present' ? 'Present (office)' : r.status === 'leave' ? 'On leave' : 'Absent',
-                sub: r.check_in_time ? `${r.check_in_time.slice(0,5)} → ${r.check_out_time ? r.check_out_time.slice(0,5) : 'ongoing'}` : undefined,
+                name: r.status === 'present' && r.work_mode === 'remote' ? 'Remote (WFH)' : r.status === 'present' ? `Present · ${r.location === 'cmk' ? 'CMK' : 'Office'}` : r.status === 'leave' ? 'On leave' : 'Absent',
+                sub: r.check_in_time
+                  ? `In: ${r.check_in_time.slice(0,5)}${r.check_out_time ? ' · Out: ' + r.check_out_time.slice(0,5) : ' · ongoing'}`
+                  : undefined,
               }]
             })
           }} />
@@ -864,7 +876,12 @@ export default function Dashboard() {
               title: format(parseISO(dateStr), 'EEEE, dd MMM yyyy'),
               rows: recs.map(r => ({
                 name: r.employee_name ?? '—',
-                sub: `${r.status}${r.work_mode === 'remote' ? ' · remote' : ''} · in: ${r.check_in_time ? r.check_in_time.slice(0,5) : '—'} out: ${r.check_out_time ? r.check_out_time.slice(0,5) : '—'}`,
+                sub: [
+                  r.location === 'cmk' ? 'CMK' : 'Office',
+                  r.work_mode === 'remote' ? '(Remote)' : '',
+                  r.check_in_time ? `In: ${r.check_in_time.slice(0,5)}` : 'No check-in',
+                  r.check_out_time ? `Out: ${r.check_out_time.slice(0,5)}` : '',
+                ].filter(Boolean).join(' · '),
               }))
             })
           }} />
