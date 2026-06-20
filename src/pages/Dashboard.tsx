@@ -751,7 +751,9 @@ export default function Dashboard() {
 
       {/* Top stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard label="Total employees"  value={summary?.totalEmployees ?? 0}              icon={Users}     color="gray"   />
+        <Link to="/employees" className="block">
+          <StatCard label="Total employees"  value={summary?.totalEmployees ?? 0} icon={Users} color="gray" sub="Tap to manage" />
+        </Link>
         <button className="text-left" onClick={() => setDrillModal({ title: 'Present today — office', rows: todayAttFull.filter(r => r.status === 'present' && r.work_mode !== 'remote').map(r => ({ name: (r as any).empName, sub: '' })) })}>
           <StatCard label="Present today"  value={summary?.presentTotal ?? 0}                icon={UserCheck} color="green"  sub="Tap to see who" />
         </button>
