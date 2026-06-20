@@ -130,6 +130,9 @@ export default function LoginPage() {
         <p className="text-center text-white/15 text-[10px] font-medium mt-8">
           © {new Date().getFullYear()} CURRYiT · Attendance Management
         </p>
+        <p className="text-center text-white/20 text-[10px] mt-1">
+          Designed & Developed by <span className="font-semibold text-white/30">Aayush Dhiman</span>
+        </p>
       </div>
     </div>
   )
