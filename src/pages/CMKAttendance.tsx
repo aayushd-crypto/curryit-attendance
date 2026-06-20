@@ -33,7 +33,6 @@ export default function CMKAttendancePage() {
   const [error, setError]             = useState<string | null>(null)
 
   const todayStr = format(new Date(), 'yyyy-MM-dd')
-  const isSunday  = new Date().getDay() === 0
 
   const loadEmployees = async () => {
     setLoading(true)
@@ -165,16 +164,6 @@ export default function CMKAttendancePage() {
   const unsaved = filtered.filter(e => e.status && (!e.saved || e.editing)).length
   const total   = filtered.length
   const marked  = filtered.filter(e => e.status !== null).length
-
-  if (isSunday) return (
-    <div className="max-w-4xl mx-auto">
-      <div className="card p-12 text-center space-y-3">
-        <p className="text-4xl">🚫</p>
-        <h2 className="text-xl font-bold text-gray-800">No attendance on Sundays</h2>
-        <p className="text-gray-400 text-sm">CMK attendance is not recorded on Sundays.</p>
-      </div>
-    </div>
-  )
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
