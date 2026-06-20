@@ -103,6 +103,10 @@ export default function LeavePage() {
     const { error: err } = await supabase.from('leave_requests').update({ status, remarks: remarks ?? null, approved_by: user.id }).eq('id', id)
     if (err) { setDecideError('Failed to update leave request. Please try again.'); return }
     await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!, action: `${status} leave request` })
+    // Fire-and-forget email notification — don't block UI on this
+    supabase.functions.invoke('send-leave-email', {
+      body: { leave_request_id: id, status, remarks: remarks ?? null }
+    }).catch(() => {/* email failure is non-critical */})
     setRejectId(null); setRemark('')
     await load()
   }
