@@ -1,8 +1,15 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, Zap, Calendar, Users, BarChart2 } from 'lucide-react'
 import { useAuth } from '../AuthContext'
 import { Spinner } from '../Spinner'
+
+const features = [
+  { icon: Zap,       label: 'Live attendance',  desc: 'Office & CMK tracking in real-time' },
+  { icon: Calendar,  label: 'Leave management', desc: 'Apply, approve & track effortlessly' },
+  { icon: Users,     label: 'Team overview',    desc: 'Full visibility across all roles'   },
+  { icon: BarChart2, label: 'Smart reports',    desc: 'Export & analyse attendance data'   },
+]
 
 export default function LoginPage() {
   const [email, setEmail]       = useState('')
@@ -33,86 +40,150 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#F2F1EE' }}>
+    <div className="min-h-screen flex relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a0a00 0%, #0d0d1a 40%, #0f1a2e 100%)' }}>
 
-      {/* Subtle background circles */}
-      <div className="fixed top-[-120px] right-[-120px] w-[500px] h-[500px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(232,83,29,0.08) 0%, transparent 70%)' }} />
-      <div className="fixed bottom-[-100px] left-[-100px] w-[400px] h-[400px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(196,64,16,0.06) 0%, transparent 70%)' }} />
+      {/* Background orbs — full screen */}
+      <div className="absolute top-[-80px] left-[-80px] w-[500px] h-[500px] rounded-full opacity-30 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, #E8531D 0%, transparent 70%)' }} />
+      <div className="absolute bottom-[-100px] right-[-60px] w-[400px] h-[400px] rounded-full opacity-20 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, #C44010 0%, transparent 70%)' }} />
+      <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] rounded-full opacity-10 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, #ff9a5c 0%, transparent 70%)' }} />
 
-      <div className="w-full max-w-md relative">
+      {/* Dot grid */}
+      <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
+        backgroundImage: 'radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px)',
+        backgroundSize: '28px 28px',
+      }} />
 
-        {/* Logo + brand */}
-        <div className="text-center mb-8">
-          <img src="/logo.png" alt="CURRYiT" className="h-28 w-auto mx-auto mb-4 drop-shadow-md" />
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Attendance Portal</h1>
-          <p className="text-gray-400 text-sm mt-1 font-medium">real taste, real easy.</p>
+      {/* ── Left panel ── */}
+      <div className="hidden lg:flex lg:w-[55%] flex-col justify-between p-14 relative z-10">
+
+        {/* Top — logo + tagline */}
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <img src="/logo.png" alt="CURRYiT" className="h-16 w-auto drop-shadow-lg" />
+          </div>
+          <p className="text-white/30 text-xs font-semibold uppercase tracking-[3px]">real taste, real easy.</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-3xl p-8" style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.10)' }}>
+        {/* Middle — hero text */}
+        <div className="py-8">
+          <p className="text-[11px] font-bold text-orange-400 uppercase tracking-[3px] mb-4">Attendance Portal</p>
+          <h1 className="text-5xl font-black text-white leading-[1.08] tracking-tight mb-6">
+            People first.<br />
+            <span style={{
+              background: 'linear-gradient(135deg, #E8531D 0%, #ff9a5c 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+            }}>Always.</span>
+          </h1>
+          <p className="text-white/50 text-base leading-relaxed max-w-sm">
+            One place to track attendance, manage leaves, and keep your team running — just like a well-spiced curry.
+          </p>
+        </div>
+
+        {/* Feature pills */}
+        <div className="grid grid-cols-2 gap-3">
+          {features.map(({ icon: Icon, label, desc }) => (
+            <div key={label} className="flex items-start gap-3 p-4 rounded-2xl"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                style={{ background: 'rgba(232,83,29,0.15)' }}>
+                <Icon size={15} style={{ color: '#E8531D' }} />
+              </div>
+              <div>
+                <p className="text-white text-xs font-bold leading-tight">{label}</p>
+                <p className="text-white/35 text-[11px] mt-0.5 leading-snug">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-white/20 text-[11px] font-medium mt-6">
+          © {new Date().getFullYear()} CURRYiT · Attendance Management System
+        </p>
+      </div>
+
+      {/* ── Right panel — login form ── */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 relative z-10">
+
+        <div className="w-full max-w-sm">
+
+          {/* Mobile logo */}
+          <div className="lg:hidden flex flex-col items-center gap-2 mb-10">
+            <img src="/logo.png" alt="CURRYiT" className="h-20 w-auto drop-shadow-lg" />
+            <p className="text-white/30 text-[10px] font-semibold uppercase tracking-[3px]">Attendance Portal</p>
+          </div>
+
+          <h2 className="text-3xl font-black text-white mb-1 tracking-tight">Welcome back</h2>
+          <p className="text-white/40 text-sm mb-8 font-medium">Sign in to manage your team</p>
 
           {resetSent ? (
-            <div className="text-center py-6">
-              <p className="text-4xl mb-3">📩</p>
-              <p className="font-bold text-gray-900 mb-1">Reset link sent!</p>
-              <p className="text-gray-400 text-sm">Check your inbox for the password reset link.</p>
+            <div className="text-center py-8 px-4 rounded-2xl"
+              style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
+              <p className="text-3xl mb-3">📩</p>
+              <p className="font-bold text-emerald-400 mb-1">Reset link sent!</p>
+              <p className="text-white/40 text-sm">Check your inbox for the password reset link.</p>
             </div>
           ) : (
-            <>
-              <h2 className="text-xl font-black text-gray-900 mb-6 tracking-tight">Welcome back 👋</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Email */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Email</label>
+              {/* Email */}
+              <div>
+                <label className="block text-xs font-bold text-white/40 uppercase tracking-widest mb-2">Email</label>
+                <input
+                  type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  required autoComplete="email" placeholder="you@curryit.in"
+                  className="w-full px-4 py-3.5 rounded-xl text-sm text-white placeholder-white/20 outline-none transition-all"
+                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  onFocus={e => { e.target.style.border = '1px solid rgba(232,83,29,0.6)'; e.target.style.background = 'rgba(255,255,255,0.09)' }}
+                  onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.1)'; e.target.style.background = 'rgba(255,255,255,0.07)' }}
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-xs font-bold text-white/40 uppercase tracking-widest mb-2">Password</label>
+                <div className="relative">
                   <input
-                    type="email" value={email} onChange={e => setEmail(e.target.value)}
-                    required autoComplete="email"
-                    placeholder="you@curryit.in"
-                    className="input"
+                    type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
+                    required autoComplete="current-password" placeholder="••••••••"
+                    className="w-full px-4 py-3.5 rounded-xl text-sm text-white placeholder-white/20 outline-none pr-12 transition-all"
+                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    onFocus={e => { e.target.style.border = '1px solid rgba(232,83,29,0.6)'; e.target.style.background = 'rgba(255,255,255,0.09)' }}
+                    onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.1)'; e.target.style.background = 'rgba(255,255,255,0.07)' }}
                   />
+                  <button type="button" onClick={() => setShowPw(p => !p)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
+                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
+              </div>
 
-                {/* Password */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Password</label>
-                  <div className="relative">
-                    <input
-                      type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
-                      required autoComplete="current-password"
-                      placeholder="••••••••"
-                      className="input pr-12"
-                    />
-                    <button type="button" onClick={() => setShowPw(p => !p)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                      {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
+              {error && (
+                <div className="px-4 py-3 rounded-xl text-sm font-medium text-red-300"
+                  style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  {error}
                 </div>
+              )}
 
-                {error && (
-                  <p className="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl font-medium">{error}</p>
-                )}
+              <button type="submit" disabled={loading}
+                className="w-full flex items-center justify-center gap-2.5 py-4 rounded-xl font-bold text-sm text-white transition-all mt-2"
+                style={{
+                  background: loading ? 'rgba(232,83,29,0.5)' : 'linear-gradient(135deg, #E8531D 0%, #C44010 100%)',
+                  boxShadow: loading ? 'none' : '0 8px 32px rgba(232,83,29,0.4)',
+                }}>
+                {loading ? <Spinner size="sm" /> : <ArrowRight size={16} />}
+                {loading ? 'Signing in...' : 'Sign in'}
+              </button>
 
-                <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-4 text-base rounded-2xl mt-2">
-                  {loading ? <Spinner size="sm" /> : <ArrowRight size={17} />}
-                  {loading ? 'Signing in...' : 'Sign in'}
-                </button>
-
-                <button type="button" onClick={forgotPassword}
-                  className="w-full text-center text-sm text-gray-400 hover:text-gray-600 transition-colors pt-1">
-                  Forgot password?
-                </button>
-              </form>
-            </>
+              <button type="button" onClick={forgotPassword}
+                className="w-full text-center text-xs text-white/30 hover:text-white/60 transition-colors py-1">
+                Forgot password?
+              </button>
+            </form>
           )}
         </div>
-
-        <p className="text-center text-xs text-gray-300 mt-6 font-medium">
-          © {new Date().getFullYear()} CURRYiT · Attendance Management
-        </p>
       </div>
     </div>
   )
