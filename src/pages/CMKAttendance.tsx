@@ -16,6 +16,8 @@ interface CMKEmployee {
   status: AttStatus | null
   saved: boolean
   editing: boolean
+  check_in_time: string | null
+  check_out_time: string | null
 }
 
 export default function CMKAttendancePage() {
@@ -31,6 +33,7 @@ export default function CMKAttendancePage() {
   const [error, setError]             = useState<string | null>(null)
 
   const todayStr = format(new Date(), 'yyyy-MM-dd')
+  const isSunday  = new Date().getDay() === 0
 
   const loadEmployees = async () => {
     setLoading(true)
@@ -44,20 +47,22 @@ export default function CMKAttendancePage() {
     // Check existing records for today
     const { data: existing } = await supabase
       .from('attendance')
-      .select('employee_id, status')
+      .select('employee_id, status, check_in_time, check_out_time')
       .eq('date', todayStr)
       .in('location', ['cmk'])
 
-    const existingMap = new Map((existing ?? []).map(r => [r.employee_id, r.status]))
+    const existingMap = new Map((existing ?? []).map(r => [r.employee_id, r]))
 
     const list: CMKEmployee[] = (emps ?? []).map((e: any) => ({
       id: e.id,
       employee_code: e.employee_code,
       name: e.name,
       department: e.departments?.name ?? 'General',
-      status: (existingMap.get(e.id) as AttStatus) ?? null,
+      status: (existingMap.get(e.id)?.status as AttStatus) ?? null,
       saved: existingMap.has(e.id),
       editing: false,
+      check_in_time: existingMap.get(e.id)?.check_in_time ?? null,
+      check_out_time: existingMap.get(e.id)?.check_out_time ?? null,
     }))
 
     setEmployees(list)
@@ -85,6 +90,28 @@ export default function CMKAttendancePage() {
 
   const markAllPresent = () => {
     setEmployees(prev => prev.map(e => filtered.find(f => f.id === e.id) ? { ...e, status: 'present' } : e))
+  }
+
+
+  const checkOut = async (emp: CMKEmployee) => {
+    if (!user || !profile) return
+    const istNow = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000))
+    const nowIST = istNow.toISOString().slice(11, 19)
+    const { data: att } = await supabase.from('attendance')
+      .select('id, check_in_time')
+      .eq('employee_id', emp.id).eq('date', todayStr).maybeSingle()
+    if (!att) return
+    // compute worked_minutes and overtime
+    const [ih, im] = (att.check_in_time ?? '09:00:00').split(':').map(Number)
+    const [oh, om] = nowIST.split(':').map(Number)
+    const workedMins = Math.max(0, (oh * 60 + om) - (ih * 60 + im))
+    const overtimeMins = Math.max(0, workedMins - 8 * 60)
+    await supabase.from('attendance').update({
+      check_out_time: nowIST, worked_minutes: workedMins, overtime_minutes: overtimeMins,
+    }).eq('id', att.id)
+    await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!,
+      action: `Recorded checkout for ${emp.name} at ${nowIST} IST` })
+    await loadEmployees()
   }
 
   const saveAttendance = async () => {
@@ -138,6 +165,16 @@ export default function CMKAttendancePage() {
   const unsaved = filtered.filter(e => e.status && (!e.saved || e.editing)).length
   const total   = filtered.length
   const marked  = filtered.filter(e => e.status !== null).length
+
+  if (isSunday) return (
+    <div className="max-w-4xl mx-auto">
+      <div className="card p-12 text-center space-y-3">
+        <p className="text-4xl">🚫</p>
+        <h2 className="text-xl font-bold text-gray-800">No attendance on Sundays</h2>
+        <p className="text-gray-400 text-sm">CMK attendance is not recorded on Sundays.</p>
+      </div>
+    </div>
+  )
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
@@ -203,6 +240,7 @@ export default function CMKAttendancePage() {
                 <th className="text-center">Absent</th>
                 <th className="text-center">Leave</th>
                 <th>Status</th>
+                <th>Check Out</th>
               </tr>
             </thead>
             <tbody>
@@ -256,6 +294,16 @@ export default function CMKAttendancePage() {
                           </button>
                         )}
                       </div>
+                    </td>
+                    <td>
+                      {emp.saved && emp.status === 'present' && (
+                        emp.check_out_time
+                          ? <span className="font-mono text-sm text-gray-600">{emp.check_out_time.slice(0,5)}</span>
+                          : <button onClick={() => checkOut(emp)}
+                              className="text-xs font-bold px-2.5 py-1 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors">
+                              Record checkout
+                            </button>
+                      )}
                     </td>
                   </tr>
                 ))
