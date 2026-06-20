@@ -38,7 +38,7 @@ export default function AttendanceDayPage() {
   const [filter, setFilter]   = useState<'all' | 'present' | 'remote' | 'absent' | 'leave'>('all')
 
   useEffect(() => {
-    if (!date) return
+    if (!date || !isValidDate) return
     const load = async () => {
       setLoading(true)
 
@@ -94,7 +94,8 @@ export default function AttendanceDayPage() {
     return r.status === filter
   })
 
-  const displayDate = date ? format(parseISO(date), 'EEEE, dd MMMM yyyy') : ''
+  const isValidDate = date ? !isNaN(new Date(date).getTime()) : false
+  const displayDate = isValidDate ? format(parseISO(date!), 'EEEE, dd MMMM yyyy') : 'Invalid date'
 
   const statusBadge = (r: DayRow) => {
     if (r.work_mode === 'remote') return <span className="badge-remote">Remote</span>

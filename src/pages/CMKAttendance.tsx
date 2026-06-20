@@ -100,11 +100,13 @@ export default function CMKAttendancePage() {
     const toSave = filtered.filter(e => e.status && (!e.saved || e.editing))
     if (toSave.length === 0) { setSaving(false); return }
 
-    const now = format(new Date(), 'HH:mm:ss')
+    // Use IST time (UTC+5:30) for check_in_time
+    const istNow = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000))
+    const nowIST = istNow.toISOString().slice(11, 19)
     const records = toSave.map(e => ({
       employee_id: e.id,
       date: todayStr,
-      check_in_time: now,
+      check_in_time: nowIST,
       location: 'cmk' as const,
       work_mode: null,
       status: e.status!,

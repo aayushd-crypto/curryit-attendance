@@ -36,7 +36,8 @@ export default function LeavePage() {
   const [remark, setRemark]     = useState('')
   const [filter, setFilter]     = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
   const [error, setError]       = useState<string | null>(null)
-  const [busy, setBusy]         = useState(false)
+  const [busy, setBusy]           = useState(false)
+  const [decideError, setDecideError] = useState<string | null>(null)
 
   // form
   const [startDate, setStartDate] = useState('')
@@ -66,7 +67,7 @@ export default function LeavePage() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [profile?.email])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -102,7 +103,9 @@ export default function LeavePage() {
 
   const decide = async (id: string, status: 'approved' | 'rejected', remarks?: string) => {
     if (!user || !profile) return
-    await supabase.from('leave_requests').update({ status, remarks: remarks ?? null, approved_by: user.id }).eq('id', id)
+    setDecideError(null)
+    const { error: err } = await supabase.from('leave_requests').update({ status, remarks: remarks ?? null, approved_by: user.id }).eq('id', id)
+    if (err) { setDecideError('Failed to update leave request. Please try again.'); return }
     await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!, action: `${status} leave request` })
     setRejectId(null); setRemark('')
     await load()
@@ -172,6 +175,12 @@ export default function LeavePage() {
           </button>
         ))}
       </div>
+
+      {decideError && (
+        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">
+          <AlertCircle size={15} /> {decideError}
+        </div>
+      )}
 
       {/* Table */}
       <div className="card overflow-hidden">

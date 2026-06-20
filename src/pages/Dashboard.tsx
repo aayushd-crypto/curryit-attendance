@@ -394,6 +394,7 @@ export default function Dashboard() {
 
   // ── Load today's attendance + current month history for employee ─────────
   const loadAttendance = async (employeeId: string) => {
+    setAttError(null)
     const { data: today } = await supabase
       .from('attendance').select('*')
       .eq('employee_id', employeeId).eq('date', todayStr).maybeSingle()
@@ -436,6 +437,7 @@ export default function Dashboard() {
       else
         setAttError(`Check-in failed: ${e.message}`)
     } else {
+      setAttError(null)
       await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!, action: `Checked in — ${workMode}` })
       await loadAttendance(empId)
     }
