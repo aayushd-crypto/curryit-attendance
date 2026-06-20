@@ -467,23 +467,31 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Employee stats — only their location */}
+        {/* Employee — personal current month stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="card p-4 text-center bg-green-50">
-            <p className="text-3xl font-bold text-green-600">{summary?.presentTotal ?? 0}</p>
-            <p className="text-xs text-gray-500 mt-1">Present today</p>
+            <p className="text-3xl font-bold text-green-600">
+              {history.filter(r => r.status === 'present' && r.work_mode !== 'remote').length}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">Present this month</p>
           </div>
           <div className="card p-4 text-center bg-purple-50">
-            <p className="text-3xl font-bold text-purple-600">{summary?.remoteTotal ?? 0}</p>
-            <p className="text-xs text-gray-500 mt-1">Remote today</p>
+            <p className="text-3xl font-bold text-purple-600">
+              {history.filter(r => r.work_mode === 'remote').length}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">Remote this month</p>
+          </div>
+          <div className="card p-4 text-center bg-red-50">
+            <p className="text-3xl font-bold text-red-600">
+              {history.filter(r => r.status === 'absent').length}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">Absent this month</p>
           </div>
           <div className="card p-4 text-center bg-orange-50">
-            <p className="text-3xl font-bold text-orange-600">{summary?.leaveTotal ?? 0}</p>
-            <p className="text-xs text-gray-500 mt-1">On leave</p>
-          </div>
-          <div className="card p-4 text-center bg-blue-50">
-            <p className="text-3xl font-bold text-blue-600">{summary?.attendancePct ?? 0}%</p>
-            <p className="text-xs text-gray-500 mt-1">Attendance %</p>
+            <p className="text-3xl font-bold text-orange-600">
+              {history.filter(r => r.status === 'leave').length}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">On leave this month</p>
           </div>
         </div>
 
@@ -687,7 +695,7 @@ export default function Dashboard() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle">Today's overview — {formatDate(todayStr)}</p>
+          <p className="page-subtitle">Today — {formatDate(todayStr)} · {format(now, 'hh:mm a')}</p>
         </div>
         <button onClick={loadDashboard} className="btn-secondary">
           <RefreshCw size={15} /> Refresh
