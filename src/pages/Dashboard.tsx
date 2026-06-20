@@ -518,7 +518,7 @@ export default function Dashboard() {
       <div className="space-y-5 max-w-5xl mx-auto">
         <div className="page-header">
           <div>
-            <h1 className="page-title">Namaste 🙏 {profile?.full_name?.split(' ')[0]} Ji</h1>
+            <h1 className="page-title">My Dashboard</h1>
             <p className="page-subtitle">{formatDate(todayStr)} · {format(now, 'hh:mm:ss a')} · {empLocation === 'office' ? 'Office' : 'CMK'}</p>
           </div>
           <button onClick={loadDashboard} className="btn-secondary">
@@ -741,7 +741,7 @@ export default function Dashboard() {
     <div className="space-y-5 max-w-7xl mx-auto">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Namaste 🙏 {profile?.full_name?.split(' ')[0]} Ji</h1>
+          <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">Today — {formatDate(todayStr)} · {format(now, 'hh:mm a')}</p>
         </div>
         <button onClick={loadDashboard} className="btn-secondary">

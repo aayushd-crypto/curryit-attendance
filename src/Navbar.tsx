@@ -14,7 +14,10 @@ export function Navbar({ onMenuClick, notifCount = 0 }: NavbarProps) {
   const { dark, toggle } = useTheme()
   const navigate = useNavigate()
   const isAdmin = role === 'admin' || role === 'super_admin'
-  const today = format(new Date(), 'EEE, dd MMM yyyy')
+  const [now, setNow] = useState(new Date())
+  useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t) }, [])
+  const today = format(now, 'EEEE, dd MMM yyyy')
+  const clock = format(now, 'hh:mm:ss a')
 
   const [q, setQ]         = useState('')
   const [hits, setHits]   = useState<Hit[]>([])
@@ -52,9 +55,12 @@ export function Navbar({ onMenuClick, notifCount = 0 }: NavbarProps) {
           <Menu size={20} />
         </button>
 
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.7)' }}>
-          <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-          <span className="text-xs font-semibold text-gray-500">{today}</span>
+        <div className="hidden sm:flex flex-col gap-0.5 px-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.7)' }}>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse flex-shrink-0" />
+            <span className="text-xs font-bold text-gray-700">Namaste 🙏 {profile?.full_name?.split(' ')[0]} Ji</span>
+          </div>
+          <span className="text-[11px] text-gray-400 font-medium pl-3.5">{today} · {clock}</span>
         </div>
 
         <div className="flex-1" />
