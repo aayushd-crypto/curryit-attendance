@@ -188,7 +188,7 @@ export default function EmployeesPage() {
       let rows: any[] = []
       if (isXlsx) {
         const data   = new Uint8Array(ev.target?.result as ArrayBuffer)
-        const wb = XLSX.read(data, { type: 'array' })
+        const wb = XLSX.read(data, { type: 'array', cellDates: true })
         const sheetName = wb.SheetNames.find(n => n === 'Employee Import') ?? wb.SheetNames[0]
         const sheet = wb.Sheets[sheetName]
 
@@ -229,7 +229,16 @@ export default function EmployeesPage() {
           .map(r => {
             const obj: any = {}
             Object.entries(colMap).forEach(([i, field]) => {
-              obj[field] = String(r[Number(i)] ?? '').trim()
+              const val = r[Number(i)]
+              if (val instanceof Date) {
+                // Convert Excel Date → YYYY-MM-DD
+                const y = val.getFullYear()
+                const m = String(val.getMonth() + 1).padStart(2, '0')
+                const d = String(val.getDate()).padStart(2, '0')
+                obj[field] = `${y}-${m}-${d}`
+              } else {
+                obj[field] = String(val ?? '').trim()
+              }
             })
             return obj
           })
@@ -263,7 +272,7 @@ export default function EmployeesPage() {
 
     for (const row of csvRows) {
       // Find department_id by name
-      const dept = departments.find(d => d.name.toLowerCase() === (row.department_name ?? '').toLowerCase())
+      const dept = departments.find(d => d.name.toLowerCase() === (row.department_name ?? '').toLowerCase().trim())
 
       // Normalise location — accept "office"/"cmk" case-insensitively
       const rawLoc = (row.location ?? '').toLowerCase().trim()
@@ -282,7 +291,7 @@ export default function EmployeesPage() {
         email: row.email,
         mobile: row.mobile ?? '',
         designation: row.designation ?? '',
-        department_id: dept?.id ?? '',
+        department_id: dept?.id ?? undefined,
         location,
         role: empRole,
         joining_date,
