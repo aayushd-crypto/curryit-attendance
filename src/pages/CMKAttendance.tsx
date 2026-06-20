@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
-import { Search, Save, CheckSquare, Square, ChevronDown, Users, AlertCircle } from 'lucide-react'
+import { Search, Save, CheckSquare, ChevronLeft, ChevronRight, ChevronDown, Users, AlertCircle, Clock } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useAuth } from '../AuthContext'
 import { Spinner } from '../Spinner'
@@ -17,6 +17,7 @@ interface CMKEmployee {
   saved: boolean
   editing: boolean
   overtime: boolean
+  recordedAt: string | null  // created_at for 24h edit window
 }
 
 export default function CMKAttendancePage() {
@@ -31,9 +32,12 @@ export default function CMKAttendancePage() {
   const [savedCount, setSavedCount]   = useState(0)
   const [error, setError]             = useState<string | null>(null)
 
-  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  const todayStr    = format(new Date(), 'yyyy-MM-dd')
+  const yesterdayStr = format(new Date(Date.now() - 86400000), 'yyyy-MM-dd')
+  const [selectedDate, setSelectedDate] = useState(todayStr)
 
-  const loadEmployees = async () => {
+  const loadEmployees = async (dateStr?: string) => {
+    const date = dateStr ?? selectedDate
     setLoading(true)
     const { data: emps } = await supabase
       .from('employees')
@@ -42,14 +46,14 @@ export default function CMKAttendancePage() {
       .eq('status', 'active')
       .order('name')
 
-    // Check existing records for today
+    // Check existing records for the selected date
     const { data: existing } = await supabase
       .from('attendance')
-      .select('employee_id, status, overtime_minutes')
-      .eq('date', todayStr)
+      .select('employee_id, status, overtime_minutes, created_at')
+      .eq('date', date)
       .in('location', ['cmk'])
 
-    const existingMap = new Map((existing ?? []).map(r => [r.employee_id, r]))
+    const existingMap = new Map((existing ?? []).map((r: any) => [r.employee_id, r]))
 
     const list: CMKEmployee[] = (emps ?? []).map((e: any) => ({
       id: e.id,
@@ -60,6 +64,7 @@ export default function CMKAttendancePage() {
       saved: existingMap.has(e.id),
       editing: false,
       overtime: (existingMap.get(e.id)?.overtime_minutes ?? 0) > 0,
+      recordedAt: existingMap.get(e.id)?.created_at ?? null,
     }))
 
     setEmployees(list)
@@ -68,7 +73,7 @@ export default function CMKAttendancePage() {
     setLoading(false)
   }
 
-  useEffect(() => { loadEmployees() }, [])
+  useEffect(() => { loadEmployees(selectedDate) }, [selectedDate])
 
   useEffect(() => {
     let f = employees
@@ -112,7 +117,7 @@ export default function CMKAttendancePage() {
     const nowIST = istNow.toISOString().slice(11, 19)
     const records = toSave.map(e => ({
       employee_id: e.id,
-      date: todayStr,
+      date: selectedDate,
       check_in_time: nowIST,
       location: 'cmk' as const,
       work_mode: null,
@@ -152,12 +157,36 @@ export default function CMKAttendancePage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">CMK Daily Attendance</h1>
-          <p className="page-subtitle">{formatDate(todayStr)} · {employees.filter(e => e.saved).length} of {employees.length} saved</p>
+          <p className="page-subtitle">{formatDate(selectedDate)} · {employees.filter(e => e.saved).length} of {employees.length} saved</p>
         </div>
-        <button onClick={markAllPresent} className="btn-secondary">
-          <CheckSquare size={15} />
-          Mark all present
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Date navigation — today and yesterday only */}
+          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setSelectedDate(yesterdayStr)}
+              disabled={selectedDate === yesterdayStr}
+              className="px-3 py-2 hover:bg-gray-50 disabled:opacity-30 transition-colors"
+              title="Yesterday"
+            >
+              <ChevronLeft size={15} />
+            </button>
+            <span className="px-3 text-sm font-semibold text-gray-700">
+              {selectedDate === todayStr ? 'Today' : 'Yesterday'}
+            </span>
+            <button
+              onClick={() => setSelectedDate(todayStr)}
+              disabled={selectedDate === todayStr}
+              className="px-3 py-2 hover:bg-gray-50 disabled:opacity-30 transition-colors"
+              title="Today"
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+          <button onClick={markAllPresent} className="btn-secondary">
+            <CheckSquare size={15} />
+            Mark all present
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -255,15 +284,24 @@ export default function CMKAttendancePage() {
                           !emp.status ? <span className="text-xs text-gray-400">Not marked</span>
                           : <span className="text-xs text-gray-500 italic">Unsaved</span>
                         )}
-                        {emp.saved && (
-                          <button
-                            type="button"
-                            onClick={() => toggleEdit(emp.id)}
-                            className="text-xs font-medium text-brand-600 hover:text-brand-700 underline"
-                          >
-                            {emp.editing ? 'Cancel' : 'Edit'}
-                          </button>
-                        )}
+                        {emp.saved && (() => {
+                          const within24h = emp.recordedAt
+                            ? Date.now() - new Date(emp.recordedAt).getTime() < 24 * 3600 * 1000
+                            : false
+                          return within24h ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleEdit(emp.id)}
+                              className="text-xs font-medium text-brand-600 hover:text-brand-700 underline"
+                            >
+                              {emp.editing ? 'Cancel' : 'Edit'}
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-gray-300 flex items-center gap-0.5" title="Edit window expired (24h)">
+                              <Clock size={10} /> Locked
+                            </span>
+                          )
+                        })()}
                       </div>
                     </td>
                     <td className="text-center">
