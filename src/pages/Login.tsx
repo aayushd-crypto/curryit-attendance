@@ -50,7 +50,7 @@ export default function LoginPage() {
       }} />
 
       {/* ── Left panel ── */}
-      <div className="hidden lg:flex lg:w-[55%] flex-col justify-between p-14 relative z-10">
+      <div className="hidden lg:flex lg:w-[55%] flex-col justify-between p-14 relative z-10 items-center">
 
         {/* Top — logo + tagline */}
         <div>
