@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, Users, FileText,
   ClipboardList, Settings, LogOut, X, ChevronRight,
-  Zap, KeyRound
+  Zap, KeyRound, Palmtree
 } from 'lucide-react'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabase'
@@ -21,6 +21,7 @@ const navItems: NavItem[] = [
   { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard',      roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/cmk-attendance', icon: Zap,             label: 'CMK Attendance', roles: ['super_admin','admin','cmk_coordinator'] },
   { to: '/leave',          icon: Calendar,        label: 'Leave',          roles: ['super_admin','admin','cmk_coordinator','employee'] },
+  { to: '/holidays',       icon: Palmtree,        label: 'Holidays',       roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/employees',      icon: Users,           label: 'Employees',      roles: ['super_admin','admin'] },
   { to: '/reports',        icon: FileText,        label: 'Reports',        roles: ['super_admin','admin','cmk_coordinator'] },
   { to: '/audit-log',      icon: ClipboardList,   label: 'Audit Log',      roles: ['super_admin','admin'] },
