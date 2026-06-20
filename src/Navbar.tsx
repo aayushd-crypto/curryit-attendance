@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, Bell, Search, Moon, Sun } from 'lucide-react'
+import { Menu, Bell, Search } from 'lucide-react'
 import { format } from 'date-fns'
 import { useAuth } from './AuthContext'
-import { useTheme } from './useTheme'
 import { supabase } from './supabase'
 
 interface NavbarProps { onMenuClick: () => void; notifCount?: number }
@@ -11,7 +10,6 @@ interface Hit { id: string; name: string; employee_code: string; designation: st
 
 export function Navbar({ onMenuClick, notifCount = 0 }: NavbarProps) {
   const { profile, role } = useAuth()
-  const { dark, toggle } = useTheme()
   const navigate = useNavigate()
   const isAdmin = role === 'admin' || role === 'super_admin'
   const [now, setNow] = useState(new Date())
@@ -49,7 +47,7 @@ export function Navbar({ onMenuClick, notifCount = 0 }: NavbarProps) {
 
   return (
     <header className="sticky top-0 z-20 px-4 sm:px-6 py-3 navbar-bg"
-      style={{ background: dark ? 'rgba(15,23,42,0.9)' : 'rgba(240,242,247,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: dark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)' }}>
+      style={{ background: 'rgba(240,242,247,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
       <div className="flex items-center gap-3">
         <button onClick={onMenuClick} className="sm:hidden p-2 rounded-xl bg-white text-gray-500" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
           <Menu size={20} />
@@ -108,13 +106,6 @@ export function Navbar({ onMenuClick, notifCount = 0 }: NavbarProps) {
             )}
           </div>
         )}
-
-        {/* Dark mode toggle */}
-        <button onClick={toggle} className="p-2.5 rounded-xl transition-colors"
-          style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.07)' }}
-          title={dark ? 'Switch to light mode' : 'Switch to dark mode'}>
-          {dark ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} className="text-gray-500" />}
-        </button>
 
         <button className="relative p-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.07)' }}>
           <Bell size={17} className="text-gray-500" />
