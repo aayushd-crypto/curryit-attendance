@@ -60,13 +60,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden" onClick={onClose} />
+        <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       )}
       <aside className={`
         fixed top-0 left-0 z-40 h-full w-64 flex flex-col
         transition-transform duration-300 ease-out
         ${open ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 lg:static lg:z-auto
       `}
         style={{
           background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
@@ -79,7 +78,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <div className="flex items-center gap-3">
               <img src="/logo.png" alt="CURRYiT" className="h-9 w-auto" />
             </div>
-            <button onClick={onClose} className="lg:hidden p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors">
+            <button onClick={onClose} className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors">
               <X size={16} />
             </button>
           </div>

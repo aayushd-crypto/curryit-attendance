@@ -48,7 +48,7 @@ export function Navbar({ onMenuClick, notifCount = 0 }: NavbarProps) {
     <header className="sticky top-0 z-20 px-4 sm:px-6 py-3 navbar-bg"
       style={{ background: dark ? 'rgba(15,23,42,0.9)' : 'rgba(240,242,247,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: dark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)' }}>
       <div className="flex items-center gap-3">
-        <button onClick={onMenuClick} className="lg:hidden p-2 rounded-xl bg-white text-gray-500" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <button onClick={onMenuClick} className="p-2 rounded-xl bg-white text-gray-500" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
           <Menu size={20} />
         </button>
 
