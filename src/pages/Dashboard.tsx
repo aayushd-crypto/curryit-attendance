@@ -232,7 +232,6 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
           </div>
         </div>
       )}
-      {DrillModal}
     </div>
   )
 }
@@ -452,6 +451,31 @@ export default function Dashboard() {
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <Spinner size="lg" />
+    </div>
+  )
+
+  // ── Drill-down modal (shared by both views) ──────────────────────────────
+  const DrillModal = drillModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}>
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h3 className="font-bold text-gray-900 text-sm">{drillModal.title}</h3>
+          <button onClick={() => setDrillModal(null)} className="text-gray-400 hover:text-gray-600"><X size={17} /></button>
+        </div>
+        <div className="overflow-y-auto max-h-80 px-5 py-3 divide-y divide-gray-50">
+          {drillModal.rows.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">No records.</p>
+          ) : drillModal.rows.map((row, i) => (
+            <div key={i} className="flex items-center justify-between py-2.5">
+              <p className="text-sm font-medium text-gray-800">{row.name}</p>
+              {row.sub && <p className="text-xs text-gray-400 font-mono">{row.sub}</p>}
+            </div>
+          ))}
+        </div>
+        <div className="px-5 py-4 border-t border-gray-100">
+          <button onClick={() => setDrillModal(null)} className="btn-secondary w-full justify-center">Close</button>
+        </div>
+      </div>
     </div>
   )
 
@@ -681,31 +705,6 @@ export default function Dashboard() {
       </div>
     )
   }
-
-  // ── Drill-down modal ─────────────────────────────────────────────────────
-  const DrillModal = drillModal && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}>
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h3 className="font-bold text-gray-900 text-sm">{drillModal.title}</h3>
-          <button onClick={() => setDrillModal(null)} className="text-gray-400 hover:text-gray-600"><X size={17} /></button>
-        </div>
-        <div className="overflow-y-auto max-h-80 px-5 py-3 divide-y divide-gray-50">
-          {drillModal.rows.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">No records.</p>
-          ) : drillModal.rows.map((row, i) => (
-            <div key={i} className="flex items-center justify-between py-2.5">
-              <p className="text-sm font-medium text-gray-800">{row.name}</p>
-              {row.sub && <p className="text-xs text-gray-400 font-mono">{row.sub}</p>}
-            </div>
-          ))}
-        </div>
-        <div className="px-5 py-4 border-t border-gray-100">
-          <button onClick={() => setDrillModal(null)} className="btn-secondary w-full justify-center">Close</button>
-        </div>
-      </div>
-    </div>
-  )
 
   // ── ADMIN / SUPER ADMIN VIEW ──────────────────────────────────────────────
   return (
