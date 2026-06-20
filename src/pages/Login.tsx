@@ -131,7 +131,7 @@ export default function LoginPage() {
           © {new Date().getFullYear()} CURRYiT · Attendance Management
         </p>
         <p className="text-center text-white/20 text-[10px] mt-1">
-          Designed & Developed by <span className="font-semibold text-white/30">Aayush Dhiman</span>
+          Designed & Developed by <a href="https://www.linkedin.com/in/aayushdiman22/" target="_blank" rel="noopener noreferrer" className="font-semibold text-white/40 hover:text-white/70 transition-colors underline underline-offset-2">Aayush Dhiman</a>
         </p>
       </div>
     </div>
