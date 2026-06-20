@@ -188,16 +188,49 @@ export default function EmployeesPage() {
       let rows: any[] = []
       if (isXlsx) {
         const data   = new Uint8Array(ev.target?.result as ArrayBuffer)
-        const wb     = XLSX.read(data, { type: 'array' })
-        // Use first sheet named "Employee Import" or fallback to first sheet
+        const wb = XLSX.read(data, { type: 'array' })
         const sheetName = wb.SheetNames.find(n => n === 'Employee Import') ?? wb.SheetNames[0]
-        const sheet  = wb.Sheets[sheetName]
-        const json   = XLSX.utils.sheet_to_json(sheet, { defval: '' }) as any[]
-        // Normalise keys to lowercase, skip rows without name/email
-        rows = json
+        const sheet = wb.Sheets[sheetName]
+
+        // Read as raw 2D array so we can find the real header row ourselves
+        const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as string[][]
+
+        // Map display header → field name (handles both template and plain CSV headers)
+        const headerMap: Record<string, string> = {
+          'full name *': 'name',   'full name': 'name',   'name': 'name',
+          'email *':     'email',  'email': 'email',
+          'mobile':      'mobile',
+          'designation': 'designation',
+          'department':  'department_name', 'department_name': 'department_name',
+          'location *':  'location', 'location': 'location',
+          'role *':      'role',   'role': 'role',
+          'joining date':'joining_date', 'joining_date': 'joining_date',
+          'password':    'password',
+        }
+
+        // Find the header row — the one that contains "name" or "full name *"
+        let headerRowIdx = -1
+        for (let i = 0; i < Math.min(raw.length, 10); i++) {
+          const cells = raw[i].map(c => String(c).toLowerCase().trim())
+          if (cells.some(c => c === 'name' || c === 'full name *' || c === 'email *' || c === 'email')) {
+            headerRowIdx = i; break
+          }
+        }
+        if (headerRowIdx === -1) { setCsvRows([]); return }
+
+        const colMap: Record<number, string> = {}
+        raw[headerRowIdx].forEach((cell, i) => {
+          const key = String(cell).toLowerCase().trim()
+          if (headerMap[key]) colMap[i] = headerMap[key]
+        })
+
+        rows = raw.slice(headerRowIdx + 1)
+          .filter(r => r.some(c => c !== ''))
           .map(r => {
             const obj: any = {}
-            Object.keys(r).forEach(k => { obj[k.toLowerCase().trim()] = String(r[k] ?? '').trim() })
+            Object.entries(colMap).forEach(([i, field]) => {
+              obj[field] = String(r[Number(i)] ?? '').trim()
+            })
             return obj
           })
           .filter(r => r.name && r.email)
