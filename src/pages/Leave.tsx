@@ -43,6 +43,7 @@ export default function LeavePage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate]     = useState('')
   const [reason, setReason]       = useState('')
+  const [isSpecial, setIsSpecial]   = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -76,26 +77,25 @@ export default function LeavePage() {
     const days = getLeaveDays(startDate, endDate)
     if (days <= 0) { setError('End date must be on or after start date.'); setBusy(false); return }
 
-    // Balance check: block if no balance row or not enough casual leaves
+    // Balance check
     if (!balance) {
       setError('Leave balance not set up for your account. Please contact admin.')
       setBusy(false); return
     }
     const remaining = balance.casual_total - balance.casual_used
-    if (days > remaining) {
-      setError(`Not enough casual leave balance. You have ${remaining} day(s) remaining but requested ${days}.`)
-      setBusy(false); return
-    }
+    const needsSpecial = days > remaining
 
     const { error: err } = await supabase.from('leave_requests').insert({
-      employee_id: empId, leave_type: 'casual', start_date: startDate,
+      employee_id: empId,
+      leave_type: needsSpecial ? 'special' : 'casual',
+      start_date: startDate,
       end_date: endDate, total_days: days, reason, status: 'pending',
     })
     if (err) setError('Failed to submit. Please try again.')
     else {
       await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!,
         action: `Applied casual leave (${days}d)` })
-      setModal(false); setStartDate(''); setEndDate(''); setReason('')
+      setModal(false); setStartDate(''); setEndDate(''); setReason(''); setIsSpecial(false); setIsSpecial(false)
       await load()
     }
     setBusy(false)
@@ -113,10 +113,18 @@ export default function LeavePage() {
 
   const rows = leaves.filter(r => filter === 'all' || r.status === filter)
 
-  const badge = (s: string) =>
-    s === 'approved' ? <span className="badge-approved">Approved</span>
-    : s === 'rejected' ? <span className="badge-rejected">Rejected</span>
-    : <span className="badge-pending">Pending</span>
+  const badge = (s: string, type?: string) => (
+    <div className="flex flex-col gap-1">
+      {type === 'special' && (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full w-fit">
+          ★ Special Leave
+        </span>
+      )}
+      {s === 'approved' ? <span className="badge-approved">Approved</span>
+        : s === 'rejected' ? <span className="badge-rejected">Rejected</span>
+        : <span className="badge-pending">Pending</span>}
+    </div>
+  )
 
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size="lg" /></div>
 
@@ -155,7 +163,7 @@ export default function LeavePage() {
             <p className="text-[11px] text-gray-400 mt-1">{balance.casual_used} used · {casualRemaining} remaining</p>
           </div>
           {casualRemaining === 0 && (
-            <div className="text-xs font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg">No leaves left</div>
+            <div className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1.5 rounded-lg">★ Can apply for Special Leave</div>
           )}
         </div>
       )}
@@ -207,7 +215,7 @@ export default function LeavePage() {
                   <td>{r.total_days ?? getLeaveDays(r.start_date, r.end_date)}d</td>
                   <td className="max-w-[180px] truncate text-gray-400">{r.reason}</td>
                   <td>
-                    {badge(r.status)}
+                    {badge(r.status, r.leave_type)}
                     {r.remarks && <p className="text-[10px] text-gray-400 mt-1 italic">{r.remarks}</p>}
                   </td>
                   {isAdmin && (
@@ -251,11 +259,29 @@ export default function LeavePage() {
                 className="input" required min={startDate || format(new Date(), 'yyyy-MM-dd')} />
             </div>
           </div>
-          {startDate && endDate && (
-            <p className="text-sm font-semibold text-brand-600 bg-brand-50 px-3.5 py-2.5 rounded-xl">
-              Total: {getLeaveDays(startDate, endDate)} day(s)
-            </p>
-          )}
+          {startDate && endDate && (() => {
+            const d = getLeaveDays(startDate, endDate)
+            const needsSpecial = d > casualRemaining
+            return (
+              <>
+                <p className="text-sm font-semibold text-brand-600 bg-brand-50 px-3.5 py-2.5 rounded-xl">
+                  Total: {d} day(s)
+                </p>
+                {needsSpecial && (
+                  <div className="flex items-start gap-2.5 bg-purple-50 border border-purple-200 text-purple-800 text-sm px-4 py-3 rounded-xl">
+                    <span className="text-purple-500 text-base leading-none mt-0.5">★</span>
+                    <div>
+                      <p className="font-bold">Special Leave Request</p>
+                      <p className="text-xs mt-0.5 text-purple-600">
+                        You have only {casualRemaining} day(s) remaining. Requesting {d} day(s) exceeds your balance.
+                        This will be sent as a <strong>Special Leave</strong> request and requires admin approval.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
+            )
+          })()}
           <div>
             <label className="label">Reason</label>
             <textarea value={reason} onChange={e => setReason(e.target.value)} className="input resize-none" rows={3}
@@ -268,8 +294,13 @@ export default function LeavePage() {
           )}
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={() => setModal(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
-            <button type="submit" disabled={busy || casualRemaining === 0} className="btn-primary flex-1 justify-center">
-              {busy && <Spinner size="sm" />} {busy ? 'Submitting...' : 'Submit'}
+            <button type="submit" disabled={busy} className="btn-primary flex-1 justify-center">
+              {busy && <Spinner size="sm" />}
+              {busy ? 'Submitting...' : (
+                startDate && endDate && getLeaveDays(startDate, endDate) > casualRemaining
+                  ? '★ Request Special Leave'
+                  : 'Submit'
+              )}
             </button>
           </div>
         </form>

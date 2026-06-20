@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import {
   Plus, Search, Edit2, UserX, UserCheck,
-  ChevronDown, Wallet, Eye, EyeOff, Copy, CheckCheck,
+  ChevronDown, Eye, EyeOff, Copy, CheckCheck,
   BookOpen, Calendar, X, BarChart2, Clock, TrendingUp
 } from 'lucide-react'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
@@ -52,10 +52,6 @@ export default function EmployeesPage() {
   const [showPw, setShowPw]           = useState(false)
   const [copied, setCopied]           = useState(false)
 
-  // balance modal
-  const [balEmp, setBalEmp]   = useState<Employee | null>(null)
-  const [bal, setBal]         = useState({ casual_total: 12, sick_total: 12, emergency_total: 6, paid_total: 15 })
-  const [balBusy, setBalBusy] = useState(false)
 
   // history modal
   const [histEmp, setHistEmp]                 = useState<Employee | null>(null)
@@ -223,25 +219,7 @@ export default function EmployeesPage() {
     await loadData()
   }
 
-  const openBalance = async (emp: Employee) => {
-    const { data } = await supabase.from('leave_balances').select('*')
-      .eq('employee_id', emp.id).eq('year', new Date().getFullYear()).maybeSingle()
-    if (data) setBal({ casual_total: data.casual_total, sick_total: data.sick_total, emergency_total: data.emergency_total, paid_total: (data as any).paid_total ?? 15 })
-    else setBal({ casual_total: 12, sick_total: 12, emergency_total: 6, paid_total: 15 })
-    setBalEmp(emp)
-  }
 
-  const saveBalance = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!balEmp || !user || !profile) return
-    setBalBusy(true)
-    await supabase.from('leave_balances').upsert(
-      { employee_id: balEmp.id, year: new Date().getFullYear(), ...bal } as any,
-      { onConflict: 'employee_id,year' }
-    )
-    await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!, action: `Set leave balance for ${balEmp.name}`, affectedEmployeeId: balEmp.id })
-    setBalBusy(false); setBalEmp(null)
-  }
 
   const copyPassword = () => {
     navigator.clipboard.writeText(form.temp_password)
@@ -360,9 +338,6 @@ export default function EmployeesPage() {
                       </button>
                       <button onClick={() => openEdit(emp)} className="p-1.5 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-lg transition-colors" title="Edit">
                         <Edit2 size={13} />
-                      </button>
-                      <button onClick={() => openBalance(emp)} className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition-colors" title="Leave balance">
-                        <Wallet size={13} />
                       </button>
                       <button onClick={() => toggleStatus(emp)}
                         className={`p-1.5 rounded-lg transition-colors ${emp.status === 'active' ? 'bg-red-50 hover:bg-red-100 text-red-500' : 'bg-green-50 hover:bg-green-100 text-green-600'}`}
@@ -732,31 +707,6 @@ export default function EmployeesPage() {
         </form>
       </Modal>
 
-      {/* ── BALANCE Modal ── */}
-      <Modal isOpen={!!balEmp} onClose={() => setBalEmp(null)} title={`Leave balance — ${balEmp?.name ?? ''} (${new Date().getFullYear()})`} size="sm">
-        <form onSubmit={saveBalance} className="space-y-4">
-          {([
-            ['casual_total',    'Casual leaves / year'],
-            ['sick_total',      'Sick leaves / year'],
-            ['emergency_total', 'Emergency leaves / year'],
-            ['paid_total',      'Paid leaves / year'],
-          ] as const).map(([key, label]) => (
-            <div key={key}>
-              <label className="label">{label}</label>
-              <input type="number" min={0} max={365}
-                value={(bal as any)[key]}
-                onChange={e => setBal({ ...bal, [key]: parseInt(e.target.value) || 0 })}
-                className="input" />
-            </div>
-          ))}
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={() => setBalEmp(null)} className="btn-secondary flex-1 justify-center">Cancel</button>
-            <button type="submit" disabled={balBusy} className="btn-primary flex-1 justify-center">
-              {balBusy ? 'Saving...' : 'Save balance'}
-            </button>
-          </div>
-        </form>
-      </Modal>
     </div>
   )
 }
