@@ -6,6 +6,7 @@ import {
   BookOpen, Calendar, X, BarChart2, Clock, TrendingUp, Upload, Download, AlertTriangle, CheckCircle2
 } from 'lucide-react'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
+import * as XLSX from 'xlsx'
 import { supabase } from '../supabase'
 import { useAuth } from '../AuthContext'
 import { Modal } from '../Modal'
@@ -177,24 +178,47 @@ export default function EmployeesPage() {
     a.click()
   }
 
-  const handleCSVFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    const isXlsx = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
     const reader = new FileReader()
+
     reader.onload = (ev) => {
-      const text = ev.target?.result as string
-      const lines = text.trim().split('\n').filter(Boolean)
-      if (lines.length < 2) return
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
-      const rows = lines.slice(1).filter(l => !l.trim().startsWith('#')).map(line => {
-        const vals = line.split(',').map(v => v.trim())
-        const obj: any = {}
-        headers.forEach((h, i) => { obj[h] = vals[i] ?? '' })
-        return obj
-      })
+      let rows: any[] = []
+      if (isXlsx) {
+        const data   = new Uint8Array(ev.target?.result as ArrayBuffer)
+        const wb     = XLSX.read(data, { type: 'array' })
+        // Use first sheet named "Employee Import" or fallback to first sheet
+        const sheetName = wb.SheetNames.find(n => n === 'Employee Import') ?? wb.SheetNames[0]
+        const sheet  = wb.Sheets[sheetName]
+        const json   = XLSX.utils.sheet_to_json(sheet, { defval: '' }) as any[]
+        // Normalise keys to lowercase, skip rows without name/email
+        rows = json
+          .map(r => {
+            const obj: any = {}
+            Object.keys(r).forEach(k => { obj[k.toLowerCase().trim()] = String(r[k] ?? '').trim() })
+            return obj
+          })
+          .filter(r => r.name && r.email)
+      } else {
+        // CSV path
+        const text  = ev.target?.result as string
+        const lines = text.trim().split('\n').filter(Boolean)
+        if (lines.length < 2) return
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
+        rows = lines.slice(1).filter(l => !l.trim().startsWith('#')).map(line => {
+          const vals = line.split(',').map(v => v.trim())
+          const obj: any = {}
+          headers.forEach((h, i) => { obj[h] = vals[i] ?? '' })
+          return obj
+        }).filter(r => r.name && r.email)
+      }
       setCsvRows(rows); setCsvResults([]); setCsvDone(false)
     }
-    reader.readAsText(file)
+
+    if (isXlsx) reader.readAsArrayBuffer(file)
+    else reader.readAsText(file)
     e.target.value = ''
   }
 
@@ -350,7 +374,7 @@ export default function EmployeesPage() {
         </div>
         <div className="flex gap-2">
           <button onClick={() => { setCsvModal(true); setCsvRows([]); setCsvResults([]); setCsvDone(false) }} className="btn-secondary">
-            <Upload size={15} /> Import CSV
+            <Upload size={15} /> Import
           </button>
           <button onClick={openAdd} className="btn-primary">
             <Plus size={16} /> Add employee
@@ -809,8 +833,8 @@ export default function EmployeesPage() {
           <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
-                <h2 className="font-bold text-gray-900">Import employees via CSV</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Upload a CSV file to add multiple employees at once</p>
+                <h2 className="font-bold text-gray-900">Import employees</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Upload the Excel template or a CSV file</p>
               </div>
               <button onClick={() => setCsvModal(false)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400"><X size={16} /></button>
             </div>
@@ -819,8 +843,8 @@ export default function EmployeesPage() {
               {/* Step 1: Download template */}
               <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl">
                 <div>
-                  <p className="text-sm font-semibold text-blue-800">Step 1 — Download template</p>
-                  <p className="text-xs text-blue-500 mt-0.5">Fill in the CSV with employee details</p>
+                  <p className="text-sm font-semibold text-blue-800">Step 1 — Download Excel template</p>
+                  <p className="text-xs text-blue-500 mt-0.5">Fill in the sheet and upload it back</p>
                 </div>
                 <button onClick={downloadTemplate} className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-white border border-blue-200 px-3 py-2 rounded-lg hover:bg-blue-50">
                   <Download size={13} /> Template
@@ -829,11 +853,12 @@ export default function EmployeesPage() {
 
               {/* Step 2: Upload */}
               <div>
-                <p className="text-sm font-semibold text-gray-700 mb-2">Step 2 — Upload filled CSV</p>
+                <p className="text-sm font-semibold text-gray-700 mb-2">Step 2 — Upload filled file</p>
                 <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-brand-400 hover:bg-brand-50/30 transition-colors">
                   <Upload size={22} className="text-gray-300 mb-2" />
-                  <span className="text-sm text-gray-400">Click to choose CSV file</span>
-                  <input type="file" accept=".csv" className="hidden" onChange={handleCSVFile} />
+                  <span className="text-sm text-gray-400">Click to choose Excel or CSV file</span>
+                  <span className="text-xs text-gray-300 mt-1">.xlsx · .xls · .csv</span>
+                  <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImportFile} />
                 </label>
               </div>
 
