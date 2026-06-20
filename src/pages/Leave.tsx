@@ -70,18 +70,20 @@ export default function LeavePage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !profile || !empId) { setError('Employee record not linked. Contact admin.'); return }
+    if (!user || !profile || !empId) { setError('Your account is not linked to an employee record. Contact admin.'); return }
     setBusy(true); setError(null)
     const days = getLeaveDays(startDate, endDate)
     if (days <= 0) { setError('End date must be on or after start date.'); setBusy(false); return }
 
-    // Balance check: block if not enough casual leaves
-    if (balance) {
-      const remaining = balance.casual_total - balance.casual_used
-      if (days > remaining) {
-        setError(`Not enough casual leave balance. You have ${remaining} day(s) remaining but requested ${days}.`)
-        setBusy(false); return
-      }
+    // Balance check: block if no balance row or not enough casual leaves
+    if (!balance) {
+      setError('Leave balance not set up for your account. Please contact admin.')
+      setBusy(false); return
+    }
+    const remaining = balance.casual_total - balance.casual_used
+    if (days > remaining) {
+      setError(`Not enough casual leave balance. You have ${remaining} day(s) remaining but requested ${days}.`)
+      setBusy(false); return
     }
 
     const { error: err } = await supabase.from('leave_requests').insert({
@@ -124,7 +126,7 @@ export default function LeavePage() {
           <h1 className="page-title">Leave</h1>
           <p className="page-subtitle">{leaves.filter(l => l.status === 'pending').length} pending requests</p>
         </div>
-        {role === 'employee' && (
+        {(role === 'employee' || role === 'cmk_coordinator') && (
           <button onClick={() => { setModal(true); setError(null) }} className="btn-primary">
             <Plus size={15} /> Apply leave
           </button>
@@ -132,7 +134,7 @@ export default function LeavePage() {
       </div>
 
       {/* Casual leave balance card — employees */}
-      {role === 'employee' && balance && (
+      {(role === 'employee' || role === 'cmk_coordinator') && balance && (
         <div className="card p-5 flex items-center gap-6">
           <div className="p-3 rounded-xl bg-blue-50">
             <Wallet size={20} className="text-blue-500" />

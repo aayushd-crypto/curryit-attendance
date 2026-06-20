@@ -293,13 +293,14 @@ export default function Dashboard() {
     return () => clearInterval(t)
   }, [])
 
-  const isAdmin = role === 'admin' || role === 'super_admin'
-  const isEmployee = role === 'employee'
+  const isAdmin    = role === 'admin' || role === 'super_admin'
+  const isEmployee = role === 'employee' || role === 'cmk_coordinator'
 
   const loadDashboard = async () => {
     setLoading(true)
     try {
       // Get employee record for current user
+      let myLocation = 'office'
       if (profile?.email) {
         const { data: emp } = await supabase
           .from('employees')
@@ -309,12 +310,13 @@ export default function Dashboard() {
         if (emp) {
           setEmpId(emp.id)
           setEmpLocation(emp.location)
+          myLocation = emp.location
         }
       }
 
       // Total active employees (scoped by location for non-admins)
       let empQuery = supabase.from('employees').select('*', { count: 'exact', head: true }).eq('status', 'active')
-      if (!isAdmin && empLocation) empQuery = empQuery.eq('location', empLocation)
+      if (!isAdmin && myLocation) empQuery = empQuery.eq('location', myLocation)
       const { count: totalEmployees } = await empQuery
 
       // Fetch employee name map
@@ -411,7 +413,10 @@ export default function Dashboard() {
   }, [role, empId])
 
   const checkIn = async () => {
-    if (!user || !profile || !empId) return
+    if (!user || !profile || !empId) {
+      setAttError('Your account is not linked to an employee record. Please contact admin.')
+      return
+    }
     setAttBusy(true); setAttError(null)
 
     const { error: e } = await supabase.from('attendance').insert({
