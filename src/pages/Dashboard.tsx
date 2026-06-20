@@ -544,9 +544,9 @@ export default function Dashboard() {
         </div>
 
         {/* Check-in/out widget + compact calendar side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Check-in/out card */}
-          <div className="lg:col-span-2 card-elevated rounded-3xl p-7">
+        <div className={role === 'cmk_coordinator' ? '' : 'grid grid-cols-1 lg:grid-cols-3 gap-4'}>
+          {/* Check-in/out card — hidden for CMK coordinators */}
+          {role !== 'cmk_coordinator' && <div className="lg:col-span-2 card-elevated rounded-3xl p-7">
             {/* ── NOT CHECKED IN ── */}
             {!checkedIn && !attError && (
               <>
@@ -680,7 +680,7 @@ export default function Dashboard() {
                 )}
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Compact monthly calendar */}
           <AttendanceCalendar employeeId={empId} location={empLocation} compact onDayClick={(dateStr) => navigate(`/attendance/${dateStr}`)} />
