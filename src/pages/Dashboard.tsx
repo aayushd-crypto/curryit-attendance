@@ -116,7 +116,7 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick 
     present: 'bg-green-100 text-green-700 font-semibold border border-green-200',
     remote:  'bg-purple-100 text-purple-700 font-semibold border border-purple-200',
     absent:  'bg-red-100 text-red-600 font-semibold border border-red-200',
-    leave:   'bg-orange-100 text-orange-700 font-semibold border border-orange-200',
+    leave:   'bg-red-100 text-red-600 font-semibold border border-red-200',
     sunday:  'bg-gray-100 text-gray-400 border border-gray-200',
     festival: 'bg-orange-100 text-orange-700 font-bold border border-orange-200',
     none:    'bg-white text-gray-400 border border-gray-100',
@@ -160,7 +160,7 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick 
             { label: 'Present', cls: 'bg-green-100 text-green-700 border border-green-200' },
             { label: 'Remote',  cls: 'bg-purple-100 text-purple-700 border border-purple-200' },
             { label: 'Absent',  cls: 'bg-red-100 text-red-600 border border-red-200' },
-            { label: 'Leave',   cls: 'bg-orange-100 text-orange-700 border border-orange-200' },
+            { label: 'Leave',   cls: 'bg-red-100 text-red-600 border border-red-200' },
             { label: 'Sunday',  cls: 'bg-gray-100 text-gray-400 border border-gray-200' },
             { label: 'Holiday', cls: 'bg-orange-100 text-orange-700 border border-orange-200' },
           ].map(l => (
