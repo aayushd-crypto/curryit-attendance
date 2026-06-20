@@ -171,9 +171,19 @@ export default function EmployeesPage() {
 
   // ── CSV import ─────────────────────────────────────────────────────────────
   const downloadTemplate = () => {
-    const header = 'name,email,mobile,designation,department_name,location,role,joining_date,password'
-    const example = 'Ravi Kumar,ravi@curryit.in,9876543210,Executive,Operations,office,employee,2026-06-20,'
-    const blob = new Blob([header + '\n' + example], { type: 'text/csv' })
+    const rows = [
+      'name,email,mobile,designation,department_name,location,role,joining_date,password',
+      '# ROLES: employee | admin | super_admin | cmk_coordinator',
+      '# LOCATION: office | cmk',
+      '# joining_date: YYYY-MM-DD format  |  password: leave blank to auto-generate',
+      '# -----------------------------------------------------------------------',
+      'Ravi Kumar,ravi@curryit.in,9876543210,Sales Executive,Sales,office,employee,2026-01-15,',
+      'Priya Sharma,priya@curryit.in,9988776655,HR Manager,HR,office,admin,2025-06-01,Welcome@123',
+      'Ajay Singh,ajay@curryit.in,9123456789,CMK Coordinator,Operations,cmk,cmk_coordinator,2025-09-10,',
+      'Sunita Rao,sunita@curryit.in,9000011111,Packing Supervisor,Production,cmk,employee,2026-03-20,',
+      'Mohit Verma,mohit@curryit.in,9871234567,Operations Head,Operations,office,super_admin,2024-12-01,Admin@2024',
+    ]
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
     a.download = 'employee_import_template.csv'; a.click()
   }
@@ -187,7 +197,7 @@ export default function EmployeesPage() {
       const lines = text.trim().split('\n').filter(Boolean)
       if (lines.length < 2) return
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
-      const rows = lines.slice(1).map(line => {
+      const rows = lines.slice(1).filter(l => !l.trim().startsWith('#')).map(line => {
         const vals = line.split(',').map(v => v.trim())
         const obj: any = {}
         headers.forEach((h, i) => { obj[h] = vals[i] ?? '' })
