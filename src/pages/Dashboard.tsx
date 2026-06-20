@@ -237,8 +237,6 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
 }
 
 interface MonthSummary {
-  totalWorkingDays: number
-  avgPresentDays: number
   totalPresent: number
   totalRemote: number
   totalAbsent: number
@@ -332,8 +330,6 @@ export default function Dashboard() {
         const ma = monthAtt ?? []
         const uniqueEmps = new Set(ma.map(r => r.employee_id)).size
         setMonthSummary({
-          totalWorkingDays: Math.round(ma.length / (uniqueEmps || 1)),
-          avgPresentDays:   Math.round(ma.filter(r => r.status === 'present').length / (uniqueEmps || 1)),
           totalPresent: ma.filter(r => r.status === 'present' && r.work_mode !== 'remote').length,
           totalRemote:  ma.filter(r => r.work_mode === 'remote').length,
           totalAbsent:  ma.filter(r => r.status === 'absent').length,
@@ -373,8 +369,6 @@ export default function Dashboard() {
       .eq('employee_id', employeeId).eq('date', todayStr).maybeSingle()
     setTodayRecord(today ?? null)
 
-    const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd')
-    const monthEnd   = format(endOfMonth(new Date()), 'yyyy-MM-dd')
     const { data: hist } = await supabase
       .from('attendance').select('*')
       .eq('employee_id', employeeId)
@@ -818,7 +812,8 @@ export default function Dashboard() {
             </PieChart>
           </ResponsiveContainer>
         </div>
-      
+      </div>
+
       {/* Pending leaves */}
       {pendingLeaves.length > 0 ? (
         <div className="card">
