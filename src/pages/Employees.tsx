@@ -208,15 +208,28 @@ export default function EmployeesPage() {
     for (const row of csvRows) {
       // Find department_id by name
       const dept = departments.find(d => d.name.toLowerCase() === (row.department_name ?? '').toLowerCase())
+
+      // Normalise location — accept "office"/"cmk" case-insensitively
+      const rawLoc = (row.location ?? '').toLowerCase().trim()
+      const location = rawLoc === 'cmk' ? 'cmk' : 'office'
+
+      // Normalise role
+      const validRoles = ['employee','admin','super_admin','cmk_coordinator']
+      const rawRole = (row.role ?? '').toLowerCase().trim()
+      const empRole = validRoles.includes(rawRole) ? rawRole : 'employee'
+
+      // Default empty joining_date to today
+      const joining_date = row.joining_date?.trim() || format(new Date(), 'yyyy-MM-dd')
+
       const payload = {
         name: row.name,
         email: row.email,
         mobile: row.mobile ?? '',
         designation: row.designation ?? '',
         department_id: dept?.id ?? '',
-        location: row.location ?? 'office',
-        role: row.role ?? 'employee',
-        joining_date: row.joining_date ?? format(new Date(), 'yyyy-MM-dd'),
+        location,
+        role: empRole,
+        joining_date,
         temp_password: row.password || genPassword(),
       }
       try {
