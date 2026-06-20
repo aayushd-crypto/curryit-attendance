@@ -739,7 +739,7 @@ export default function Dashboard() {
   // ── ADMIN / SUPER ADMIN VIEW ──────────────────────────────────────────────
   return (
     <div className="space-y-5 max-w-7xl mx-auto">
-      <div className="page-header">
+      <div className="page-header flex-wrap gap-2">
         <div>
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">Today — {formatDate(todayStr)} · {format(now, 'hh:mm a')}</p>
@@ -750,7 +750,7 @@ export default function Dashboard() {
       </div>
 
       {/* Top stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <Link to="/employees" className="block">
           <StatCard label="Total employees"  value={summary?.totalEmployees ?? 0} icon={Users} color="gray" sub="Tap to manage" />
         </Link>
@@ -797,7 +797,7 @@ export default function Dashboard() {
             <span className="w-2.5 h-2.5 bg-blue-500 rounded-full" />
             Office attendance
           </h3>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { label: 'Present', cls: 'text-green-600',  bg: 'bg-green-50',  filter: (r: any) => r.location === 'office' && r.status === 'present' && r.work_mode !== 'remote' },
               { label: 'Remote',  cls: 'text-purple-600', bg: 'bg-purple-50', filter: (r: any) => r.location === 'office' && r.work_mode === 'remote' },
@@ -822,7 +822,7 @@ export default function Dashboard() {
             <span className="w-2.5 h-2.5 bg-brand-500 rounded-full" />
             CMK attendance
           </h3>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {[
               { label: 'Present', cls: 'text-green-600',  bg: 'bg-green-50',  filter: (r: any) => r.location === 'cmk' && r.status === 'present' },
               { label: 'Absent',  cls: 'text-red-600',    bg: 'bg-red-50',    filter: (r: any) => r.location === 'cmk' && r.status === 'absent' },
@@ -896,7 +896,7 @@ export default function Dashboard() {
             <Link to="/leave" className="text-sm text-brand-600 hover:text-brand-700 font-medium">View all →</Link>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[400px]">
               <thead>
                 <tr>
                   <th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th>

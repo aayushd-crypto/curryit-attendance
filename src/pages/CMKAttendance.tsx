@@ -157,7 +157,7 @@ export default function CMKAttendancePage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
-      <div className="page-header">
+      <div className="page-header flex-wrap gap-2">
         <div>
           <h1 className="page-title">CMK Daily Attendance</h1>
           <p className="page-subtitle">{formatDate(selectedDate)} · {employees.filter(e => e.saved).length} of {employees.length} saved</p>
@@ -233,7 +233,7 @@ export default function CMKAttendancePage() {
       {/* Attendance table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr>
                 <th>Employee ID</th>

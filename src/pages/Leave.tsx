@@ -128,7 +128,7 @@ export default function LeavePage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-5">
-      <div className="page-header">
+      <div className="page-header flex-wrap gap-2">
         <div>
           <h1 className="page-title">Leave</h1>
           <p className="page-subtitle">{leaves.filter(l => l.status === 'pending').length} pending requests</p>
@@ -189,7 +189,7 @@ export default function LeavePage() {
       {/* Table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[500px]">
             <thead>
               <tr>
                 {isAdmin && <th>Employee</th>}

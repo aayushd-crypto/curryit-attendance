@@ -55,18 +55,20 @@ export function Navbar({ onMenuClick, notifCount = 0 }: NavbarProps) {
           <Menu size={20} />
         </button>
 
-        {/* Tile 1 — Greeting */}
+        {/* Mobile: compact greeting + clock */}
+        <div className="flex sm:hidden flex-col leading-tight px-2 py-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.7)' }}>
+          <span className="text-xs font-black text-gray-800">Namaste 🙏 {profile?.full_name?.split(' ')[0]} Ji</span>
+          <span className="text-[10px] font-mono text-gray-500">{clock}</span>
+        </div>
+
+        {/* Desktop: 3 separate tiles */}
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.7)' }}>
           <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse flex-shrink-0" />
           <span className="text-lg font-black text-gray-800 tracking-tight">Namaste 🙏 {profile?.full_name?.split(' ')[0]} Ji</span>
         </div>
-
-        {/* Tile 2 — Date */}
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.7)' }}>
           <span className="text-lg font-bold text-gray-700 tracking-tight">{today}</span>
         </div>
-
-        {/* Tile 3 — Live Clock */}
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono" style={{ background: 'rgba(255,255,255,0.7)' }}>
           <span className="text-lg font-bold text-gray-700 tracking-tight">{clock}</span>
         </div>

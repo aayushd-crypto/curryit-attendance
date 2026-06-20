@@ -77,7 +77,7 @@ export default function ReportsPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-5">
-      <div className="page-header">
+      <div className="page-header flex-wrap gap-2">
         <div>
           <h1 className="page-title">Reports</h1>
           <p className="page-subtitle">{rows.length} records found</p>
@@ -190,7 +190,7 @@ export default function ReportsPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[500px]">
               <thead>
                 <tr>
                   <th>Date</th>

@@ -103,7 +103,7 @@ export default function EmployeeDetailPage() {
     <div className="max-w-5xl mx-auto space-y-5">
 
       {/* Header */}
-      <div className="page-header">
+      <div className="page-header flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors">
             <ArrowLeft size={18} />
@@ -216,7 +216,7 @@ export default function EmployeeDetailPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[500px]">
               <thead>
                 <tr>
                   <th>Date</th>
