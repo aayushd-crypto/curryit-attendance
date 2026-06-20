@@ -819,3 +819,44 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
       
+      {/* Pending leaves */}
+      {pendingLeaves.length > 0 ? (
+        <div className="card">
+          <div className="table-header">
+            <div>
+              <h3 className="font-semibold text-gray-900">Pending leave approvals</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{pendingLeaves.length} request{pendingLeaves.length > 1 ? 's' : ''} awaiting review</p>
+            </div>
+            <Link to="/leave" className="text-sm text-brand-600 hover:text-brand-700 font-medium">View all →</Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr>
+                  <th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingLeaves.map(leave => (
+                  <tr key={leave.id}>
+                    <td className="font-medium text-gray-900">{leave.employee_name}</td>
+                    <td><span className="badge-pending">{statusLabel(leave.leave_type)}</span></td>
+                    <td>{formatDate(leave.start_date)}</td>
+                    <td>{formatDate(leave.end_date)}</td>
+                    <td>{leave.total_days}d</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="card p-8 text-center">
+          <CheckSquare size={32} className="mx-auto text-green-400 mb-2" />
+          <p className="font-medium text-gray-700">All caught up!</p>
+          <p className="text-sm text-gray-500 mt-1">No pending leave approvals right now.</p>
+        </div>
+      )}
+    </div>
+  )
+}
