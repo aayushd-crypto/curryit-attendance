@@ -16,8 +16,7 @@ interface CMKEmployee {
   status: AttStatus | null
   saved: boolean
   editing: boolean
-  check_in_time: string | null
-  check_out_time: string | null
+  overtime: boolean
 }
 
 export default function CMKAttendancePage() {
@@ -46,7 +45,7 @@ export default function CMKAttendancePage() {
     // Check existing records for today
     const { data: existing } = await supabase
       .from('attendance')
-      .select('employee_id, status, check_in_time, check_out_time')
+      .select('employee_id, status, overtime_minutes')
       .eq('date', todayStr)
       .in('location', ['cmk'])
 
@@ -60,8 +59,7 @@ export default function CMKAttendancePage() {
       status: (existingMap.get(e.id)?.status as AttStatus) ?? null,
       saved: existingMap.has(e.id),
       editing: false,
-      check_in_time: existingMap.get(e.id)?.check_in_time ?? null,
-      check_out_time: existingMap.get(e.id)?.check_out_time ?? null,
+      overtime: (existingMap.get(e.id)?.overtime_minutes ?? 0) > 0,
     }))
 
     setEmployees(list)
@@ -92,25 +90,8 @@ export default function CMKAttendancePage() {
   }
 
 
-  const checkOut = async (emp: CMKEmployee) => {
-    if (!user || !profile) return
-    const istNow = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000))
-    const nowIST = istNow.toISOString().slice(11, 19)
-    const { data: att } = await supabase.from('attendance')
-      .select('id, check_in_time')
-      .eq('employee_id', emp.id).eq('date', todayStr).maybeSingle()
-    if (!att) return
-    // compute worked_minutes and overtime
-    const [ih, im] = (att.check_in_time ?? '09:00:00').split(':').map(Number)
-    const [oh, om] = nowIST.split(':').map(Number)
-    const workedMins = Math.max(0, (oh * 60 + om) - (ih * 60 + im))
-    const overtimeMins = Math.max(0, workedMins - 8 * 60)
-    await supabase.from('attendance').update({
-      check_out_time: nowIST, worked_minutes: workedMins, overtime_minutes: overtimeMins,
-    }).eq('id', att.id)
-    await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!,
-      action: `Recorded checkout for ${emp.name} at ${nowIST} IST` })
-    await loadEmployees()
+  const toggleOvertime = (id: string) => {
+    setEmployees(prev => prev.map(e => e.id === id ? { ...e, overtime: !e.overtime } : e))
   }
 
   const saveAttendance = async () => {
@@ -138,6 +119,7 @@ export default function CMKAttendancePage() {
       status: e.status!,
       source: 'coordinator_marked' as const,
       marked_by: user.id,
+      overtime_minutes: e.overtime ? 60 : 0,
     }))
 
     const { error: upsertError } = await supabase
@@ -229,7 +211,7 @@ export default function CMKAttendancePage() {
                 <th className="text-center">Absent</th>
                 <th className="text-center">Leave</th>
                 <th>Status</th>
-                <th>Check Out</th>
+                <th className="text-center">Overtime</th>
               </tr>
             </thead>
             <tbody>
@@ -284,14 +266,18 @@ export default function CMKAttendancePage() {
                         )}
                       </div>
                     </td>
-                    <td>
-                      {emp.saved && emp.status === 'present' && (
-                        emp.check_out_time
-                          ? <span className="font-mono text-sm text-gray-600">{emp.check_out_time.slice(0,5)}</span>
-                          : <button onClick={() => checkOut(emp)}
-                              className="text-xs font-bold px-2.5 py-1 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors">
-                              Record checkout
-                            </button>
+                    <td className="text-center">
+                      {emp.status === 'present' && (
+                        <button
+                          onClick={() => (!emp.saved || emp.editing) && toggleOvertime(emp.id)}
+                          disabled={emp.saved && !emp.editing}
+                          className={`w-8 h-5 rounded-full transition-colors ${
+                            emp.overtime ? 'bg-amber-500' : 'bg-gray-200'
+                          } ${emp.saved && !emp.editing ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
+                          title={emp.overtime ? 'Overtime: Yes' : 'Overtime: No'}
+                        >
+                          <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-0.5 ${emp.overtime ? 'translate-x-3' : 'translate-x-0'}`} />
+                        </button>
                       )}
                     </td>
                   </tr>
