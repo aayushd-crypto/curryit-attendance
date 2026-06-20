@@ -1,15 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, ArrowRight, Zap, Calendar, Users, BarChart2 } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { useAuth } from '../AuthContext'
 import { Spinner } from '../Spinner'
-
-const features = [
-  { icon: Zap,       label: 'Live attendance',  desc: 'Office & CMK tracking in real-time' },
-  { icon: Calendar,  label: 'Leave management', desc: 'Apply, approve & track effortlessly' },
-  { icon: Users,     label: 'Team overview',    desc: 'Full visibility across all roles'   },
-  { icon: BarChart2, label: 'Smart reports',    desc: 'Export & analyse attendance data'   },
-]
 
 export default function LoginPage() {
   const [email, setEmail]       = useState('')
@@ -81,24 +74,6 @@ export default function LoginPage() {
             One place to track attendance, manage leaves, and keep your team running — just like a well-spiced curry.
           </p>
         </div>
-
-        {/* Feature pills */}
-        <div className="grid grid-cols-2 gap-3">
-          {features.map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="flex items-start gap-3 p-4 rounded-2xl"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                style={{ background: 'rgba(232,83,29,0.15)' }}>
-                <Icon size={15} style={{ color: '#E8531D' }} />
-              </div>
-              <div>
-                <p className="text-white text-xs font-bold leading-tight">{label}</p>
-                <p className="text-white/35 text-[11px] mt-0.5 leading-snug">{desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
         <p className="text-white/20 text-[11px] font-medium mt-6">
           © {new Date().getFullYear()} CURRYiT · Attendance Management System
         </p>
