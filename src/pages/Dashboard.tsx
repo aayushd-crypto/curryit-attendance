@@ -118,7 +118,7 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick 
     absent:  'bg-red-100 text-red-600 font-semibold border border-red-200',
     leave:   'bg-orange-100 text-orange-700 font-semibold border border-orange-200',
     sunday:  'bg-gray-100 text-gray-400 border border-gray-200',
-    festival: 'bg-sky-100 text-sky-700 font-bold border border-sky-200',
+    festival: 'bg-orange-100 text-orange-700 font-bold border border-orange-200',
     none:    'bg-white text-gray-400 border border-gray-100',
   }
 
@@ -146,8 +146,7 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick 
           </span>
           <button
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            disabled={isSameMonth(currentMonth, new Date())}
-            className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 disabled:opacity-30"
+            className="p-1 rounded-lg hover:bg-gray-100 text-gray-500"
           >
             <ChevronRight size={14} />
           </button>
@@ -163,7 +162,7 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick 
             { label: 'Absent',  cls: 'bg-red-100 text-red-600 border border-red-200' },
             { label: 'Leave',   cls: 'bg-orange-100 text-orange-700 border border-orange-200' },
             { label: 'Sunday',  cls: 'bg-gray-100 text-gray-400 border border-gray-200' },
-            { label: 'Holiday', cls: 'bg-sky-100 text-sky-700 border border-sky-200' },
+            { label: 'Holiday', cls: 'bg-orange-100 text-orange-700 border border-orange-200' },
           ].map(l => (
             <span key={l.label} className={`text-xs px-2 py-0.5 rounded-full ${l.cls}`}>{l.label}</span>
           ))}
@@ -241,8 +240,8 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick 
           <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-2">Holidays this month</p>
           <div className="flex flex-wrap gap-2">
             {holidays.map(h => (
-              <span key={h.holiday_date} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-sky-700"
-                style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
+              <span key={h.holiday_date} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-orange-700"
+                style={{ background: 'rgba(234,88,12,0.08)', border: '1px solid rgba(234,88,12,0.2)' }}>
                 🎉 {h.name} · {format(parseISO(h.holiday_date), 'dd MMM')}
               </span>
             ))}
