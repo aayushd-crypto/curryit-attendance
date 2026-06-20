@@ -41,7 +41,7 @@ export default function CMKAttendancePage() {
     setLoading(true)
     const { data: emps } = await supabase
       .from('employees')
-      .select('id, employee_code, name, role, departments(name)')
+      .select('id, employee_code, name, email, departments(name)')
       .eq('location', 'cmk')
       .eq('status', 'active')
       .order('name')
@@ -55,7 +55,8 @@ export default function CMKAttendancePage() {
 
     const existingMap = new Map((existing ?? []).map((r: any) => [r.employee_id, r]))
 
-    const empList = (emps ?? []).filter((e: any) => e.role !== 'cmk_coordinator')
+    // Exclude the logged-in coordinator from the list (they self check-in)
+    const empList = (emps ?? []).filter((e: any) => e.email !== profile?.email)
 
     const list: CMKEmployee[] = empList.map((e: any) => ({
       id: e.id,
