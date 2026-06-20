@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import {
   Plus, Search, Edit2, UserX, UserCheck,
   ChevronDown, Wallet, Eye, EyeOff, Copy, CheckCheck,
-  BookOpen, Calendar, X
+  BookOpen, Calendar, X, BarChart2, Clock, TrendingUp
 } from 'lucide-react'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '../supabase'
@@ -26,6 +26,12 @@ interface AttendanceRow {
 interface LeaveRow {
   id: string; start_date: string; end_date: string; total_days: number | null
   reason: string; status: string; leave_type?: string
+}
+interface EmpSummary {
+  casualTotal: number; casualUsed: number; casualRemaining: number
+  presentDays: number; remoteDays: number; absentDays: number; leaveDays: number
+  totalWorkedMins: number; totalOvertimeMins: number
+  year: number
 }
 
 export default function EmployeesPage() {
@@ -53,7 +59,8 @@ export default function EmployeesPage() {
 
   // history modal
   const [histEmp, setHistEmp]                 = useState<Employee | null>(null)
-  const [histTab, setHistTab]                 = useState<'attendance' | 'leaves'>('attendance')
+  const [histTab, setHistTab]                 = useState<'summary' | 'attendance' | 'leaves'>('summary')
+  const [histSummary, setHistSummary]         = useState<EmpSummary | null>(null)
   const [histAttendance, setHistAttendance]   = useState<AttendanceRow[]>([])
   const [histLeaves, setHistLeaves]           = useState<LeaveRow[]>([])
   const [histLoading, setHistLoading]         = useState(false)
@@ -104,7 +111,8 @@ export default function EmployeesPage() {
   const openHistory = async (emp: Employee, month?: string) => {
     const m = month ?? histMonth
     setHistEmp(emp)
-    setHistTab('attendance')
+    setHistTab('summary')
+    setHistSummary(null)
     setHistLoading(true)
 
     const monthDate = new Date(m + '-01')
@@ -125,6 +133,30 @@ export default function EmployeesPage() {
 
     setHistAttendance((att ?? []) as AttendanceRow[])
     setHistLeaves((lv ?? []) as LeaveRow[])
+
+    // Fetch full-year stats + leave balance for summary
+    const year = new Date().getFullYear()
+    const yearStart = `${year}-01-01`
+    const yearEnd   = `${year}-12-31`
+    const [{ data: yearAtt }, { data: bal }] = await Promise.all([
+      supabase.from('attendance').select('status, work_mode, worked_minutes, overtime_minutes')
+        .eq('employee_id', emp.id).gte('date', yearStart).lte('date', yearEnd),
+      supabase.from('leave_balances').select('casual_total, casual_used')
+        .eq('employee_id', emp.id).eq('year', year).maybeSingle(),
+    ])
+    const ya = yearAtt ?? []
+    setHistSummary({
+      casualTotal:     bal?.casual_total     ?? 12,
+      casualUsed:      bal?.casual_used      ?? 0,
+      casualRemaining: (bal?.casual_total ?? 12) - (bal?.casual_used ?? 0),
+      presentDays:     ya.filter(r => r.status === 'present' && r.work_mode !== 'remote').length,
+      remoteDays:      ya.filter(r => r.work_mode === 'remote').length,
+      absentDays:      ya.filter(r => r.status === 'absent').length,
+      leaveDays:       ya.filter(r => r.status === 'leave').length,
+      totalWorkedMins: ya.reduce((s, r) => s + (r.worked_minutes ?? 0), 0),
+      totalOvertimeMins: ya.reduce((s, r) => s + (r.overtime_minutes ?? 0), 0),
+      year,
+    })
     setHistLoading(false)
   }
 
@@ -363,6 +395,10 @@ export default function EmployeesPage() {
 
             {/* Tabs + month picker */}
             <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-100">
+              <button onClick={() => setHistTab('summary')}
+                className={`px-4 py-1.5 rounded-xl text-sm font-semibold transition-colors ${histTab === 'summary' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+                Summary
+              </button>
               <button onClick={() => setHistTab('attendance')}
                 className={`px-4 py-1.5 rounded-xl text-sm font-semibold transition-colors ${histTab === 'attendance' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-700'}`}>
                 Attendance
@@ -386,6 +422,65 @@ export default function EmployeesPage() {
             <div className="overflow-y-auto flex-1 px-6 py-4">
               {histLoading ? (
                 <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>
+              ) : histTab === 'summary' ? (
+                <div className="space-y-5 p-2">
+                  {/* Leave balance */}
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Leave Balance — {histSummary?.year}</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { label: 'Total',     val: histSummary?.casualTotal,     cls: 'text-gray-700',   bg: 'bg-gray-50'   },
+                        { label: 'Used',      val: histSummary?.casualUsed,      cls: 'text-red-600',    bg: 'bg-red-50'    },
+                        { label: 'Remaining', val: histSummary?.casualRemaining, cls: 'text-green-600',  bg: 'bg-green-50'  },
+                      ].map(({ label, val, cls, bg }) => (
+                        <div key={label} className={`${bg} rounded-xl p-4 text-center`}>
+                          <p className={`text-3xl font-black ${cls}`}>{val ?? '—'}</p>
+                          <p className="text-xs text-gray-500 mt-1">{label} leaves</p>
+                        </div>
+                      ))}
+                    </div>
+                    {histSummary && (
+                      <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-red-400 rounded-full transition-all"
+                          style={{ width: `${histSummary.casualTotal ? Math.min(100, (histSummary.casualUsed / histSummary.casualTotal) * 100) : 0}%` }} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Attendance stats */}
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Attendance — {histSummary?.year}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { label: 'Days in office',  val: histSummary?.presentDays, cls: 'text-green-600',  bg: 'bg-green-50'  },
+                        { label: 'Days remote',     val: histSummary?.remoteDays,  cls: 'text-purple-600', bg: 'bg-purple-50' },
+                        { label: 'Days absent',     val: histSummary?.absentDays,  cls: 'text-red-600',    bg: 'bg-red-50'    },
+                        { label: 'Days on leave',   val: histSummary?.leaveDays,   cls: 'text-orange-600', bg: 'bg-orange-50' },
+                      ].map(({ label, val, cls, bg }) => (
+                        <div key={label} className={`${bg} rounded-xl p-4 flex items-center gap-3`}>
+                          <p className={`text-2xl font-black ${cls}`}>{val ?? 0}</p>
+                          <p className="text-xs text-gray-500 leading-tight">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Hours */}
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Working Hours — {histSummary?.year}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { label: 'Total hours worked', val: histSummary ? `${Math.floor(histSummary.totalWorkedMins / 60)}h ${histSummary.totalWorkedMins % 60}m` : '—', cls: 'text-blue-600', bg: 'bg-blue-50' },
+                        { label: 'Total overtime',     val: histSummary ? `${Math.floor(histSummary.totalOvertimeMins / 60)}h ${histSummary.totalOvertimeMins % 60}m` : '—', cls: 'text-amber-600', bg: 'bg-amber-50' },
+                      ].map(({ label, val, cls, bg }) => (
+                        <div key={label} className={`${bg} rounded-xl p-4 flex items-center gap-3`}>
+                          <p className={`text-lg font-black ${cls}`}>{val}</p>
+                          <p className="text-xs text-gray-500 leading-tight">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               ) : histTab === 'attendance' ? (
                 histAttendance.length === 0 ? (
                   <p className="text-center text-gray-400 py-12 text-sm">No attendance records for this month.</p>
