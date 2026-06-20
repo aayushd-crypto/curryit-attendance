@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import {
   Plus, Search, Edit2, UserX, UserCheck,
   ChevronDown, Wallet, Eye, EyeOff, Copy, CheckCheck,
@@ -335,7 +335,7 @@ export default function EmployeesPage() {
                         {emp.name[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900 text-sm">{emp.name}</p>
+                        <Link to={`/employees/${emp.id}`} className="font-semibold text-blue-700 hover:text-blue-900 hover:underline text-sm transition-colors">{emp.name}</Link>
                         <p className="text-xs text-gray-400">{emp.email}</p>
                       </div>
                     </div>
