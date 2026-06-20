@@ -41,10 +41,9 @@ export default function CMKAttendancePage() {
     setLoading(true)
     const { data: emps } = await supabase
       .from('employees')
-      .select('id, employee_code, name, departments(name)')
+      .select('id, employee_code, name, role, departments(name)')
       .eq('location', 'cmk')
       .eq('status', 'active')
-      .or('role.is.null,role.neq.cmk_coordinator')
       .order('name')
 
     // Check existing records for the selected date
@@ -56,7 +55,9 @@ export default function CMKAttendancePage() {
 
     const existingMap = new Map((existing ?? []).map((r: any) => [r.employee_id, r]))
 
-    const list: CMKEmployee[] = (emps ?? []).map((e: any) => ({
+    const empList = (emps ?? []).filter((e: any) => e.role !== 'cmk_coordinator')
+
+    const list: CMKEmployee[] = empList.map((e: any) => ({
       id: e.id,
       employee_code: e.employee_code,
       name: e.name,
