@@ -44,6 +44,7 @@ export default function CMKAttendancePage() {
       .select('id, employee_code, name, departments(name)')
       .eq('location', 'cmk')
       .eq('status', 'active')
+      .neq('role', 'cmk_coordinator')
       .order('name')
 
     // Check existing records for the selected date
