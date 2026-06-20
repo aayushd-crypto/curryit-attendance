@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
-import { Plus, Check, X, Calendar, ChevronDown, AlertCircle, Home, Briefcase, Wallet } from 'lucide-react'
+import { Plus, Check, X, Calendar, AlertCircle, Briefcase, Wallet } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useAuth } from '../AuthContext'
 import { Modal } from '../Modal'
 import { Spinner } from '../Spinner'
 import { formatDate, getLeaveDays, statusLabel, logAudit } from '../helpers'
 
-type Tab = 'leaves' | 'wfh'
-type LType = 'casual' | 'sick' | 'emergency' | 'paid' | 'unpaid'
+type LType = 'casual'
 
 interface Req {
   id: string; employee_id: string; leave_type?: string
@@ -17,34 +16,29 @@ interface Req {
   employees?: { name: string }
 }
 interface Balance {
-  casual_total: number; casual_used: number; sick_total: number; sick_used: number
-  emergency_total: number; emergency_used: number; paid_total: number; paid_used: number
+  casual_total: number; casual_used: number
 }
 
 const leaveTypeLabels: Record<LType, string> = {
-  casual: 'Casual Leave', sick: 'Sick Leave', emergency: 'Emergency Leave',
-  paid: 'Paid Leave', unpaid: 'Unpaid Leave',
+  casual: 'Casual Leave',
 }
 
 export default function LeavePage() {
   const { user, profile, role } = useAuth()
   const isAdmin = role === 'admin' || role === 'super_admin'
 
-  const [tab, setTab]           = useState<Tab>('leaves')
   const [leaves, setLeaves]     = useState<Req[]>([])
-  const [wfh, setWfh]           = useState<Req[]>([])
   const [balance, setBalance]   = useState<Balance | null>(null)
   const [empId, setEmpId]       = useState<string | null>(null)
   const [loading, setLoading]   = useState(true)
-  const [modal, setModal]       = useState<'leave' | 'wfh' | null>(null)
-  const [rejectId, setRejectId] = useState<{ id: string; kind: Tab } | null>(null)
+  const [modal, setModal]       = useState(false)
+  const [rejectId, setRejectId] = useState<string | null>(null)
   const [remark, setRemark]     = useState('')
   const [filter, setFilter]     = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
   const [error, setError]       = useState<string | null>(null)
   const [busy, setBusy]         = useState(false)
 
   // form
-  const [leaveType, setLeaveType] = useState<LType>('casual')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate]     = useState('')
   const [reason, setReason]       = useState('')
@@ -59,14 +53,13 @@ export default function LeavePage() {
     }
 
     let lq = supabase.from('leave_requests').select('*, employees(name)').order('created_at', { ascending: false })
-    let wq = supabase.from('wfh_requests').select('*, employees(name)').order('created_at', { ascending: false })
-    if (!isAdmin && myEmpId) { lq = lq.eq('employee_id', myEmpId); wq = wq.eq('employee_id', myEmpId) }
+    if (!isAdmin && myEmpId) lq = lq.eq('employee_id', myEmpId)
 
-    const [{ data: l }, { data: w }] = await Promise.all([lq, wq])
-    setLeaves((l ?? []) as Req[]); setWfh((w ?? []) as Req[])
+    const { data: l } = await lq
+    setLeaves((l ?? []) as Req[])
 
     if (myEmpId) {
-      const { data: bal } = await supabase.from('leave_balances').select('*')
+      const { data: bal } = await supabase.from('leave_balances').select('casual_total, casual_used')
         .eq('employee_id', myEmpId).eq('year', new Date().getFullYear()).maybeSingle()
       setBalance(bal as Balance | null)
     }
@@ -82,37 +75,38 @@ export default function LeavePage() {
     const days = getLeaveDays(startDate, endDate)
     if (days <= 0) { setError('End date must be on or after start date.'); setBusy(false); return }
 
-    let err
-    if (modal === 'leave') {
-      ;({ error: err } = await supabase.from('leave_requests').insert({
-        employee_id: empId, leave_type: leaveType, start_date: startDate,
-        end_date: endDate, total_days: days, reason, status: 'pending',
-      }))
-    } else {
-      ;({ error: err } = await supabase.from('wfh_requests').insert({
-        employee_id: empId, start_date: startDate, end_date: endDate, reason, status: 'pending',
-      }))
+    // Balance check: block if not enough casual leaves
+    if (balance) {
+      const remaining = balance.casual_total - balance.casual_used
+      if (days > remaining) {
+        setError(`Not enough casual leave balance. You have ${remaining} day(s) remaining but requested ${days}.`)
+        setBusy(false); return
+      }
     }
+
+    const { error: err } = await supabase.from('leave_requests').insert({
+      employee_id: empId, leave_type: 'casual', start_date: startDate,
+      end_date: endDate, total_days: days, reason, status: 'pending',
+    })
     if (err) setError('Failed to submit. Please try again.')
     else {
       await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!,
-        action: modal === 'leave' ? `Applied ${leaveType} leave (${days}d)` : `Requested WFH (${days}d)` })
-      setModal(null); setStartDate(''); setEndDate(''); setReason('')
+        action: `Applied casual leave (${days}d)` })
+      setModal(false); setStartDate(''); setEndDate(''); setReason('')
       await load()
     }
     setBusy(false)
   }
 
-  const decide = async (id: string, kind: Tab, status: 'approved' | 'rejected', remarks?: string) => {
+  const decide = async (id: string, status: 'approved' | 'rejected', remarks?: string) => {
     if (!user || !profile) return
-    const table = kind === 'leaves' ? 'leave_requests' : 'wfh_requests'
-    await supabase.from(table).update({ status, remarks: remarks ?? null, approved_by: user.id }).eq('id', id)
-    await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!, action: `${status} ${kind === 'leaves' ? 'leave' : 'WFH'} request` })
+    await supabase.from('leave_requests').update({ status, remarks: remarks ?? null, approved_by: user.id }).eq('id', id)
+    await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!, action: `${status} leave request` })
     setRejectId(null); setRemark('')
     await load()
   }
 
-  const rows = (tab === 'leaves' ? leaves : wfh).filter(r => filter === 'all' || r.status === filter)
+  const rows = leaves.filter(r => filter === 'all' || r.status === filter)
 
   const badge = (s: string) =>
     s === 'approved' ? <span className="badge-approved">Approved</span>
@@ -121,71 +115,52 @@ export default function LeavePage() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size="lg" /></div>
 
-  const balCards = balance ? [
-    { label: 'Casual',    used: balance.casual_used,    total: balance.casual_total,    color: '#3B82F6' },
-    { label: 'Sick',      used: balance.sick_used,      total: balance.sick_total,      color: '#10B981' },
-    { label: 'Emergency', used: balance.emergency_used, total: balance.emergency_total, color: '#EF4444' },
-    { label: 'Paid',      used: balance.paid_used,      total: balance.paid_total,      color: '#E8531D' },
-  ] : []
+  const casualRemaining = balance ? balance.casual_total - balance.casual_used : 0
 
   return (
     <div className="max-w-5xl mx-auto space-y-5">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Leave & WFH</h1>
-          <p className="page-subtitle">
-            {leaves.filter(l => l.status === 'pending').length + wfh.filter(w => w.status === 'pending').length} pending requests
-          </p>
+          <h1 className="page-title">Leave</h1>
+          <p className="page-subtitle">{leaves.filter(l => l.status === 'pending').length} pending requests</p>
         </div>
         {role === 'employee' && (
-          <div className="flex gap-2">
-            <button onClick={() => { setModal('wfh'); setError(null) }} className="btn-secondary">
-              <Home size={15} /> Request WFH
-            </button>
-            <button onClick={() => { setModal('leave'); setError(null) }} className="btn-primary">
-              <Plus size={15} /> Apply leave
-            </button>
-          </div>
+          <button onClick={() => { setModal(true); setError(null) }} className="btn-primary">
+            <Plus size={15} /> Apply leave
+          </button>
         )}
       </div>
 
-      {/* Balance cards — employees */}
+      {/* Casual leave balance card — employees */}
       {role === 'employee' && balance && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {balCards.map(b => {
-            const left = b.total - b.used
-            const pct = b.total ? Math.min(100, (b.used / b.total) * 100) : 0
-            return (
-              <div key={b.label} className="card p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{b.label}</p>
-                  <Wallet size={13} style={{ color: b.color }} />
-                </div>
-                <p className="text-2xl font-black" style={{ color: b.color }}>{left}<span className="text-sm text-gray-300 font-bold">/{b.total}</span></p>
-                <div className="h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${100 - pct}%`, background: b.color }} />
-                </div>
-                <p className="text-[10px] text-gray-400 mt-1.5">{b.used} used · {left} remaining</p>
-              </div>
-            )
-          })}
+        <div className="card p-5 flex items-center gap-6">
+          <div className="p-3 rounded-xl bg-blue-50">
+            <Wallet size={20} className="text-blue-500" />
+          </div>
+          <div className="flex-1">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Casual Leave Balance</p>
+            <div className="flex items-end gap-2">
+              <p className="text-3xl font-black text-blue-600">{casualRemaining}</p>
+              <p className="text-sm text-gray-400 mb-1">/ {balance.casual_total} days remaining</p>
+            </div>
+            <div className="h-2 bg-gray-100 rounded-full mt-2 overflow-hidden w-full max-w-xs">
+              <div className="h-full rounded-full bg-blue-500 transition-all"
+                style={{ width: `${balance.casual_total ? Math.min(100, (casualRemaining / balance.casual_total) * 100) : 0}%` }} />
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1">{balance.casual_used} used · {casualRemaining} remaining</p>
+          </div>
+          {casualRemaining === 0 && (
+            <div className="text-xs font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg">No leaves left</div>
+          )}
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-2 flex-wrap">
-        <button onClick={() => setTab('leaves')}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-            tab === 'leaves' ? 'text-white shadow-lg shadow-brand-500/25' : 'bg-white text-gray-500 border border-gray-200'}`}
-          style={tab === 'leaves' ? { background: 'linear-gradient(135deg,#E8531D,#C44010)' } : {}}>
+      {/* Filter bar */}
+      <div className="flex gap-2 flex-wrap items-center">
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg shadow-brand-500/25"
+          style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
           <Briefcase size={14} /> Leave requests
-        </button>
-        <button onClick={() => setTab('wfh')}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-            tab === 'wfh' ? 'text-white shadow-lg shadow-violet-500/25' : 'bg-white text-gray-500 border border-gray-200'}`}
-          style={tab === 'wfh' ? { background: 'linear-gradient(135deg,#8B5CF6,#7C3AED)' } : {}}>
-          <Home size={14} /> Work from home
-        </button>
+        </div>
         <div className="flex-1" />
         {(['all','pending','approved','rejected'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)}
@@ -203,21 +178,19 @@ export default function LeavePage() {
             <thead>
               <tr>
                 {isAdmin && <th>Employee</th>}
-                {tab === 'leaves' && <th>Type</th>}
                 <th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th>
                 {isAdmin && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-12 text-gray-400 text-sm">
+                <tr><td colSpan={7} className="text-center py-12 text-gray-400 text-sm">
                   <Calendar size={22} className="mx-auto mb-2 text-gray-300" />
-                  No {tab === 'leaves' ? 'leave' : 'WFH'} requests found.
+                  No leave requests found.
                 </td></tr>
               ) : rows.map(r => (
                 <tr key={r.id}>
                   {isAdmin && <td className="font-semibold whitespace-nowrap">{r.employees?.name ?? '—'}</td>}
-                  {tab === 'leaves' && <td className="whitespace-nowrap">{leaveTypeLabels[(r.leave_type ?? 'casual') as LType]}</td>}
                   <td className="whitespace-nowrap">{formatDate(r.start_date)}</td>
                   <td className="whitespace-nowrap">{formatDate(r.end_date)}</td>
                   <td>{r.total_days ?? getLeaveDays(r.start_date, r.end_date)}d</td>
@@ -230,11 +203,11 @@ export default function LeavePage() {
                     <td>
                       {r.status === 'pending' && (
                         <div className="flex gap-1.5">
-                          <button onClick={() => decide(r.id, tab, 'approved')}
+                          <button onClick={() => decide(r.id, 'approved')}
                             className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl transition-colors" title="Approve">
                             <Check size={14} />
                           </button>
-                          <button onClick={() => { setRejectId({ id: r.id, kind: tab }); setRemark('') }}
+                          <button onClick={() => { setRejectId(r.id); setRemark('') }}
                             className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors" title="Reject">
                             <X size={14} />
                           </button>
@@ -249,29 +222,12 @@ export default function LeavePage() {
         </div>
       </div>
 
-      {/* Apply modal */}
-      <Modal isOpen={!!modal} onClose={() => setModal(null)}
-        title={modal === 'leave' ? 'Apply for leave' : 'Request work from home'}>
+      {/* Apply leave modal */}
+      <Modal isOpen={modal} onClose={() => setModal(false)} title="Apply for casual leave">
         <form onSubmit={submit} className="space-y-4">
-          {modal === 'leave' && (
-            <div>
-              <label className="label">Leave type</label>
-              <div className="relative">
-                <select value={leaveType} onChange={e => setLeaveType(e.target.value as LType)} className="input pr-8 appearance-none">
-                  {(Object.keys(leaveTypeLabels) as LType[]).map(t => {
-                    const left = balance ? (
-                      t === 'casual' ? balance.casual_total - balance.casual_used
-                      : t === 'sick' ? balance.sick_total - balance.sick_used
-                      : t === 'emergency' ? balance.emergency_total - balance.emergency_used
-                      : t === 'paid' ? balance.paid_total - balance.paid_used : null
-                    ) : null
-                    return <option key={t} value={t}>{leaveTypeLabels[t]}{left !== null ? ` (${left} left)` : ''}</option>
-                  })}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              </div>
-            </div>
-          )}
+          <div className="px-3.5 py-2.5 rounded-xl bg-blue-50 text-sm text-blue-700 font-medium">
+            Casual Leave · {casualRemaining} day(s) remaining
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">From</label>
@@ -292,7 +248,7 @@ export default function LeavePage() {
           <div>
             <label className="label">Reason</label>
             <textarea value={reason} onChange={e => setReason(e.target.value)} className="input resize-none" rows={3}
-              placeholder={modal === 'leave' ? 'Briefly describe the reason...' : 'Why do you need to work from home?'} required />
+              placeholder="Briefly describe the reason..." required />
           </div>
           {error && (
             <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">
@@ -300,8 +256,8 @@ export default function LeavePage() {
             </div>
           )}
           <div className="flex gap-3 pt-1">
-            <button type="button" onClick={() => setModal(null)} className="btn-secondary flex-1 justify-center">Cancel</button>
-            <button type="submit" disabled={busy} className="btn-primary flex-1 justify-center">
+            <button type="button" onClick={() => setModal(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
+            <button type="submit" disabled={busy || casualRemaining === 0} className="btn-primary flex-1 justify-center">
               {busy && <Spinner size="sm" />} {busy ? 'Submitting...' : 'Submit'}
             </button>
           </div>
@@ -317,7 +273,7 @@ export default function LeavePage() {
           </div>
           <div className="flex gap-3">
             <button onClick={() => setRejectId(null)} className="btn-secondary flex-1 justify-center">Cancel</button>
-            <button onClick={() => rejectId && decide(rejectId.id, rejectId.kind, 'rejected', remark)}
+            <button onClick={() => rejectId && decide(rejectId, 'rejected', remark)}
               className="btn-danger flex-1 justify-center">Confirm reject</button>
           </div>
         </div>
@@ -325,3 +281,4 @@ export default function LeavePage() {
     </div>
   )
 }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     

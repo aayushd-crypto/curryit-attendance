@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Users, UserCheck, Monitor, Plane, TrendingUp, RefreshCw, CheckSquare, ChevronLeft, ChevronRight, CheckCircle2, Clock, Building2, Wifi, CalendarDays, AlertCircle, LogIn, LogOut, Timer, Zap, Lock } from 'lucide-react'
+import { Users, UserCheck, Monitor, Plane, TrendingUp, RefreshCw, CheckSquare, ChevronLeft, ChevronRight, CheckCircle2, Clock, Building2, Wifi, CalendarDays, AlertCircle, LogIn, LogOut, Timer, Zap } from 'lucide-react'
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, parseISO, addMonths, subMonths, isSameMonth, isToday, isSunday } from 'date-fns'
 import { supabase } from '../supabase'
@@ -236,22 +236,33 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
   )
 }
 
+interface MonthSummary {
+  totalWorkingDays: number
+  avgPresentDays: number
+  totalPresent: number
+  totalRemote: number
+  totalAbsent: number
+  totalLeave: number
+}
+
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user, role, profile } = useAuth()
-  const [summary, setSummary]       = useState<TodaySummary | null>(null)
-  const [pendingLeaves, setPending] = useState<PendingLeave[]>([])
-  const [loading, setLoading]       = useState(true)
-  const [empId, setEmpId]           = useState<string | null>(null)
-  const [empLocation, setEmpLocation] = useState<string>('office')
+  const [summary, setSummary]           = useState<TodaySummary | null>(null)
+  const [monthSummary, setMonthSummary] = useState<MonthSummary | null>(null)
+  const [pendingLeaves, setPending]     = useState<PendingLeave[]>([])
+  const [loading, setLoading]           = useState(true)
+  const [empId, setEmpId]               = useState<string | null>(null)
+  const [empLocation, setEmpLocation]   = useState<string>('office')
   const [calendarLocation, setCalendarLocation] = useState<string>('office')
-  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  const todayStr   = format(new Date(), 'yyyy-MM-dd')
+  const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd')
+  const monthEnd   = format(endOfMonth(new Date()), 'yyyy-MM-dd')
 
   // ── Attendance check-in/out state (merged from Attendance page) ──────────
   const [todayRecord, setTodayRecord] = useState<AttRecord | null>(null)
   const [history, setHistory]         = useState<AttRecord[]>([])
   const [workMode, setWorkMode]       = useState<'office' | 'remote'>('office')
-  const [wfhApproved, setWfhApproved] = useState(false)
   const [attBusy, setAttBusy]         = useState(false)
   const [attError, setAttError]       = useState<string | null>(null)
   const [now, setNow]                 = useState(new Date())
@@ -313,6 +324,23 @@ export default function Dashboard() {
         cmkLeave:      cmkAtt.filter(r => r.status === 'leave').length,
       })
 
+      // Current month attendance summary (admin only)
+      if (isAdmin) {
+        const { data: monthAtt } = await supabase
+          .from('attendance').select('status, work_mode, employee_id')
+          .gte('date', monthStart).lte('date', monthEnd)
+        const ma = monthAtt ?? []
+        const uniqueEmps = new Set(ma.map(r => r.employee_id)).size
+        setMonthSummary({
+          totalWorkingDays: Math.round(ma.length / (uniqueEmps || 1)),
+          avgPresentDays:   Math.round(ma.filter(r => r.status === 'present').length / (uniqueEmps || 1)),
+          totalPresent: ma.filter(r => r.status === 'present' && r.work_mode !== 'remote').length,
+          totalRemote:  ma.filter(r => r.work_mode === 'remote').length,
+          totalAbsent:  ma.filter(r => r.status === 'absent').length,
+          totalLeave:   ma.filter(r => r.status === 'leave').length,
+        })
+      }
+
       // Pending leaves (admin only)
       if (isAdmin) {
         const { data: leaves } = await supabase
@@ -338,28 +366,22 @@ export default function Dashboard() {
 
   useEffect(() => { loadDashboard() }, [role, profile])
 
-  // ── Load today's attendance + history for employee ────────────────────────
+  // ── Load today's attendance + current month history for employee ─────────
   const loadAttendance = async (employeeId: string) => {
     const { data: today } = await supabase
       .from('attendance').select('*')
       .eq('employee_id', employeeId).eq('date', todayStr).maybeSingle()
     setTodayRecord(today ?? null)
 
+    const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd')
+    const monthEnd   = format(endOfMonth(new Date()), 'yyyy-MM-dd')
     const { data: hist } = await supabase
       .from('attendance').select('*')
       .eq('employee_id', employeeId)
-      .order('date', { ascending: false }).limit(30)
+      .gte('date', monthStart)
+      .lte('date', monthEnd)
+      .order('date', { ascending: false })
     setHistory(hist ?? [])
-
-    try {
-      const { data: wfh } = await supabase
-        .from('wfh_requests').select('id')
-        .eq('employee_id', employeeId).eq('status', 'approved')
-        .lte('start_date', todayStr).gte('end_date', todayStr).limit(1)
-      setWfhApproved((wfh ?? []).length > 0)
-    } catch {
-      setWfhApproved(false)
-    }
   }
 
   useEffect(() => {
@@ -382,9 +404,7 @@ export default function Dashboard() {
     })
 
     if (e) {
-      if (e.message?.includes('WFH_NOT_APPROVED'))
-        setAttError('Remote check-in requires an approved WFH request for today. Apply from Leave & WFH page.')
-      else if (e.code === '23505')
+      if (e.code === '23505')
         setAttError('You have already checked in today.')
       else
         setAttError(`Check-in failed: ${e.message}`)
@@ -503,28 +523,21 @@ export default function Dashboard() {
                     </div>
                   </button>
 
-                  {/* Remote — locked without WFH approval */}
+                  {/* Remote — always available */}
                   <button
-                    onClick={() => { if (wfhApproved) setWorkMode('remote') }}
+                    onClick={() => setWorkMode('remote')}
                     className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all ${
-                      !wfhApproved
-                        ? 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
-                        : workMode === 'remote'
-                          ? 'border-violet-500 shadow-xl shadow-violet-500/15'
-                          : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
+                      workMode === 'remote'
+                        ? 'border-violet-500 shadow-xl shadow-violet-500/15'
+                        : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
                     }`}>
-                    {!wfhApproved && (
-                      <Lock size={12} className="absolute top-3 right-3 text-gray-400" />
-                    )}
                     <div className="p-3 rounded-xl"
-                      style={{ background: workMode === 'remote' && wfhApproved ? 'linear-gradient(135deg,#8B5CF6,#7C3AED)' : '#E5E7EB' }}>
-                      <Wifi size={22} className={workMode === 'remote' && wfhApproved ? 'text-white' : 'text-gray-400'} />
+                      style={{ background: workMode === 'remote' ? 'linear-gradient(135deg,#8B5CF6,#7C3AED)' : '#E5E7EB' }}>
+                      <Wifi size={22} className={workMode === 'remote' ? 'text-white' : 'text-gray-400'} />
                     </div>
                     <div className="text-center">
-                      <p className={`font-bold text-sm ${workMode === 'remote' && wfhApproved ? 'text-violet-700' : 'text-gray-500'}`}>Remote</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {wfhApproved ? 'WFH approved ✓' : 'Needs WFH approval'}
-                      </p>
+                      <p className={`font-bold text-sm ${workMode === 'remote' ? 'text-violet-700' : 'text-gray-500'}`}>Remote</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Working from home</p>
                     </div>
                   </button>
                 </div>
@@ -630,7 +643,7 @@ export default function Dashboard() {
               <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
                 <CalendarDays size={15} style={{ color: '#E8531D' }} />
               </div>
-              <h3 className="font-bold text-gray-900">Last 30 days</h3>
+              <h3 className="font-bold text-gray-900">This month — {format(new Date(), 'MMMM yyyy')}</h3>
             </div>
             {history.some(r => r.overtime_minutes > 0) && (
               <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600">
@@ -695,6 +708,29 @@ export default function Dashboard() {
         <StatCard label="On leave"         value={summary?.leaveTotal ?? 0}                  icon={Plane}     color="orange" />
         <StatCard label="Attendance %"     value={`${summary?.attendancePct ?? 0}%`}         icon={TrendingUp} color="blue"  sub="vs total active" />
       </div>
+
+      {/* Current month summary */}
+      {monthSummary && (
+        <div className="card p-5">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <CalendarDays size={16} className="text-brand-500" />
+            {format(new Date(), 'MMMM yyyy')} — monthly overview
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              { label: 'Total present days', val: monthSummary.totalPresent, cls: 'text-green-600', bg: 'bg-green-50' },
+              { label: 'Total remote days',  val: monthSummary.totalRemote,  cls: 'text-purple-600', bg: 'bg-purple-50' },
+              { label: 'Total absent days',  val: monthSummary.totalAbsent,  cls: 'text-red-600',    bg: 'bg-red-50'    },
+              { label: 'Total leave days',   val: monthSummary.totalLeave,   cls: 'text-orange-600', bg: 'bg-orange-50' },
+            ].map(({ label, val, cls, bg }) => (
+              <div key={label} className={`text-center p-4 ${bg} rounded-xl`}>
+                <p className={`text-3xl font-bold ${cls}`}>{val}</p>
+                <p className="text-xs text-gray-500 mt-1">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Office and CMK side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -782,46 +818,4 @@ export default function Dashboard() {
             </PieChart>
           </ResponsiveContainer>
         </div>
-      </div>
-
-      {/* Pending leaves */}
-      {pendingLeaves.length > 0 ? (
-        <div className="card">
-          <div className="table-header">
-            <div>
-              <h3 className="font-semibold text-gray-900">Pending leave approvals</h3>
-              <p className="text-xs text-gray-500 mt-0.5">{pendingLeaves.length} request{pendingLeaves.length > 1 ? 's' : ''} awaiting review</p>
-            </div>
-            <Link to="/leave" className="text-sm text-brand-600 hover:text-brand-700 font-medium">View all →</Link>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr>
-                  <th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingLeaves.map(leave => (
-                  <tr key={leave.id}>
-                    <td className="font-medium text-gray-900">{leave.employee_name}</td>
-                    <td><span className="badge-pending">{statusLabel(leave.leave_type)}</span></td>
-                    <td>{formatDate(leave.start_date)}</td>
-                    <td>{formatDate(leave.end_date)}</td>
-                    <td>{leave.total_days}d</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        <div className="card p-8 text-center">
-          <CheckSquare size={32} className="mx-auto text-green-400 mb-2" />
-          <p className="font-medium text-gray-700">All caught up!</p>
-          <p className="text-sm text-gray-500 mt-1">No pending leave approvals right now.</p>
-        </div>
-      )}
-    </div>
-  )
-}
+      

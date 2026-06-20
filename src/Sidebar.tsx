@@ -1,10 +1,12 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, Users, FileText,
   ClipboardList, Settings, LogOut, X, ChevronRight,
-  Zap
+  Zap, KeyRound
 } from 'lucide-react'
 import { useAuth } from './AuthContext'
+import { supabase } from './supabase'
 import type { UserRole } from './database'
 
 interface NavItem {
@@ -18,7 +20,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard',      roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/cmk-attendance', icon: Zap,             label: 'CMK Attendance', roles: ['super_admin','admin','cmk_coordinator'] },
-  { to: '/leave',          icon: Calendar,        label: 'Leave & WFH',          roles: ['super_admin','admin','cmk_coordinator','employee'] },
+  { to: '/leave',          icon: Calendar,        label: 'Leave',          roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/employees',      icon: Users,           label: 'Employees',      roles: ['super_admin','admin'] },
   { to: '/reports',        icon: FileText,        label: 'Reports',        roles: ['super_admin','admin','cmk_coordinator'] },
   { to: '/audit-log',      icon: ClipboardList,   label: 'Audit Log',      roles: ['super_admin','admin'] },
@@ -35,6 +37,25 @@ interface SidebarProps { open: boolean; onClose: () => void }
 export function Sidebar({ open, onClose }: SidebarProps) {
   const { profile, role, signOut } = useAuth()
   const visible = navItems.filter(i => role && i.roles.includes(role))
+
+  const [pwModal, setPwModal]   = useState(false)
+  const [newPw, setNewPw]       = useState('')
+  const [confirmPw, setConfirmPw] = useState('')
+  const [pwBusy, setPwBusy]     = useState(false)
+  const [pwError, setPwError]   = useState<string | null>(null)
+  const [pwSuccess, setPwSuccess] = useState(false)
+
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPwError(null)
+    if (newPw !== confirmPw) { setPwError('Passwords do not match.'); return }
+    if (newPw.length < 8)   { setPwError('Password must be at least 8 characters.'); return }
+    setPwBusy(true)
+    const { error } = await supabase.auth.updateUser({ password: newPw })
+    if (error) setPwError(error.message)
+    else { setPwSuccess(true); setTimeout(() => { setPwModal(false); setPwSuccess(false); setNewPw(''); setConfirmPw('') }, 1500) }
+    setPwBusy(false)
+  }
 
   return (
     <>
@@ -105,25 +126,4 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex items-center gap-3 p-3 rounded-xl mb-2"
             style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #E8531D, #C44010)', boxShadow: '0 4px 12px rgba(232,83,29,0.4)' }}>
-              {profile?.full_name?.[0]?.toUpperCase() ?? 'U'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white truncate">{profile?.full_name ?? 'User'}</p>
-              <p className="text-xs text-white/40 truncate">{role ? roleLabel[role] : ''}</p>
-            </div>
-          </div>
-          <button
-            onClick={signOut}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-white/40 hover:text-red-400 rounded-xl transition-colors"
-            style={{ hover: { background: 'rgba(239,68,68,0.1)' } }}
-          >
-            <LogOut size={15} />
-            Sign out
-          </button>
-        </div>
-      </aside>
-    </>
-  )
-}
+            <div className="w-9 h-9 rounded-xl flex items-center justif
