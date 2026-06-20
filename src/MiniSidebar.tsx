@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, Users, FileText,
-  ClipboardList, Settings, Zap, Palmtree, Menu
+  ClipboardList, Settings, Zap, Palmtree, Menu, LogOut
 } from 'lucide-react'
 import { useAuth } from './AuthContext'
 import type { UserRole } from './database'
@@ -22,7 +22,7 @@ const navItems: NavItem[] = [
 interface Props { onMenuClick: () => void }
 
 export function MiniSidebar({ onMenuClick }: Props) {
-  const { role, profile } = useAuth()
+  const { role, profile, signOut } = useAuth()
   const visible = navItems.filter(i => role && i.roles.includes(role))
 
   return (
@@ -75,11 +75,17 @@ export function MiniSidebar({ onMenuClick }: Props) {
       </nav>
 
       {/* User avatar */}
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white mt-1"
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white"
         title={profile?.full_name ?? 'User'}
         style={{ background: 'linear-gradient(135deg, #E8531D, #C44010)', boxShadow: '0 4px 12px rgba(232,83,29,0.4)' }}>
         {profile?.full_name?.[0]?.toUpperCase() ?? 'U'}
       </div>
+
+      {/* Logout */}
+      <button onClick={signOut} title="Sign out"
+        className="w-10 h-10 flex items-center justify-center rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors mb-1">
+        <LogOut size={17} />
+      </button>
     </aside>
   )
 }
