@@ -1,8 +1,15 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, Zap, Calendar, Users, BarChart2 } from 'lucide-react'
 import { useAuth } from '../AuthContext'
 import { Spinner } from '../Spinner'
+
+const features = [
+  { icon: Zap,       label: 'Live attendance',  desc: 'Office & CMK tracking in real-time' },
+  { icon: Calendar,  label: 'Leave management', desc: 'Apply, approve & track effortlessly' },
+  { icon: Users,     label: 'Team overview',    desc: 'Full visibility across all roles'   },
+  { icon: BarChart2, label: 'Smart reports',    desc: 'Export & analyse attendance data'   },
+]
 
 export default function LoginPage() {
   const [email, setEmail]     = useState('')
@@ -32,123 +39,169 @@ export default function LoginPage() {
     else navigate('/dashboard')
   }
 
-  const features = ['Office & CMK attendance', 'Leave management', 'Real-time reports', 'Role-based access']
-
   return (
-    <div className="min-h-screen flex" style={{ background: '#0f0f1a' }}>
+    <div className="min-h-screen flex" style={{ background: '#0d0d1a' }}>
 
       {/* ── Left panel ── */}
-      <div className="hidden lg:flex lg:w-[52%] flex-col items-center justify-center p-16 relative overflow-hidden">
-        {/* Animated gradient orbs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-20"
-          style={{ background: 'radial-gradient(circle, #E8531D, transparent)' }} />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-15"
-          style={{ background: 'radial-gradient(circle, #7C3AED, transparent)' }} />
-        <div className="absolute top-3/4 left-1/3 w-64 h-64 rounded-full blur-3xl opacity-10"
-          style={{ background: 'radial-gradient(circle, #0EA5E9, transparent)' }} />
+      <div className="hidden lg:flex lg:w-[55%] flex-col justify-between p-14 relative overflow-hidden">
 
-        {/* Grid pattern overlay */}
-        <div className="absolute inset-0 opacity-[0.03]"
-          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        {/* Background texture — warm gradient orbs */}
+        <div className="absolute inset-0" style={{
+          background: 'linear-gradient(135deg, #1a0a00 0%, #0d0d1a 40%, #0f1a2e 100%)'
+        }} />
+        <div className="absolute top-[-80px] left-[-80px] w-[500px] h-[500px] rounded-full opacity-30"
+          style={{ background: 'radial-gradient(circle, #E8531D 0%, transparent 70%)' }} />
+        <div className="absolute bottom-[-100px] right-[-60px] w-[400px] h-[400px] rounded-full opacity-20"
+          style={{ background: 'radial-gradient(circle, #C44010 0%, transparent 70%)' }} />
+        <div className="absolute top-[40%] right-[10%] w-[250px] h-[250px] rounded-full opacity-10"
+          style={{ background: 'radial-gradient(circle, #ff9a5c 0%, transparent 70%)' }} />
 
-        <div className="relative z-10 text-center max-w-md">
-          <img src="/logo.png" alt="CURRYiT" className="h-24 w-auto mx-auto mb-10 drop-shadow-2xl" />
+        {/* Subtle dot grid */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{
+          backgroundImage: 'radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
+        }} />
 
-          <h1 className="text-5xl font-black text-white mb-4 leading-[1.1] tracking-tight">
-            Smarter<br />
-            <span style={{ background: 'linear-gradient(135deg, #E8531D, #FF8C5A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Attendance
-            </span>
-          </h1>
-          <p className="text-white/50 text-lg leading-relaxed mb-10">
-            One platform for your entire team — from office to CMK.
-          </p>
-
-          <div className="grid grid-cols-2 gap-3 text-left">
-            {features.map(f => (
-              <div key={f} className="flex items-center gap-2.5 px-4 py-3 rounded-2xl"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <CheckCircle2 size={15} style={{ color: '#E8531D', flexShrink: 0 }} />
-                <span className="text-xs font-semibold text-white/70">{f}</span>
-              </div>
-            ))}
+        {/* Top — logo + tagline */}
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-3">
+            <img src="/logo.png" alt="CURRYiT" className="h-12 w-auto drop-shadow-lg" />
           </div>
+          <p className="text-white/30 text-xs font-semibold uppercase tracking-[3px]">real taste, real easy.</p>
         </div>
+
+        {/* Middle — hero text */}
+        <div className="relative z-10 py-8">
+          <p className="text-[11px] font-bold text-orange-400 uppercase tracking-[3px] mb-4">Attendance Portal</p>
+          <h1 className="text-5xl font-black text-white leading-[1.08] tracking-tight mb-6">
+            People first.<br />
+            <span style={{
+              background: 'linear-gradient(135deg, #E8531D 0%, #ff9a5c 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+            }}>Always.</span>
+          </h1>
+          <p className="text-white/50 text-base leading-relaxed max-w-sm">
+            One place to track attendance, manage leaves, and keep your team running — just like a well-spiced curry.
+          </p>
+        </div>
+
+        {/* Feature pills */}
+        <div className="relative z-10 grid grid-cols-2 gap-3">
+          {features.map(({ icon: Icon, label, desc }) => (
+            <div key={label} className="flex items-start gap-3 p-4 rounded-2xl"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                style={{ background: 'rgba(232,83,29,0.15)' }}>
+                <Icon size={15} style={{ color: '#E8531D' }} />
+              </div>
+              <div>
+                <p className="text-white text-xs font-bold leading-tight">{label}</p>
+                <p className="text-white/35 text-[11px] mt-0.5 leading-snug">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom credit */}
+        <p className="relative z-10 text-white/20 text-[11px] font-medium mt-6">
+          © {new Date().getFullYear()} CURRYiT · Attendance Management System
+        </p>
       </div>
 
-      {/* ── Right panel ── */}
-      <div className="flex-1 flex items-center justify-center p-6"
-        style={{ background: 'linear-gradient(135deg, #F8F9FF 0%, #F0F2F7 100%)' }}>
-        <div className="w-full max-w-[400px]">
+      {/* ── Right panel — login form ── */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 relative">
+        {/* Subtle right-side bg */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #111122 0%, #0d0d1a 100%)' }} />
+        <div className="absolute top-0 right-0 w-64 h-64 opacity-10 rounded-full"
+          style={{ background: 'radial-gradient(circle, #E8531D, transparent)', transform: 'translate(30%, -30%)' }} />
+
+        <div className="relative z-10 w-full max-w-sm">
 
           {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-8">
-            <img src="/logo.png" alt="CURRYiT" className="h-14 w-auto mx-auto" />
+          <div className="lg:hidden flex items-center gap-3 mb-8">
+            <img src="/logo.png" alt="CURRYiT" className="h-10 w-auto" />
+            <div>
+              <p className="text-white font-black text-lg leading-none">CURRYiT</p>
+              <p className="text-white/30 text-[10px] font-semibold uppercase tracking-widest">Attendance Portal</p>
+            </div>
           </div>
 
-          <div className="rounded-3xl p-8"
-            style={{
-              background: 'rgba(255,255,255,0.95)',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.8)',
-              border: '1px solid rgba(255,255,255,0.9)',
-            }}>
-            <div className="mb-8">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
-                style={{ background: 'rgba(232,83,29,0.08)', border: '1px solid rgba(232,83,29,0.15)' }}>
-                <div className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-                <span className="text-xs font-bold text-brand-600 uppercase tracking-wider">Secure Login</span>
-              </div>
-              <h2 className="text-2xl font-black text-gray-900 mb-1 tracking-tight">Welcome back</h2>
-              <p className="text-gray-400 text-sm">Sign in to your CURRYiT account</p>
+          <h2 className="text-3xl font-black text-white mb-1 tracking-tight">Welcome back</h2>
+          <p className="text-white/40 text-sm mb-8">Sign in to manage your team</p>
+
+          {resetSent ? (
+            <div className="text-center py-8 px-4 rounded-2xl"
+              style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
+              <p className="text-3xl mb-3">📩</p>
+              <p className="font-bold text-emerald-400 mb-1">Reset link sent!</p>
+              <p className="text-white/40 text-sm">Check your inbox for the password reset link.</p>
             </div>
-
+          ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Email */}
               <div>
-                <label className="label">Email address</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  className="input" placeholder="you@curryit.in" required autoComplete="email" />
+                <label className="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">Email</label>
+                <input
+                  type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  required autoComplete="email"
+                  placeholder="you@curryit.in"
+                  className="w-full px-4 py-3.5 rounded-xl text-sm text-white placeholder-white/20 outline-none transition-all"
+                  style={{
+                    background: 'rgba(255,255,255,0.07)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}
+                  onFocus={e => { e.target.style.border = '1px solid rgba(232,83,29,0.6)'; e.target.style.background = 'rgba(255,255,255,0.09)' }}
+                  onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.1)'; e.target.style.background = 'rgba(255,255,255,0.07)' }}
+                />
               </div>
 
+              {/* Password */}
               <div>
-                <label className="label">Password</label>
+                <label className="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">Password</label>
                 <div className="relative">
-                  <input type={showPw ? 'text' : 'password'} value={password}
-                    onChange={e => setPassword(e.target.value)} className="input pr-12"
-                    placeholder="Enter your password" required autoComplete="current-password" />
-                  <button type="button" onClick={() => setShowPw(!showPw)} tabIndex={-1}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                  <input
+                    type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
+                    required autoComplete="current-password"
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3.5 rounded-xl text-sm text-white placeholder-white/20 outline-none pr-12 transition-all"
+                    style={{
+                      background: 'rgba(255,255,255,0.07)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                    }}
+                    onFocus={e => { e.target.style.border = '1px solid rgba(232,83,29,0.6)'; e.target.style.background = 'rgba(255,255,255,0.09)' }}
+                    onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.1)'; e.target.style.background = 'rgba(255,255,255,0.07)' }}
+                  />
+                  <button type="button" onClick={() => setShowPw(p => !p)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
                     {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
 
               {error && (
-                <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm text-red-600"
-                  style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
-                  <span>⚠</span> {error}
+                <div className="px-4 py-3 rounded-xl text-sm font-medium text-red-300"
+                  style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  {error}
                 </div>
               )}
 
-              <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3.5 rounded-2xl text-base mt-2">
-                {loading ? <Spinner size="sm" /> : <ArrowRight size={18} />}
-                {loading ? 'Signing in…' : 'Sign in'}
+              {/* Submit */}
+              <button type="submit" disabled={loading}
+                className="w-full flex items-center justify-center gap-2.5 py-4 rounded-xl font-bold text-sm text-white transition-all mt-2"
+                style={{
+                  background: loading ? 'rgba(232,83,29,0.5)' : 'linear-gradient(135deg, #E8531D 0%, #C44010 100%)',
+                  boxShadow: loading ? 'none' : '0 8px 32px rgba(232,83,29,0.35)',
+                }}>
+                {loading ? <Spinner size="sm" /> : <ArrowRight size={16} />}
+                {loading ? 'Signing in...' : 'Sign in'}
+              </button>
+
+              <button type="button" onClick={forgotPassword}
+                className="w-full text-center text-xs text-white/30 hover:text-white/60 transition-colors py-1">
+                Forgot password?
               </button>
             </form>
-
-            <button type="button" onClick={forgotPassword}
-              className="block mx-auto text-center text-xs font-semibold text-brand-600 hover:text-brand-700 mt-6">
-              Forgot password? Send reset email
-            </button>
-            {resetSent && (
-              <p className="text-center text-xs text-emerald-600 font-semibold mt-2">
-                ✓ Reset link sent — check your email inbox.
-              </p>
-            )}
-          </div>
-
-          <p className="text-center text-xs text-gray-400 mt-5">
-            © {new Date().getFullYear()} Homechef India Ventures Pvt. Ltd.
-          </p>
+          )}
         </div>
       </div>
     </div>

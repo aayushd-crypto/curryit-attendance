@@ -9,7 +9,7 @@
   html { font-family: 'Inter', system-ui, sans-serif; }
   body {
     @apply text-gray-900 antialiased;
-    background: #F0F2F7;
+    background: #F2F1EE;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
   ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -87,7 +87,7 @@
   .badge-rejected { @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50    text-red-700    ring-1 ring-red-200/60; }
 
   .page-header   { @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-7; }
-  .page-title    { @apply text-2xl font-black text-gray-900 tracking-tight; }
+  .page-title    { @apply text-2xl font-black text-gray-900; letter-spacing: -0.03em; }
   .page-subtitle { @apply text-sm text-gray-400 mt-0.5 font-medium; }
 
   .table-header {
