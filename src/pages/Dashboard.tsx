@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Users, UserCheck, Monitor, Plane, TrendingUp, RefreshCw, CheckSquare, ChevronLeft, ChevronRight, CheckCircle2, Clock, Building2, Wifi, CalendarDays, AlertCircle, LogIn, LogOut, Timer, Zap } from 'lucide-react'
+import { Users, UserCheck, Monitor, Plane, TrendingUp, RefreshCw, CheckSquare, ChevronLeft, ChevronRight, CheckCircle2, Clock, Building2, Wifi, CalendarDays, AlertCircle, LogIn, LogOut, Timer, Zap, X } from 'lucide-react'
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, parseISO, addMonths, subMonths, isSameMonth, isToday, isSunday } from 'date-fns'
 import { supabase } from '../supabase'
@@ -232,6 +232,7 @@ function AttendanceCalendar({ employeeId, location, compact }: { employeeId?: st
           </div>
         </div>
       )}
+      {DrillModal}
     </div>
   )
 }
@@ -265,6 +266,9 @@ export default function Dashboard() {
   const [attError, setAttError]       = useState<string | null>(null)
   const [now, setNow]                 = useState(new Date())
 
+  const [todayAttFull, setTodayAttFull] = useState<any[]>([])
+  const [drillModal, setDrillModal]   = useState<{ title: string; rows: { name: string; sub?: string }[] } | null>(null)
+
   // live clock
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
@@ -296,8 +300,9 @@ export default function Dashboard() {
       const { count: totalEmployees } = await empQuery
 
       // Today's attendance
-      let attQuery = supabase.from('attendance').select('status, work_mode, location, employee_id').eq('date', todayStr)
+      let attQuery = supabase.from('attendance').select('status, work_mode, location, employee_id, employees(name)').eq('date', todayStr)
       const { data: todayAtt } = await attQuery
+      setTodayAttFull((todayAtt ?? []) as any[])
 
       const att = todayAtt ?? []
       const presentTotal  = att.filter(r => r.status === 'present' && r.work_mode !== 'remote').length
@@ -469,30 +474,18 @@ export default function Dashboard() {
 
         {/* Employee — personal current month stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="card p-4 text-center bg-green-50">
-            <p className="text-3xl font-bold text-green-600">
-              {history.filter(r => r.status === 'present' && r.work_mode !== 'remote').length}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">Present this month</p>
-          </div>
-          <div className="card p-4 text-center bg-purple-50">
-            <p className="text-3xl font-bold text-purple-600">
-              {history.filter(r => r.work_mode === 'remote').length}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">Remote this month</p>
-          </div>
-          <div className="card p-4 text-center bg-red-50">
-            <p className="text-3xl font-bold text-red-600">
-              {history.filter(r => r.status === 'absent').length}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">Absent this month</p>
-          </div>
-          <div className="card p-4 text-center bg-orange-50">
-            <p className="text-3xl font-bold text-orange-600">
-              {history.filter(r => r.status === 'leave').length}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">On leave this month</p>
-          </div>
+          {[
+            { label: 'Present this month', color: 'bg-green-50', cls: 'text-green-600',  rows: history.filter(r => r.status === 'present' && r.work_mode !== 'remote') },
+            { label: 'Remote this month',  color: 'bg-purple-50', cls: 'text-purple-600', rows: history.filter(r => r.work_mode === 'remote') },
+            { label: 'Absent this month',  color: 'bg-red-50',    cls: 'text-red-600',    rows: history.filter(r => r.status === 'absent') },
+            { label: 'On leave this month',color: 'bg-orange-50', cls: 'text-orange-600', rows: history.filter(r => r.status === 'leave') },
+          ].map(({ label, color, cls, rows }) => (
+            <button key={label} onClick={() => setDrillModal({ title: label, rows: rows.map(r => ({ name: formatDate(r.date), sub: r.check_in_time ? `${formatTime(r.check_in_time)}${r.check_out_time ? ' → ' + formatTime(r.check_out_time) : ''}` : undefined })) })}
+              className={`card p-4 text-center ${color} cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all`}>
+              <p className={`text-3xl font-bold ${cls}`}>{rows.length}</p>
+              <p className="text-xs text-gray-500 mt-1">{label}</p>
+            </button>
+          ))}
         </div>
 
         {/* Check-in/out widget + compact calendar side by side */}
@@ -689,6 +682,31 @@ export default function Dashboard() {
     )
   }
 
+  // ── Drill-down modal ─────────────────────────────────────────────────────
+  const DrillModal = drillModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}>
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h3 className="font-bold text-gray-900 text-sm">{drillModal.title}</h3>
+          <button onClick={() => setDrillModal(null)} className="text-gray-400 hover:text-gray-600"><X size={17} /></button>
+        </div>
+        <div className="overflow-y-auto max-h-80 px-5 py-3 divide-y divide-gray-50">
+          {drillModal.rows.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">No records.</p>
+          ) : drillModal.rows.map((row, i) => (
+            <div key={i} className="flex items-center justify-between py-2.5">
+              <p className="text-sm font-medium text-gray-800">{row.name}</p>
+              {row.sub && <p className="text-xs text-gray-400 font-mono">{row.sub}</p>}
+            </div>
+          ))}
+        </div>
+        <div className="px-5 py-4 border-t border-gray-100">
+          <button onClick={() => setDrillModal(null)} className="btn-secondary w-full justify-center">Close</button>
+        </div>
+      </div>
+    </div>
+  )
+
   // ── ADMIN / SUPER ADMIN VIEW ──────────────────────────────────────────────
   return (
     <div className="space-y-5 max-w-7xl mx-auto">
@@ -705,9 +723,15 @@ export default function Dashboard() {
       {/* Top stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard label="Total employees"  value={summary?.totalEmployees ?? 0}              icon={Users}     color="gray"   />
-        <StatCard label="Present today"    value={summary?.presentTotal ?? 0}                icon={UserCheck} color="green"  sub="In office" />
-        <StatCard label="Remote today"     value={summary?.remoteTotal ?? 0}                 icon={Monitor}   color="purple" />
-        <StatCard label="On leave"         value={summary?.leaveTotal ?? 0}                  icon={Plane}     color="orange" />
+        <button className="text-left" onClick={() => setDrillModal({ title: 'Present today — office', rows: todayAttFull.filter(r => r.status === 'present' && r.work_mode !== 'remote').map(r => ({ name: (r as any).employees?.name ?? '—', sub: '' })) })}>
+          <StatCard label="Present today"  value={summary?.presentTotal ?? 0}                icon={UserCheck} color="green"  sub="Tap to see who" />
+        </button>
+        <button className="text-left" onClick={() => setDrillModal({ title: 'Remote today', rows: todayAttFull.filter(r => r.work_mode === 'remote').map(r => ({ name: (r as any).employees?.name ?? '—', sub: '' })) })}>
+          <StatCard label="Remote today"   value={summary?.remoteTotal ?? 0}                 icon={Monitor}   color="purple" sub="Tap to see who" />
+        </button>
+        <button className="text-left" onClick={() => setDrillModal({ title: 'On leave today', rows: todayAttFull.filter(r => r.status === 'leave').map(r => ({ name: (r as any).employees?.name ?? '—', sub: '' })) })}>
+          <StatCard label="On leave"       value={summary?.leaveTotal ?? 0}                  icon={Plane}     color="orange" sub="Tap to see who" />
+        </button>
         <StatCard label="Attendance %"     value={`${summary?.attendancePct ?? 0}%`}         icon={TrendingUp} color="blue"  sub="vs total active" />
       </div>
 
@@ -744,16 +768,20 @@ export default function Dashboard() {
           </h3>
           <div className="grid grid-cols-4 gap-3">
             {[
-              { label: 'Present', val: summary?.officePresent ?? 0, cls: 'text-green-600',  bg: 'bg-green-50'  },
-              { label: 'Remote',  val: summary?.officeRemote  ?? 0, cls: 'text-purple-600', bg: 'bg-purple-50' },
-              { label: 'Absent',  val: summary?.officeAbsent  ?? 0, cls: 'text-red-600',    bg: 'bg-red-50'    },
-              { label: 'Leave',   val: summary?.officeLeave   ?? 0, cls: 'text-orange-600', bg: 'bg-orange-50' },
-            ].map(({ label, val, cls, bg }) => (
-              <div key={label} className={`text-center p-3 ${bg} rounded-xl`}>
-                <p className={`text-2xl font-bold ${cls}`}>{val}</p>
-                <p className="text-xs text-gray-500 mt-1">{label}</p>
-              </div>
-            ))}
+              { label: 'Present', cls: 'text-green-600',  bg: 'bg-green-50',  filter: (r: any) => r.location === 'office' && r.status === 'present' && r.work_mode !== 'remote' },
+              { label: 'Remote',  cls: 'text-purple-600', bg: 'bg-purple-50', filter: (r: any) => r.location === 'office' && r.work_mode === 'remote' },
+              { label: 'Absent',  cls: 'text-red-600',    bg: 'bg-red-50',    filter: (r: any) => r.location === 'office' && r.status === 'absent' },
+              { label: 'Leave',   cls: 'text-orange-600', bg: 'bg-orange-50', filter: (r: any) => r.location === 'office' && r.status === 'leave' },
+            ].map(({ label, cls, bg, filter: fn }) => {
+              const rows = todayAttFull.filter(fn)
+              return (
+                <button key={label} onClick={() => setDrillModal({ title: `Office — ${label} today`, rows: rows.map(r => ({ name: (r as any).employees?.name ?? '—' })) })}
+                  className={`text-center p-3 ${bg} rounded-xl hover:shadow-md hover:-translate-y-0.5 transition-all w-full`}>
+                  <p className={`text-2xl font-bold ${cls}`}>{rows.length}</p>
+                  <p className="text-xs text-gray-500 mt-1">{label}</p>
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -765,15 +793,19 @@ export default function Dashboard() {
           </h3>
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Present', val: summary?.cmkPresent ?? 0, cls: 'text-green-600',  bg: 'bg-green-50'  },
-              { label: 'Absent',  val: summary?.cmkAbsent  ?? 0, cls: 'text-red-600',    bg: 'bg-red-50'    },
-              { label: 'Leave',   val: summary?.cmkLeave   ?? 0, cls: 'text-orange-600', bg: 'bg-orange-50' },
-            ].map(({ label, val, cls, bg }) => (
-              <div key={label} className={`text-center p-3 ${bg} rounded-xl`}>
-                <p className={`text-2xl font-bold ${cls}`}>{val}</p>
-                <p className="text-xs text-gray-500 mt-1">{label}</p>
-              </div>
-            ))}
+              { label: 'Present', cls: 'text-green-600',  bg: 'bg-green-50',  filter: (r: any) => r.location === 'cmk' && r.status === 'present' },
+              { label: 'Absent',  cls: 'text-red-600',    bg: 'bg-red-50',    filter: (r: any) => r.location === 'cmk' && r.status === 'absent' },
+              { label: 'Leave',   cls: 'text-orange-600', bg: 'bg-orange-50', filter: (r: any) => r.location === 'cmk' && r.status === 'leave' },
+            ].map(({ label, cls, bg, filter: fn }) => {
+              const rows = todayAttFull.filter(fn)
+              return (
+                <button key={label} onClick={() => setDrillModal({ title: `CMK — ${label} today`, rows: rows.map(r => ({ name: (r as any).employees?.name ?? '—' })) })}
+                  className={`text-center p-3 ${bg} rounded-xl hover:shadow-md hover:-translate-y-0.5 transition-all w-full`}>
+                  <p className={`text-2xl font-bold ${cls}`}>{rows.length}</p>
+                  <p className="text-xs text-gray-500 mt-1">{label}</p>
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -860,6 +892,7 @@ export default function Dashboard() {
           <p className="text-sm text-gray-500 mt-1">No pending leave approvals right now.</p>
         </div>
       )}
+      {DrillModal}
     </div>
   )
 }
