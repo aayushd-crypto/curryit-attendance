@@ -38,11 +38,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { profile, role, signOut } = useAuth()
   const visible = navItems.filter(i => role && i.roles.includes(role))
 
-  const [pwModal, setPwModal]   = useState(false)
-  const [newPw, setNewPw]       = useState('')
+  const [pwModal, setPwModal]     = useState(false)
+  const [newPw, setNewPw]         = useState('')
   const [confirmPw, setConfirmPw] = useState('')
-  const [pwBusy, setPwBusy]     = useState(false)
-  const [pwError, setPwError]   = useState<string | null>(null)
+  const [pwBusy, setPwBusy]       = useState(false)
+  const [pwError, setPwError]     = useState<string | null>(null)
   const [pwSuccess, setPwSuccess] = useState(false)
 
   const changePassword = async (e: React.FormEvent) => {
@@ -126,4 +126,73 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex items-center gap-3 p-3 rounded-xl mb-2"
             style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justif
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, #E8531D, #C44010)', boxShadow: '0 4px 12px rgba(232,83,29,0.4)' }}>
+              {profile?.full_name?.[0]?.toUpperCase() ?? 'U'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-white truncate">{profile?.full_name ?? 'User'}</p>
+              <p className="text-xs text-white/40 truncate">{role ? roleLabel[role] : ''}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => { setPwModal(true); setPwError(null); setNewPw(''); setConfirmPw('') }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-white/40 hover:text-white/80 rounded-xl transition-colors mb-0.5"
+          >
+            <KeyRound size={15} />
+            Change password
+          </button>
+          <button
+            onClick={signOut}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-white/40 hover:text-red-400 rounded-xl transition-colors"
+          >
+            <LogOut size={15} />
+            Sign out
+          </button>
+        </div>
+      </aside>
+
+      {/* Change Password Modal */}
+      {pwModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-bold text-gray-900">Change password</h3>
+              <button onClick={() => setPwModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            {pwSuccess ? (
+              <div className="text-center py-4">
+                <p className="text-2xl mb-2">✅</p>
+                <p className="font-semibold text-gray-800">Password updated!</p>
+              </div>
+            ) : (
+              <form onSubmit={changePassword} className="space-y-4">
+                <div>
+                  <label className="label">New password</label>
+                  <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)}
+                    className="input" required minLength={8} placeholder="Min 8 characters" />
+                </div>
+                <div>
+                  <label className="label">Confirm new password</label>
+                  <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
+                    className="input" required placeholder="Repeat password" />
+                </div>
+                {pwError && (
+                  <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-xl">{pwError}</p>
+                )}
+                <div className="flex gap-3 pt-1">
+                  <button type="button" onClick={() => setPwModal(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
+                  <button type="submit" disabled={pwBusy} className="btn-primary flex-1 justify-center">
+                    {pwBusy ? 'Saving...' : 'Update'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
