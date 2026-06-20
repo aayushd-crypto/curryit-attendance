@@ -113,13 +113,13 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick 
   }
 
   const statusStyle: Record<string, string> = {
-    present: 'bg-green-100 text-green-700 font-semibold border border-green-200',
-    remote:  'bg-purple-100 text-purple-700 font-semibold border border-purple-200',
-    absent:  'bg-red-100 text-red-600 font-semibold border border-red-200',
-    leave:   'bg-red-100 text-red-600 font-semibold border border-red-200',
-    sunday:  'bg-gray-100 text-gray-400 border border-gray-200',
-    festival: 'bg-orange-100 text-orange-700 font-bold border border-orange-200',
-    none:    'bg-white text-gray-400 border border-gray-100',
+    present:  'bg-green-100 text-green-700 font-semibold border border-green-200',
+    remote:   'bg-yellow-100 text-yellow-700 font-semibold border border-yellow-200',
+    absent:   'bg-red-100 text-red-600 font-semibold border border-red-200',
+    leave:    'bg-red-100 text-red-600 font-semibold border border-red-200',
+    sunday:   'bg-gray-100 text-gray-400 border border-gray-200',
+    festival: 'bg-gray-900 text-white font-bold border border-gray-800',
+    none:     'bg-white text-gray-400 border border-gray-100',
   }
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -158,11 +158,11 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick 
         <div className="flex flex-wrap gap-2 mb-4">
           {[
             { label: 'Present', cls: 'bg-green-100 text-green-700 border border-green-200' },
-            { label: 'Remote',  cls: 'bg-purple-100 text-purple-700 border border-purple-200' },
+            { label: 'Remote',  cls: 'bg-yellow-100 text-yellow-700 border border-yellow-200' },
             { label: 'Absent',  cls: 'bg-red-100 text-red-600 border border-red-200' },
             { label: 'Leave',   cls: 'bg-red-100 text-red-600 border border-red-200' },
             { label: 'Sunday',  cls: 'bg-gray-100 text-gray-400 border border-gray-200' },
-            { label: 'Holiday', cls: 'bg-orange-100 text-orange-700 border border-orange-200' },
+            { label: 'Holiday', cls: 'bg-gray-900 text-white border border-gray-800' },
           ].map(l => (
             <span key={l.label} className={`text-xs px-2 py-0.5 rounded-full ${l.cls}`}>{l.label}</span>
           ))}
@@ -240,8 +240,8 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick 
           <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-2">Holidays this month</p>
           <div className="flex flex-wrap gap-2">
             {holidays.map(h => (
-              <span key={h.holiday_date} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-orange-700"
-                style={{ background: 'rgba(234,88,12,0.08)', border: '1px solid rgba(234,88,12,0.2)' }}>
+              <span key={h.holiday_date} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white"
+                style={{ background: '#111827', border: '1px solid #1f2937' }}>
                 🎉 {h.name} · {format(parseISO(h.holiday_date), 'dd MMM')}
               </span>
             ))}
