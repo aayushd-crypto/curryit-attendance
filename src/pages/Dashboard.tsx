@@ -6,6 +6,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, parseISO, 
 import { supabase } from '../supabase'
 import { StatCard } from '../StatCard'
 import { Spinner } from '../Spinner'
+import { Modal } from '../Modal'
 import { useAuth } from '../AuthContext'
 import { formatDate, formatTime, statusLabel, logAudit } from '../helpers'
 
@@ -298,10 +299,14 @@ export default function Dashboard() {
       if (!isAdmin && empLocation) empQuery = empQuery.eq('location', empLocation)
       const { count: totalEmployees } = await empQuery
 
+      // Fetch employee name map
+      const { data: allEmps } = await supabase.from('employees').select('id, name, employee_code')
+      const empMap: Record<string, string> = Object.fromEntries((allEmps ?? []).map((e: any) => [e.id, e.name]))
+
       // Today's attendance
-      let attQuery = supabase.from('attendance').select('status, work_mode, location, employee_id, employees(name)').eq('date', todayStr)
+      let attQuery = supabase.from('attendance').select('status, work_mode, location, employee_id').eq('date', todayStr)
       const { data: todayAtt } = await attQuery
-      setTodayAttFull((todayAtt ?? []) as any[])
+      setTodayAttFull((todayAtt ?? []).map((r: any) => ({ ...r, empName: empMap[r.employee_id] ?? '—' })) as any[])
 
       const att = todayAtt ?? []
       const presentTotal  = att.filter(r => r.status === 'present' && r.work_mode !== 'remote').length
@@ -454,29 +459,20 @@ export default function Dashboard() {
     </div>
   )
 
-  // ── Drill-down modal (shared by both views) ──────────────────────────────
-  const DrillModal = drillModal && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}>
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h3 className="font-bold text-gray-900 text-sm">{drillModal.title}</h3>
-          <button onClick={() => setDrillModal(null)} className="text-gray-400 hover:text-gray-600"><X size={17} /></button>
-        </div>
-        <div className="overflow-y-auto max-h-80 px-5 py-3 divide-y divide-gray-50">
-          {drillModal.rows.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">No records.</p>
-          ) : drillModal.rows.map((row, i) => (
-            <div key={i} className="flex items-center justify-between py-2.5">
-              <p className="text-sm font-medium text-gray-800">{row.name}</p>
-              {row.sub && <p className="text-xs text-gray-400 font-mono">{row.sub}</p>}
-            </div>
-          ))}
-        </div>
-        <div className="px-5 py-4 border-t border-gray-100">
-          <button onClick={() => setDrillModal(null)} className="btn-secondary w-full justify-center">Close</button>
-        </div>
+  // ── Drill-down modal rendered via Modal component ───────────────────────
+  const DrillModal = (
+    <Modal isOpen={!!drillModal} onClose={() => setDrillModal(null)} title={drillModal?.title ?? ''}>
+      <div className="divide-y divide-gray-50 max-h-96 overflow-y-auto -mx-1 px-1">
+        {!drillModal || drillModal.rows.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-8">No records found.</p>
+        ) : drillModal.rows.map((row, i) => (
+          <div key={i} className="flex items-center justify-between py-3">
+            <p className="text-sm font-medium text-gray-800">{row.name}</p>
+            {row.sub && <p className="text-xs text-gray-400 font-mono">{row.sub}</p>}
+          </div>
+        ))}
       </div>
-    </div>
+    </Modal>
   )
 
   // ── EMPLOYEE VIEW ─────────────────────────────────────────────────────────
@@ -722,13 +718,13 @@ export default function Dashboard() {
       {/* Top stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard label="Total employees"  value={summary?.totalEmployees ?? 0}              icon={Users}     color="gray"   />
-        <button className="text-left" onClick={() => setDrillModal({ title: 'Present today — office', rows: todayAttFull.filter(r => r.status === 'present' && r.work_mode !== 'remote').map(r => ({ name: (r as any).employees?.name ?? '—', sub: '' })) })}>
+        <button className="text-left" onClick={() => setDrillModal({ title: 'Present today — office', rows: todayAttFull.filter(r => r.status === 'present' && r.work_mode !== 'remote').map(r => ({ name: (r as any).empName, sub: '' })) })}>
           <StatCard label="Present today"  value={summary?.presentTotal ?? 0}                icon={UserCheck} color="green"  sub="Tap to see who" />
         </button>
-        <button className="text-left" onClick={() => setDrillModal({ title: 'Remote today', rows: todayAttFull.filter(r => r.work_mode === 'remote').map(r => ({ name: (r as any).employees?.name ?? '—', sub: '' })) })}>
+        <button className="text-left" onClick={() => setDrillModal({ title: 'Remote today', rows: todayAttFull.filter(r => r.work_mode === 'remote').map(r => ({ name: (r as any).empName, sub: '' })) })}>
           <StatCard label="Remote today"   value={summary?.remoteTotal ?? 0}                 icon={Monitor}   color="purple" sub="Tap to see who" />
         </button>
-        <button className="text-left" onClick={() => setDrillModal({ title: 'On leave today', rows: todayAttFull.filter(r => r.status === 'leave').map(r => ({ name: (r as any).employees?.name ?? '—', sub: '' })) })}>
+        <button className="text-left" onClick={() => setDrillModal({ title: 'On leave today', rows: todayAttFull.filter(r => r.status === 'leave').map(r => ({ name: (r as any).empName, sub: '' })) })}>
           <StatCard label="On leave"       value={summary?.leaveTotal ?? 0}                  icon={Plane}     color="orange" sub="Tap to see who" />
         </button>
         <StatCard label="Attendance %"     value={`${summary?.attendancePct ?? 0}%`}         icon={TrendingUp} color="blue"  sub="vs total active" />
@@ -774,7 +770,7 @@ export default function Dashboard() {
             ].map(({ label, cls, bg, filter: fn }) => {
               const rows = todayAttFull.filter(fn)
               return (
-                <button key={label} onClick={() => setDrillModal({ title: `Office — ${label} today`, rows: rows.map(r => ({ name: (r as any).employees?.name ?? '—' })) })}
+                <button key={label} onClick={() => setDrillModal({ title: `Office — ${label} today`, rows: rows.map(r => ({ name: (r as any).empName })) })}
                   className={`text-center p-3 ${bg} rounded-xl hover:shadow-md hover:-translate-y-0.5 transition-all w-full`}>
                   <p className={`text-2xl font-bold ${cls}`}>{rows.length}</p>
                   <p className="text-xs text-gray-500 mt-1">{label}</p>
@@ -798,7 +794,7 @@ export default function Dashboard() {
             ].map(({ label, cls, bg, filter: fn }) => {
               const rows = todayAttFull.filter(fn)
               return (
-                <button key={label} onClick={() => setDrillModal({ title: `CMK — ${label} today`, rows: rows.map(r => ({ name: (r as any).employees?.name ?? '—' })) })}
+                <button key={label} onClick={() => setDrillModal({ title: `CMK — ${label} today`, rows: rows.map(r => ({ name: (r as any).empName })) })}
                   className={`text-center p-3 ${bg} rounded-xl hover:shadow-md hover:-translate-y-0.5 transition-all w-full`}>
                   <p className={`text-2xl font-bold ${cls}`}>{rows.length}</p>
                   <p className="text-xs text-gray-500 mt-1">{label}</p>
