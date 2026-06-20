@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Plus, Search, Edit2, UserX, UserCheck,
-  ChevronDown, Wallet, Eye, EyeOff, Copy, CheckCheck
+  ChevronDown, Wallet, Eye, EyeOff, Copy, CheckCheck,
+  BookOpen, Calendar, X
 } from 'lucide-react'
+import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '../supabase'
 import { useAuth } from '../AuthContext'
 import { Modal } from '../Modal'
@@ -15,6 +17,15 @@ import type { Employee, Department, Location, EmployeeStatus } from '../database
 const genPassword = () => {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#'
   return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
+
+interface AttendanceRow {
+  id: string; date: string; status: string; work_mode: string
+  check_in_time: string | null; check_out_time: string | null; worked_minutes: number | null
+}
+interface LeaveRow {
+  id: string; start_date: string; end_date: string; total_days: number | null
+  reason: string; status: string; leave_type?: string
 }
 
 export default function EmployeesPage() {
@@ -39,6 +50,14 @@ export default function EmployeesPage() {
   const [balEmp, setBalEmp]   = useState<Employee | null>(null)
   const [bal, setBal]         = useState({ casual_total: 12, sick_total: 12, emergency_total: 6, paid_total: 15 })
   const [balBusy, setBalBusy] = useState(false)
+
+  // history modal
+  const [histEmp, setHistEmp]                 = useState<Employee | null>(null)
+  const [histTab, setHistTab]                 = useState<'attendance' | 'leaves'>('attendance')
+  const [histAttendance, setHistAttendance]   = useState<AttendanceRow[]>([])
+  const [histLeaves, setHistLeaves]           = useState<LeaveRow[]>([])
+  const [histLoading, setHistLoading]         = useState(false)
+  const [histMonth, setHistMonth]             = useState(format(new Date(), 'yyyy-MM'))
 
   // form state
   const [form, setForm] = useState({
@@ -80,6 +99,38 @@ export default function EmployeesPage() {
       designation: emp.designation, location: emp.location,
       joining_date: emp.joining_date, status: emp.status })
     setError(null); setModalOpen(true)
+  }
+
+  const openHistory = async (emp: Employee, month?: string) => {
+    const m = month ?? histMonth
+    setHistEmp(emp)
+    setHistTab('attendance')
+    setHistLoading(true)
+
+    const monthDate = new Date(m + '-01')
+    const start = format(startOfMonth(monthDate), 'yyyy-MM-dd')
+    const end   = format(endOfMonth(monthDate), 'yyyy-MM-dd')
+
+    const [{ data: att }, { data: lv }] = await Promise.all([
+      supabase.from('attendance')
+        .select('id, date, status, work_mode, check_in_time, check_out_time, worked_minutes')
+        .eq('employee_id', emp.id)
+        .gte('date', start).lte('date', end)
+        .order('date', { ascending: false }),
+      supabase.from('leave_requests')
+        .select('id, start_date, end_date, total_days, reason, status, leave_type')
+        .eq('employee_id', emp.id)
+        .order('created_at', { ascending: false }),
+    ])
+
+    setHistAttendance((att ?? []) as AttendanceRow[])
+    setHistLeaves((lv ?? []) as LeaveRow[])
+    setHistLoading(false)
+  }
+
+  const changeHistMonth = async (m: string) => {
+    setHistMonth(m)
+    if (histEmp) await openHistory(histEmp, m)
   }
 
   // ── Add: calls Edge Function — creates auth user + employee + profile in one shot
@@ -175,6 +226,18 @@ export default function EmployeesPage() {
     return matchSearch && matchLoc && matchStatus
   })
 
+  const statusBadge = (s: string) =>
+    s === 'approved' ? <span className="badge-approved">Approved</span>
+    : s === 'rejected' ? <span className="badge-rejected">Rejected</span>
+    : <span className="badge-pending">Pending</span>
+
+  const fmtTime = (t: string | null) => t ? t.slice(0, 5) : '—'
+  const fmtMins = (m: number | null) => {
+    if (!m) return '—'
+    const h = Math.floor(m / 60); const min = m % 60
+    return `${h}h ${min}m`
+  }
+
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size="lg" /></div>
 
   return (
@@ -260,6 +323,9 @@ export default function EmployeesPage() {
                   </td>
                   <td>
                     <div className="flex gap-1.5">
+                      <button onClick={() => openHistory(emp)} className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-colors" title="View history">
+                        <BookOpen size={13} />
+                      </button>
                       <button onClick={() => openEdit(emp)} className="p-1.5 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-lg transition-colors" title="Edit">
                         <Edit2 size={13} />
                       </button>
@@ -279,6 +345,121 @@ export default function EmployeesPage() {
           </table>
         </div>
       </div>
+
+      {/* ── HISTORY Modal ── */}
+      {histEmp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h3 className="font-bold text-gray-900">{histEmp.name}</h3>
+                <p className="text-xs text-gray-400">{histEmp.email} · {histEmp.employee_code}</p>
+              </div>
+              <button onClick={() => setHistEmp(null)} className="text-gray-400 hover:text-gray-600 p-1">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Tabs + month picker */}
+            <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-100">
+              <button onClick={() => setHistTab('attendance')}
+                className={`px-4 py-1.5 rounded-xl text-sm font-semibold transition-colors ${histTab === 'attendance' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+                Attendance
+              </button>
+              <button onClick={() => setHistTab('leaves')}
+                className={`px-4 py-1.5 rounded-xl text-sm font-semibold transition-colors ${histTab === 'leaves' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+                Leaves
+              </button>
+              <div className="flex-1" />
+              {histTab === 'attendance' && (
+                <div className="flex items-center gap-2">
+                  <Calendar size={14} className="text-gray-400" />
+                  <input type="month" value={histMonth}
+                    onChange={e => changeHistMonth(e.target.value)}
+                    className="input py-1 text-sm" style={{ minWidth: 0, width: 'auto' }} />
+                </div>
+              )}
+            </div>
+
+            {/* Body */}
+            <div className="overflow-y-auto flex-1 px-6 py-4">
+              {histLoading ? (
+                <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>
+              ) : histTab === 'attendance' ? (
+                histAttendance.length === 0 ? (
+                  <p className="text-center text-gray-400 py-12 text-sm">No attendance records for this month.</p>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase pb-2 pr-4">Date</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase pb-2 pr-4">Status</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase pb-2 pr-4">Mode</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase pb-2 pr-4">Check In</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase pb-2 pr-4">Check Out</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase pb-2">Worked</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {histAttendance.map(r => (
+                        <tr key={r.id} className="border-t border-gray-50">
+                          <td className="py-2 pr-4 text-sm font-medium text-gray-700">{formatDate(r.date)}</td>
+                          <td className="py-2 pr-4">
+                            {r.status === 'present' ? <span className="badge-approved">Present</span>
+                             : r.status === 'absent' ? <span className="badge-rejected">Absent</span>
+                             : r.status === 'leave'  ? <span className="badge-pending">Leave</span>
+                             : <span className="text-xs text-gray-400">{r.status}</span>}
+                          </td>
+                          <td className="py-2 pr-4">
+                            {r.work_mode === 'remote'
+                              ? <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">Remote</span>
+                              : <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">Office</span>}
+                          </td>
+                          <td className="py-2 pr-4 text-sm text-gray-500 font-mono">{fmtTime(r.check_in_time)}</td>
+                          <td className="py-2 pr-4 text-sm text-gray-500 font-mono">{fmtTime(r.check_out_time)}</td>
+                          <td className="py-2 text-sm text-gray-500">{fmtMins(r.worked_minutes)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )
+              ) : (
+                histLeaves.length === 0 ? (
+                  <p className="text-center text-gray-400 py-12 text-sm">No leave requests found.</p>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase pb-2 pr-4">From</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase pb-2 pr-4">To</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase pb-2 pr-4">Days</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase pb-2 pr-4">Reason</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase pb-2">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {histLeaves.map(r => (
+                        <tr key={r.id} className="border-t border-gray-50">
+                          <td className="py-2 pr-4 text-sm text-gray-700">{formatDate(r.start_date)}</td>
+                          <td className="py-2 pr-4 text-sm text-gray-700">{formatDate(r.end_date)}</td>
+                          <td className="py-2 pr-4 text-sm text-gray-500">{r.total_days ?? '—'}d</td>
+                          <td className="py-2 pr-4 text-sm text-gray-400 max-w-[200px] truncate">{r.reason}</td>
+                          <td className="py-2">{statusBadge(r.status)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100">
+              <button onClick={() => setHistEmp(null)} className="btn-secondary w-full justify-center">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── ADD Employee Modal ── */}
       <Modal isOpen={modalOpen && !editing} onClose={() => { setModalOpen(false); setSuccessMsg(null) }}
