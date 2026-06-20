@@ -248,7 +248,7 @@ export default function CMKAttendancePage() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-10 text-gray-400">
+                <tr><td colSpan={8} className="text-center py-10 text-gray-400">
                   <Users size={24} className="mx-auto mb-2" />
                   No CMK employees found.
                 </td></tr>

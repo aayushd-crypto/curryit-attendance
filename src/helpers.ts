@@ -39,7 +39,7 @@ export const statusLabel = (s: string) => {
     holiday: 'Holiday', remote: 'Remote',
     pending: 'Pending', approved: 'Approved', rejected: 'Rejected',
     office: 'Office', cmk: 'CMK',
-    casual: 'Casual Leave', sick: 'Sick Leave', emergency: 'Emergency Leave',
+    casual: 'Casual Leave', special: 'Special Leave', sick: 'Sick Leave', emergency: 'Emergency Leave',
     self_marked: 'Self Marked', coordinator_marked: 'Coordinator', admin_marked: 'Admin',
     active: 'Active', inactive: 'Inactive',
   }

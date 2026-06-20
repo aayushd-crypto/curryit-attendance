@@ -390,7 +390,7 @@ export default function Dashboard() {
     }
   }
 
-  useEffect(() => { loadDashboard() }, [role, profile])
+  useEffect(() => { loadDashboard() }, [role, profile?.email])
 
   // ── Load today's attendance + current month history for employee ─────────
   const loadAttendance = async (employeeId: string) => {
@@ -410,8 +410,8 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (role === 'employee' && empId) loadAttendance(empId)
-  }, [role, empId])
+    if (isEmployee && empId) loadAttendance(empId)
+  }, [isEmployee, empId])
 
   const checkIn = async () => {
     if (!user || !profile || !empId) {
@@ -531,7 +531,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
             { label: 'Present this month', color: 'bg-green-50', cls: 'text-green-600',  rows: history.filter(r => r.status === 'present' && r.work_mode !== 'remote') },
-            { label: 'Remote this month',  color: 'bg-purple-50', cls: 'text-purple-600', rows: history.filter(r => r.work_mode === 'remote') },
+            ...(role !== 'cmk_coordinator' ? [{ label: 'Remote this month',  color: 'bg-purple-50', cls: 'text-purple-600', rows: history.filter(r => r.work_mode === 'remote') }] : []),
             { label: 'Absent this month',  color: 'bg-red-50',    cls: 'text-red-600',    rows: history.filter(r => r.status === 'absent') },
             { label: 'On leave this month',color: 'bg-orange-50', cls: 'text-orange-600', rows: history.filter(r => r.status === 'leave') },
           ].map(({ label, color, cls, rows }) => (

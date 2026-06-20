@@ -19,9 +19,6 @@ interface Balance {
   casual_total: number; casual_used: number
 }
 
-const leaveTypeLabels: Record<LType, string> = {
-  casual: 'Casual Leave',
-}
 
 export default function LeavePage() {
   const { user, profile, role } = useAuth()
@@ -43,7 +40,6 @@ export default function LeavePage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate]     = useState('')
   const [reason, setReason]       = useState('')
-  const [isSpecial, setIsSpecial]   = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -95,7 +91,7 @@ export default function LeavePage() {
     else {
       await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!,
         action: `Applied casual leave (${days}d)` })
-      setModal(false); setStartDate(''); setEndDate(''); setReason(''); setIsSpecial(false); setIsSpecial(false)
+      setModal(false); setStartDate(''); setEndDate(''); setReason('')
       await load()
     }
     setBusy(false)
