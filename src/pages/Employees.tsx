@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import {
   Plus, Search, Edit2, UserX, UserCheck,
   ChevronDown, Eye, EyeOff, Copy, CheckCheck,
-  BookOpen, Calendar, X, BarChart2, Clock, TrendingUp
+  BookOpen, Calendar, X, BarChart2, Clock, TrendingUp, Upload, Download, AlertTriangle, CheckCircle2
 } from 'lucide-react'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '../supabase'
@@ -52,6 +52,13 @@ export default function EmployeesPage() {
   const [showPw, setShowPw]           = useState(false)
   const [copied, setCopied]           = useState(false)
 
+
+  // CSV import
+  const [csvModal, setCsvModal]       = useState(false)
+  const [csvRows, setCsvRows]         = useState<any[]>([])
+  const [csvImporting, setCsvImporting] = useState(false)
+  const [csvResults, setCsvResults]   = useState<{ name: string; ok: boolean; msg: string }[]>([])
+  const [csvDone, setCsvDone]         = useState(false)
 
   // history modal
   const [histEmp, setHistEmp]                 = useState<Employee | null>(null)
@@ -161,6 +168,78 @@ export default function EmployeesPage() {
     if (histEmp) await openHistory(histEmp, m)
   }
 
+
+  // ── CSV import ─────────────────────────────────────────────────────────────
+  const downloadTemplate = () => {
+    const header = 'name,email,mobile,designation,department_name,location,role,joining_date,password'
+    const example = 'Ravi Kumar,ravi@curryit.in,9876543210,Executive,Operations,office,employee,2026-06-20,'
+    const blob = new Blob([header + '\n' + example], { type: 'text/csv' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+    a.download = 'employee_import_template.csv'; a.click()
+  }
+
+  const handleCSVFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string
+      const lines = text.trim().split('\n').filter(Boolean)
+      if (lines.length < 2) return
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
+      const rows = lines.slice(1).map(line => {
+        const vals = line.split(',').map(v => v.trim())
+        const obj: any = {}
+        headers.forEach((h, i) => { obj[h] = vals[i] ?? '' })
+        return obj
+      })
+      setCsvRows(rows); setCsvResults([]); setCsvDone(false)
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  const importCSV = async () => {
+    if (!user) return
+    setCsvImporting(true); setCsvResults([]); setCsvDone(false)
+    const { data: { session } } = await supabase.auth.getSession()
+    const results: { name: string; ok: boolean; msg: string }[] = []
+
+    for (const row of csvRows) {
+      // Find department_id by name
+      const dept = departments.find(d => d.name.toLowerCase() === (row.department_name ?? '').toLowerCase())
+      const payload = {
+        name: row.name,
+        email: row.email,
+        mobile: row.mobile ?? '',
+        designation: row.designation ?? '',
+        department_id: dept?.id ?? '',
+        location: row.location ?? 'office',
+        role: row.role ?? 'employee',
+        joining_date: row.joining_date ?? format(new Date(), 'yyyy-MM-dd'),
+        temp_password: row.password || genPassword(),
+      }
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-employee`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` }, body: JSON.stringify(payload) }
+        )
+        const json = await res.json().catch(() => ({}))
+        if (res.ok) {
+          results.push({ name: row.name, ok: true, msg: 'Added successfully' })
+          await logAudit({ userId: user.id, userName: profile!.full_name, userRole: role!, action: `Bulk import: ${row.name}` })
+        } else {
+          results.push({ name: row.name, ok: false, msg: json.error ?? `Error ${res.status}` })
+        }
+      } catch (err: any) {
+        results.push({ name: row.name, ok: false, msg: err?.message ?? 'Network error' })
+      }
+      setCsvResults([...results])
+    }
+    setCsvImporting(false); setCsvDone(true)
+    await loadData()
+  }
+
   // ── Add: calls Edge Function — creates auth user + employee + profile in one shot
   const addEmployee = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -257,9 +336,14 @@ export default function EmployeesPage() {
           <h1 className="page-title">Employees</h1>
           <p className="page-subtitle">{employees.filter(e => e.status === 'active').length} active employees</p>
         </div>
-        <button onClick={openAdd} className="btn-primary">
-          <Plus size={16} /> Add employee
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => { setCsvModal(true); setCsvRows([]); setCsvResults([]); setCsvDone(false) }} className="btn-secondary">
+            <Upload size={15} /> Import CSV
+          </button>
+          <button onClick={openAdd} className="btn-primary">
+            <Plus size={16} /> Add employee
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -706,6 +790,106 @@ export default function EmployeesPage() {
           </div>
         </form>
       </Modal>
+
+      {/* ── CSV IMPORT MODAL ── */}
+      {csvModal && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 px-4 pb-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="font-bold text-gray-900">Import employees via CSV</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Upload a CSV file to add multiple employees at once</p>
+              </div>
+              <button onClick={() => setCsvModal(false)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400"><X size={16} /></button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 p-6 space-y-5">
+              {/* Step 1: Download template */}
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl">
+                <div>
+                  <p className="text-sm font-semibold text-blue-800">Step 1 — Download template</p>
+                  <p className="text-xs text-blue-500 mt-0.5">Fill in the CSV with employee details</p>
+                </div>
+                <button onClick={downloadTemplate} className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-white border border-blue-200 px-3 py-2 rounded-lg hover:bg-blue-50">
+                  <Download size={13} /> Template
+                </button>
+              </div>
+
+              {/* Step 2: Upload */}
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-2">Step 2 — Upload filled CSV</p>
+                <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-brand-400 hover:bg-brand-50/30 transition-colors">
+                  <Upload size={22} className="text-gray-300 mb-2" />
+                  <span className="text-sm text-gray-400">Click to choose CSV file</span>
+                  <input type="file" accept=".csv" className="hidden" onChange={handleCSVFile} />
+                </label>
+              </div>
+
+              {/* Preview */}
+              {csvRows.length > 0 && !csvDone && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">{csvRows.length} employee(s) ready to import</p>
+                  <div className="overflow-x-auto rounded-xl border border-gray-100">
+                    <table className="w-full text-xs">
+                      <thead><tr className="bg-gray-50">
+                        <th className="px-3 py-2 text-left font-semibold text-gray-500">Name</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-500">Email</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-500">Role</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-500">Location</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-500">Department</th>
+                      </tr></thead>
+                      <tbody>
+                        {csvRows.map((r, i) => (
+                          <tr key={i} className="border-t border-gray-50">
+                            <td className="px-3 py-2 font-medium">{r.name}</td>
+                            <td className="px-3 py-2 text-gray-400">{r.email}</td>
+                            <td className="px-3 py-2">{r.role}</td>
+                            <td className="px-3 py-2">{r.location}</td>
+                            <td className="px-3 py-2">{r.department_name}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Progress / results */}
+              {csvResults.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Import results</p>
+                  {csvResults.map((r, i) => (
+                    <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${r.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                      {r.ok ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+                      <span className="font-semibold">{r.name}</span>
+                      <span className="ml-auto">{r.msg}</span>
+                    </div>
+                  ))}
+                  {csvImporting && <div className="flex items-center gap-2 text-xs text-gray-400"><Spinner size="sm" /> Importing...</div>}
+                </div>
+              )}
+
+              {csvDone && (
+                <div className="p-3 bg-green-50 rounded-xl text-sm text-green-700 font-medium text-center">
+                  ✓ Import complete — {csvResults.filter(r => r.ok).length} of {csvResults.length} added successfully
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+              <button onClick={() => setCsvModal(false)} className="btn-secondary flex-1 justify-center">
+                {csvDone ? 'Close' : 'Cancel'}
+              </button>
+              {csvRows.length > 0 && !csvDone && (
+                <button onClick={importCSV} disabled={csvImporting}
+                  className="btn-primary flex-1 justify-center">
+                  {csvImporting ? <><Spinner size="sm" /> Importing...</> : `Import ${csvRows.length} employee(s)`}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )
