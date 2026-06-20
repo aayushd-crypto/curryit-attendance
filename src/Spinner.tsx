@@ -12,11 +12,14 @@ export function Spinner({ size = 'md', className = '' }: SpinnerProps) {
 
 export function PageLoader() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <Spinner size="lg" className="mx-auto mb-4" />
-        <p className="text-sm text-gray-500">Loading CURRYiT...</p>
-      </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <img
+        src="/logo.png"
+        alt="CURRYiT"
+        className="w-28 h-28 object-contain mb-6 animate-pulse"
+        style={{ animationDuration: '1.5s' }}
+      />
+      <Spinner size="lg" className="mx-auto" />
     </div>
   )
 }
