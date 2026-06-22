@@ -46,7 +46,11 @@ export default function App() {
 
               <Route path="/leave"           element={<LeavePage />} />
               <Route path="/holidays"         element={<HolidaysPage />} />
-              <Route path="/cmk-workers"       element={<CMKWorkersPage />} />
+              <Route path="/cmk-workers" element={
+                <ProtectedRoute allowedRoles={['super_admin','cmk_coordinator']}>
+                  <CMKWorkersPage />
+                </ProtectedRoute>
+              } />
               <Route path="/attendance/:date" element={<AttendanceDayPage />} />
 
               <Route path="/employees/:id" element={
