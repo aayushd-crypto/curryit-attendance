@@ -543,9 +543,9 @@ export default function Dashboard() {
         </div>
 
         {/* Check-in/out widget + compact calendar side by side */}
-        <div className={role === 'cmk_coordinator' ? '' : 'grid grid-cols-1 lg:grid-cols-3 gap-4'}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Check-in/out card — hidden for CMK coordinators */}
-          {role !== 'cmk_coordinator' && <div className="lg:col-span-2 card-elevated rounded-3xl p-7">
+          <div className="lg:col-span-2 card-elevated rounded-3xl p-7">
             {/* ── NOT CHECKED IN ── */}
             {!checkedIn && !attError && (
               <>
@@ -628,9 +628,9 @@ export default function Dashboard() {
                   {' · '}
                   {todayRecord!.work_mode === 'remote' ? '🏠 Remote' : '🏢 Office'}
                 </p>
-                {liveWorked !== null && liveWorked > 480 && (
+                {liveWorked !== null && liveWorked > 540 && (
                   <p className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 mb-3">
-                    <Zap size={12} /> Overtime: {fmtMins(liveWorked - 480)}
+                    <Zap size={12} /> Overtime: {fmtMins(liveWorked - 540)}
                   </p>
                 )}
 
@@ -679,7 +679,7 @@ export default function Dashboard() {
                 )}
               </div>
             )}
-          </div>}
+          </div>
 
           {/* Compact monthly calendar */}
           <AttendanceCalendar employeeId={empId} location={empLocation} compact onDayClick={(dateStr) => navigate(`/attendance/${dateStr}`)} />
