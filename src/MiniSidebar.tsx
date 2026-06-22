@@ -40,7 +40,7 @@ export function MiniSidebar({ onMenuClick }: Props) {
       {/* Menu / expand button */}
       <button onClick={onMenuClick}
         title="Open menu"
-        className="w-10 h-10 flex items-center justify-center rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors mb-1">
+        className="w-10 h-10 flex items-center justify-center rounded-2xl text-white/40 hover:text-white hover:bg-white/10 transition-colors mb-1">
         <Menu size={18} />
       </button>
 
@@ -53,7 +53,7 @@ export function MiniSidebar({ onMenuClick }: Props) {
           <NavLink key={item.to} to={item.to}
             title={item.label}
             className={({ isActive }) =>
-              `w-10 h-10 flex items-center justify-center rounded-xl transition-all group relative
+              `w-10 h-10 flex items-center justify-center rounded-2xl transition-all group relative
                ${isActive ? 'text-white' : 'text-white/40 hover:text-white hover:bg-white/10'}`
             }
             style={({ isActive }) => isActive ? {
@@ -84,7 +84,7 @@ export function MiniSidebar({ onMenuClick }: Props) {
 
       {/* Logout */}
       <button onClick={signOut} title="Sign out"
-        className="w-10 h-10 flex items-center justify-center rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors mb-1">
+        className="w-10 h-10 flex items-center justify-center rounded-2xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors mb-1">
         <LogOut size={17} />
       </button>
     </aside>
