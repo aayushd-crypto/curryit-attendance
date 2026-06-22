@@ -1,7 +1,7 @@
-import { NavLink } from 'react-router-dom'
+import { Users2, NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, Users, FileText,
-  ClipboardList, HardHat, Settings, Zap, Palmtree, Menu, LogOut
+  ClipboardList, Settings, Zap, Palmtree, Menu, LogOut
 } from 'lucide-react'
 import { useAuth } from './AuthContext'
 import type { UserRole } from './database'
@@ -11,7 +11,7 @@ interface NavItem { to: string; icon: React.ElementType; label: string; roles: U
 const navItems: NavItem[] = [
   { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard',      roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/cmk-attendance', icon: Zap,             label: 'CMK Attendance', roles: ['super_admin','admin','cmk_coordinator'] },
-  { to: '/cmk-workers',     icon: HardHat,         label: 'CMK Workers',    roles: ['super_admin','admin','cmk_coordinator'] },
+  { to: '/cmk-workers',     icon:         label: 'CMK Workers',    roles: ['super_admin','admin','cmk_coordinator'] },
   { to: '/leave',          icon: Calendar,        label: 'Leave',          roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/holidays',       icon: Palmtree,        label: 'Holidays',       roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/employees',      icon: Users,           label: 'Employees',      roles: ['super_admin','admin'] },

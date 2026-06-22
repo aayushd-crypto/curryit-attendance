@@ -10,7 +10,7 @@ interface Worker { id: string; name: string; mobile: string; employee_code: stri
 interface AttRecord { id: string; employee_id: string; status: string }
 
 export default function CMKWorkers() {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
   const today = format(new Date(), 'yyyy-MM-dd')
   const todayLabel = format(new Date(), 'EEEE, dd MMM yyyy')
 
