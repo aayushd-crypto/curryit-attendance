@@ -146,7 +146,7 @@ export default function SettingsPage() {
         icon={<Building2 size={15} style={{ color: '#E8531D' }} />}
         title="Departments"
         subtitle={`${departments.filter(d => d.status === 'active').length} active`}
-        defaultOpen>
+        >
         <div className="p-5 border-t border-gray-50">
           <div className="flex justify-end mb-4">
             <button onClick={() => setDeptModal(true)} className="btn-primary">
