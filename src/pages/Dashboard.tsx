@@ -280,7 +280,7 @@ export default function Dashboard() {
   const [workMode, setWorkMode]       = useState<'office' | 'remote'>('office')
   const [geoError, setGeoError]       = useState<string | null>(null)
   const [geoChecking, setGeoChecking] = useState(false)
-  const [geoStatus, setGeoStatus]     = useState<{ ok: boolean; dist: number; radius: number } | null>(null)
+  const [geoStatus, setGeoStatus]     = useState<{ ok: boolean; dist: number; radius: number; lat: number; lng: number; officeLat: number; officeLng: number } | null>(null)
   const [attBusy, setAttBusy]         = useState(false)
   const [attError, setAttError]       = useState<string | null>(null)
   const [now, setNow]                 = useState(new Date())
@@ -420,14 +420,17 @@ export default function Dashboard() {
     if (!isEmployee || !empLocation || !navigator.geolocation) return
     const checkGeo = async () => {
       const { data: geo } = await supabase.from('geo_settings').select('*').eq('location', empLocation).single()
-      if (!geo?.enabled || !geo.lat) return
       navigator.geolocation.getCurrentPosition(pos => {
+        if (!geo?.enabled || !geo.lat) {
+          setGeoStatus({ ok: true, dist: 0, radius: 0, lat: pos.coords.latitude, lng: pos.coords.longitude, officeLat: 0, officeLng: 0 })
+          return
+        }
         const R = 6371000
         const dLat = (geo.lat - pos.coords.latitude) * Math.PI / 180
         const dLng = (geo.lng - pos.coords.longitude) * Math.PI / 180
         const a = Math.sin(dLat/2)**2 + Math.cos(pos.coords.latitude*Math.PI/180)*Math.cos(geo.lat*Math.PI/180)*Math.sin(dLng/2)**2
         const dist = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)))
-        setGeoStatus({ ok: dist <= geo.radius_m, dist, radius: geo.radius_m })
+        setGeoStatus({ ok: dist <= geo.radius_m, dist, radius: geo.radius_m, lat: pos.coords.latitude, lng: pos.coords.longitude, officeLat: geo.lat, officeLng: geo.lng })
       }, () => {})
     }
     checkGeo()
@@ -662,15 +665,39 @@ export default function Dashboard() {
                 </div>
                 )}
 
-                {/* Live geo range indicator */}
+                {/* Live map + geo indicator */}
                 {geoStatus && (
-                  <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold mb-3 ${
-                    geoStatus.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
-                  }`}>
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${geoStatus.ok ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                    {geoStatus.ok
-                      ? `✓ You're within range (${geoStatus.dist}m away)`
-                      : `✗ Too far — ${geoStatus.dist}m away (max ${geoStatus.radius}m)`}
+                  <div className="mb-4 rounded-2xl overflow-hidden border border-gray-100">
+                    {/* Map */}
+                    <div className="relative w-full h-44">
+                      <iframe
+                        title="location-map"
+                        width="100%" height="100%"
+                        style={{ border: 0 }}
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${geoStatus.lng-0.003}%2C${geoStatus.lat-0.003}%2C${geoStatus.lng+0.003}%2C${geoStatus.lat+0.003}&layer=mapnik&marker=${geoStatus.lat}%2C${geoStatus.lng}`}
+                      />
+                      <a
+                        href={`https://www.openstreetmap.org/?mlat=${geoStatus.lat}&mlon=${geoStatus.lng}#map=16/${geoStatus.lat}/${geoStatus.lng}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="absolute bottom-2 right-2 text-[10px] bg-white/80 px-2 py-1 rounded-lg text-gray-500 hover:text-gray-700">
+                        Open map ↗
+                      </a>
+                    </div>
+                    {/* Status bar */}
+                    <div className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold ${
+                      geoStatus.radius === 0 ? 'bg-gray-50 text-gray-500' :
+                      geoStatus.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
+                    }`}>
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 animate-pulse ${
+                        geoStatus.radius === 0 ? 'bg-gray-400' :
+                        geoStatus.ok ? 'bg-emerald-500' : 'bg-red-500'
+                      }`} />
+                      {geoStatus.radius === 0
+                        ? '📍 Location detected'
+                        : geoStatus.ok
+                          ? `✓ Within range · ${geoStatus.dist}m from ${empLocation === 'cmk' ? 'CMK' : 'office'}`
+                          : `✗ Too far · ${geoStatus.dist}m away (max ${geoStatus.radius}m)`}
+                    </div>
                   </div>
                 )}
 
