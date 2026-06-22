@@ -918,9 +918,9 @@ export default function Dashboard() {
           ) : !todayRecord.check_out_time ? (
             <>
               <h2 className="font-black text-gray-900 text-lg mb-1">Checked in ✓</h2>
-              <p className="text-sm text-gray-500 mb-1">Since {todayRecord.check_in_time ? formatTime(todayRecord.check_in_time) : '—'} · {liveWorked !== null ? hoursLabel(liveWorked) : '—'}</p>
+              <p className="text-sm text-gray-500 mb-1">Since {todayRecord.check_in_time ? formatTime(todayRecord.check_in_time) : '—'} · {liveWorked !== null ? fmtMins(liveWorked) : '—'}</p>
               {liveWorked !== null && liveWorked > 540 && (
-                <p className="text-xs font-semibold text-orange-500 mb-3">🔥 Overtime: {hoursLabel(liveWorked - 540)}</p>
+                <p className="text-xs font-semibold text-orange-500 mb-3">🔥 Overtime: {fmtMins(liveWorked - 540)}</p>
               )}
               {attError && <p className="text-xs text-red-500 mb-3">{attError}</p>}
               <button onClick={checkOut} disabled={attBusy}
