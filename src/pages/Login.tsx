@@ -54,13 +54,7 @@ export default function LoginPage() {
           <img src="/logo.png" alt="CURRYiT" className="h-24 w-auto mx-auto mb-4 drop-shadow-2xl" />
           <p className="text-white/30 text-[10px] font-bold uppercase tracking-[4px] mb-6">real taste, real easy.</p>
           <p className="text-[10px] font-bold text-orange-400 uppercase tracking-[3px] mb-2">Attendance Portal</p>
-          <h1 className="text-4xl font-black text-white leading-tight tracking-tight">
-            People first.<br />
-            <span style={{
-              background: 'linear-gradient(135deg, #E8531D 0%, #ff9a5c 100%)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-            }}>Always.</span>
-          </h1>
+
         </div>
 
         {/* Form */}
