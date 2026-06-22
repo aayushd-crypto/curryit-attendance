@@ -123,14 +123,14 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
         {/* Mobile: compact greeting + clock */}
         <div className="flex sm:hidden flex-col leading-tight px-2 py-1 rounded-2xl" style={{ background: 'var(--tile-bg)' }}>
-          <span className="text-xs font-black text-gray-800" style={{ transition: 'opacity 0.3s', opacity: greetVisible ? 1 : 0 }}>{GREETINGS[greetIdx]} {profile?.full_name?.split(' ')[0]} Ji</span>
+          <span className="text-xs font-black text-gray-800" style={{ transition: 'opacity 0.3s', opacity: greetVisible ? 1 : 0 }}>{GREETINGS[greetIdx]} {profile?.full_name?.split(' ')[0]}</span>
           <span className="text-[10px] font-mono text-gray-500">{clock}</span>
         </div>
 
         {/* Desktop: 3 separate tiles */}
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-2xl" style={{ background: 'var(--tile-bg)' }}>
           <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse flex-shrink-0" />
-          <span className="text-lg font-black text-gray-800 tracking-tight" style={{ transition: 'opacity 0.3s', opacity: greetVisible ? 1 : 0 }}>{GREETINGS[greetIdx]} {profile?.full_name?.split(' ')[0]} Ji</span>
+          <span className="text-lg font-black text-gray-800 tracking-tight" style={{ transition: 'opacity 0.3s', opacity: greetVisible ? 1 : 0 }}>{GREETINGS[greetIdx]} {profile?.full_name?.split(' ')[0]}</span>
         </div>
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl" style={{ background: 'var(--tile-bg)' }}>
           <span className="text-lg font-bold text-gray-700 tracking-tight">{today}</span>
