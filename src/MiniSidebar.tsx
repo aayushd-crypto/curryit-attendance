@@ -1,8 +1,7 @@
 import { NavLink } from 'react-router-dom'
-import { useTheme } from './useTheme'
 import {
   LayoutDashboard, Calendar, Users, FileText,
-  ClipboardList, Settings, Zap, Palmtree, Menu, LogOut, Users2, Moon, Sun
+  ClipboardList, Settings, Zap, Palmtree, Menu, LogOut, Users2
 } from 'lucide-react'
 import { useAuth } from './AuthContext'
 import type { UserRole } from './database'
@@ -25,7 +24,6 @@ interface Props { onMenuClick: () => void }
 
 export function MiniSidebar({ onMenuClick }: Props) {
   const { role, profile, signOut } = useAuth()
-  const { dark, toggle } = useTheme()
   const visible = navItems.filter(i => role && i.roles.includes(role))
 
   return (
@@ -83,12 +81,6 @@ export function MiniSidebar({ onMenuClick }: Props) {
         style={{ background: 'linear-gradient(135deg, #E8531D, #C44010)', boxShadow: '0 4px 12px rgba(232,83,29,0.4)' }}>
         {profile?.full_name?.[0]?.toUpperCase() ?? 'U'}
       </div>
-
-      {/* Dark mode toggle */}
-      <button onClick={toggle} title={dark ? 'Light mode' : 'Dark mode'}
-        className="w-10 h-10 flex items-center justify-center rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors">
-        {dark ? <Sun size={17} /> : <Moon size={17} />}
-      </button>
 
       {/* Logout */}
       <button onClick={signOut} title="Sign out"

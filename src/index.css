@@ -4,12 +4,34 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── CSS Variables for dark-mode-aware inline styles ── */
+:root {
+  --app-bg:       #F2F1EE;
+  --navbar-bg:    rgba(240,242,247,0.85);
+  --tile-bg:      rgba(255,255,255,0.7);
+  --tile-text:    #111827;
+  --tile-subtext: #6b7280;
+  --search-bg:    rgba(255,255,255,0.9);
+  --dropdown-bg:  #ffffff;
+  --modal-overlay: rgba(0,0,0,0.4);
+}
+.dark {
+  --app-bg:       #0f172a;
+  --navbar-bg:    rgba(15,23,42,0.92);
+  --tile-bg:      rgba(30,41,59,0.85);
+  --tile-text:    #f1f5f9;
+  --tile-subtext: #94a3b8;
+  --search-bg:    rgba(30,41,59,0.95);
+  --dropdown-bg:  #1e293b;
+  --modal-overlay: rgba(0,0,0,0.65);
+}
+
 @layer base {
   * { box-sizing: border-box; }
   html { font-family: 'Inter', system-ui, sans-serif; }
   body {
     @apply text-gray-900 antialiased;
-    background: #F2F1EE;
+    background: var(--app-bg);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
   ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -111,7 +133,7 @@
 .animate-fadeUp { animation: fadeUp 0.4s ease forwards; }
 
 /* ── DARK MODE ────────────────────────────────────────────────────────────── */
-.dark body { background: #0f172a; @apply text-slate-100; }
+.dark body { background: var(--app-bg); @apply text-slate-100; }
 
 .dark .card {
   background: #1e293b;
@@ -155,7 +177,7 @@
 .dark .navbar-bg   { background: #1e293b !important; border-color: rgba(255,255,255,0.06) !important; }
 
 /* App layout bg */
-.dark .app-bg { background: #0f172a !important; }
+.dark .app-bg { background: var(--app-bg) !important; }
 
 /* Misc text */
 .dark .text-gray-900 { color: #f1f5f9 !important; }
@@ -169,3 +191,40 @@
 .dark .border-gray-100 { border-color: rgba(255,255,255,0.06) !important; }
 .dark .border-gray-200 { border-color: rgba(255,255,255,0.08) !important; }
 .dark .divide-gray-50 > * { border-color: rgba(255,255,255,0.05) !important; }
+/* Badge dark overrides */
+.dark .badge-present  { @apply bg-emerald-900/40 text-emerald-300 ring-emerald-700/40; }
+.dark .badge-absent   { @apply bg-red-900/40    text-red-300    ring-red-700/40; }
+.dark .badge-leave    { @apply bg-amber-900/40  text-amber-300  ring-amber-700/40; }
+.dark .badge-remote   { @apply bg-violet-900/40 text-violet-300 ring-violet-700/40; }
+.dark .badge-pending  { @apply bg-amber-900/40  text-amber-300  ring-amber-700/40; }
+.dark .badge-approved { @apply bg-emerald-900/40 text-emerald-300 ring-emerald-700/40; }
+.dark .badge-rejected { @apply bg-red-900/40    text-red-300    ring-red-700/40; }
+
+/* Colored stat tiles in dark */
+.dark .bg-green-50   { background: rgba(16,185,129,0.12) !important; }
+.dark .bg-red-50     { background: rgba(239,68,68,0.12)  !important; }
+.dark .bg-orange-50  { background: rgba(249,115,22,0.12) !important; }
+.dark .bg-purple-50  { background: rgba(139,92,246,0.12) !important; }
+.dark .bg-violet-50  { background: rgba(139,92,246,0.12) !important; }
+.dark .bg-blue-50    { background: rgba(59,130,246,0.12) !important; }
+.dark .bg-amber-50   { background: rgba(245,158,11,0.12) !important; }
+.dark .bg-emerald-50 { background: rgba(16,185,129,0.12) !important; }
+.dark .bg-indigo-50  { background: rgba(99,102,241,0.12) !important; }
+
+.dark .text-green-600   { color: #6ee7b7 !important; }
+.dark .text-red-600     { color: #fca5a5 !important; }
+.dark .text-orange-600  { color: #fdba74 !important; }
+.dark .text-purple-600  { color: #c4b5fd !important; }
+.dark .text-violet-600  { color: #c4b5fd !important; }
+.dark .text-blue-600    { color: #93c5fd !important; }
+.dark .text-amber-600   { color: #fcd34d !important; }
+.dark .text-emerald-700 { color: #6ee7b7 !important; }
+.dark .text-emerald-600 { color: #6ee7b7 !important; }
+
+/* Select/dropdown dark */
+.dark select { background: #334155; color: #f1f5f9; border-color: rgba(255,255,255,0.1); }
+.dark select option { background: #1e293b; }
+
+/* Scrollbar dark */
+.dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+

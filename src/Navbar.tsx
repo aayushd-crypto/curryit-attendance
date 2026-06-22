@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, Bell, Search, CheckCheck } from 'lucide-react'
+import { Menu, Bell, Search, CheckCheck, Moon, Sun } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useAuth } from './AuthContext'
+import { useTheme } from './useTheme'
 import { supabase } from './supabase'
 
 interface NavbarProps { onMenuClick: () => void }
@@ -11,6 +12,7 @@ interface Notif { id: string; title: string; body: string | null; type: string; 
 
 export function Navbar({ onMenuClick }: NavbarProps) {
   const { profile, role, user } = useAuth()
+  const { dark, toggle } = useTheme()
   const navigate = useNavigate()
   const isAdmin = role === 'admin' || role === 'super_admin'
   const [now, setNow] = useState(new Date())
@@ -113,31 +115,39 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
   return (
     <header className="sticky top-0 z-20 px-4 sm:px-6 py-3 navbar-bg"
-      style={{ background: 'rgba(240,242,247,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+      style={{ background: 'var(--navbar-bg)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
       <div className="flex items-center gap-3">
         <button onClick={onMenuClick} className="sm:hidden p-2 rounded-xl bg-white text-gray-500" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
           <Menu size={20} />
         </button>
 
         {/* Mobile: compact greeting + clock */}
-        <div className="flex sm:hidden flex-col leading-tight px-2 py-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.7)' }}>
+        <div className="flex sm:hidden flex-col leading-tight px-2 py-1 rounded-xl" style={{ background: 'var(--tile-bg)' }}>
           <span className="text-xs font-black text-gray-800" style={{ transition: 'opacity 0.3s', opacity: greetVisible ? 1 : 0 }}>{GREETINGS[greetIdx]} {profile?.full_name?.split(' ')[0]} Ji</span>
           <span className="text-[10px] font-mono text-gray-500">{clock}</span>
         </div>
 
         {/* Desktop: 3 separate tiles */}
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.7)' }}>
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: 'var(--tile-bg)' }}>
           <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse flex-shrink-0" />
           <span className="text-lg font-black text-gray-800 tracking-tight" style={{ transition: 'opacity 0.3s', opacity: greetVisible ? 1 : 0 }}>{GREETINGS[greetIdx]} {profile?.full_name?.split(' ')[0]} Ji</span>
         </div>
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.7)' }}>
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl" style={{ background: 'var(--tile-bg)' }}>
           <span className="text-lg font-bold text-gray-700 tracking-tight">{today}</span>
         </div>
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono" style={{ background: 'rgba(255,255,255,0.7)' }}>
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono" style={{ background: 'var(--tile-bg)' }}>
           <span className="text-lg font-bold text-gray-700 tracking-tight">{clock}</span>
         </div>
 
         <div className="flex-1" />
+
+        {/* Dark mode toggle */}
+        <button onClick={toggle}
+          className="p-2 rounded-xl transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+          title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          style={{ color: 'var(--tile-subtext)' }}>
+          {dark ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
 
         {/* Live search — admin only */}
         {isAdmin && (
