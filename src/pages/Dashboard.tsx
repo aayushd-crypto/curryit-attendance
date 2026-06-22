@@ -554,6 +554,20 @@ export default function Dashboard() {
                   Time is recorded by the server and cannot be edited.
                 </p>
 
+                {/* CMK employees get no work-mode choice — they always check in at CMK */}
+                {empLocation === 'cmk' ? (
+                  <div className="flex justify-center mb-6">
+                    <div className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-brand-500 shadow-xl shadow-brand-500/15 w-48">
+                      <div className="p-3 rounded-xl" style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
+                        <Building2 size={22} className="text-white" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-bold text-sm text-brand-700">At CMK</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Working from CMK</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   {/* Office */}
                   <button onClick={() => setWorkMode('office')}
@@ -572,7 +586,7 @@ export default function Dashboard() {
                     </div>
                   </button>
 
-                  {/* Remote — always available */}
+                  {/* Remote */}
                   <button
                     onClick={() => setWorkMode('remote')}
                     className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all ${
@@ -590,6 +604,7 @@ export default function Dashboard() {
                     </div>
                   </button>
                 </div>
+                )}
 
                 <button onClick={checkIn} disabled={attBusy}
                   className="btn-primary w-full justify-center py-4 rounded-2xl text-base">
