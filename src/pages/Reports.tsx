@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { format, subDays } from 'date-fns'
-import { Download, FileSpreadsheet, FileText, ChevronDown, Filter, ClipboardList, BarChart2 } from 'lucide-react'
+import { Download, FileSpreadsheet, FileText, ChevronDown, Filter, ClipboardList, BarChart2, Building2, Zap } from 'lucide-react'
 import { supabase } from '../supabase'
 import { Spinner } from '../Spinner'
 import { formatDate, formatTime, formatDateTime, statusLabel, exportToExcel, exportToCSV, exportToPDF } from '../helpers'
@@ -90,6 +90,18 @@ export default function ReportsPage() {
     'Work Mode': r.work_mode, 'Check-in Time': r.check_in_time, 'Source': r.source,
   }))
   const filename = `CURRYiT_Attendance_${dateFrom}_to_${dateTo}`
+
+  // ── Export by location helpers ───────────────────────────────────────────
+  const officeRows = rows.filter(r => r.location === 'Office')
+  const cmkRows    = rows.filter(r => r.location === 'CMK')
+
+  const makeExportData = (subset: ReportRow[]) => subset.map(r => ({
+    'Date': formatDate(r.date), 'Employee ID': r.employee_code, 'Employee Name': r.employee_name,
+    'Department': r.department, 'Location': r.location, 'Status': r.status,
+    'Work Mode': r.work_mode, 'Check-in Time': r.check_in_time, 'Source': r.source,
+  }))
+  const makePDFRows = (subset: ReportRow[]) =>
+    subset.map(r => [formatDate(r.date), r.employee_code, r.employee_name, r.department, r.location, r.status, r.work_mode, r.check_in_time, r.source])
 
   return (
     <div className="max-w-6xl mx-auto space-y-5">
@@ -188,6 +200,75 @@ export default function ReportsPage() {
                   <p className="text-xs text-gray-500 mt-1">{s.label}</p>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Export by location */}
+          {rows.length > 0 && (
+            <div className="card p-4">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <Download size={13} /> Export by location
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Office */}
+                <div className="flex flex-col gap-2 p-3 rounded-2xl bg-blue-50/60 border border-blue-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-7 h-7 rounded-xl bg-blue-100 flex items-center justify-center">
+                      <Building2 size={13} className="text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-blue-900">Office</p>
+                      <p className="text-[11px] text-blue-500">{officeRows.length} records</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => exportToExcel(makeExportData(officeRows), filename + '_Office')}
+                      disabled={!officeRows.length} className="btn-secondary flex-1 justify-center text-xs py-2 disabled:opacity-40">
+                      <FileSpreadsheet size={13} className="text-green-600" /> Excel
+                    </button>
+                    <button onClick={() => exportToCSV(makeExportData(officeRows), filename + '_Office')}
+                      disabled={!officeRows.length} className="btn-secondary flex-1 justify-center text-xs py-2 disabled:opacity-40">
+                      <Download size={13} /> CSV
+                    </button>
+                    <button onClick={() => exportToPDF(
+                      `Office Attendance — ${formatDate(dateFrom)} to ${formatDate(dateTo)}`,
+                      ['Date','Emp ID','Name','Department','Location','Status','Work Mode','Check-in','Source'],
+                      makePDFRows(officeRows), filename + '_Office')}
+                      disabled={!officeRows.length} className="btn-primary flex-1 justify-center text-xs py-2 disabled:opacity-40">
+                      <FileText size={13} /> PDF
+                    </button>
+                  </div>
+                </div>
+                {/* CMK */}
+                <div className="flex flex-col gap-2 p-3 rounded-2xl bg-amber-50/60 border border-amber-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-7 h-7 rounded-xl bg-amber-100 flex items-center justify-center">
+                      <Zap size={13} className="text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-amber-900">CMK</p>
+                      <p className="text-[11px] text-amber-500">{cmkRows.length} records</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => exportToExcel(makeExportData(cmkRows), filename + '_CMK')}
+                      disabled={!cmkRows.length} className="btn-secondary flex-1 justify-center text-xs py-2 disabled:opacity-40">
+                      <FileSpreadsheet size={13} className="text-green-600" /> Excel
+                    </button>
+                    <button onClick={() => exportToCSV(makeExportData(cmkRows), filename + '_CMK')}
+                      disabled={!cmkRows.length} className="btn-secondary flex-1 justify-center text-xs py-2 disabled:opacity-40">
+                      <Download size={13} /> CSV
+                    </button>
+                    <button onClick={() => exportToPDF(
+                      `CMK Attendance — ${formatDate(dateFrom)} to ${formatDate(dateTo)}`,
+                      ['Date','Emp ID','Name','Department','Location','Status','Work Mode','Check-in','Source'],
+                      makePDFRows(cmkRows), filename + '_CMK')}
+                      disabled={!cmkRows.length} className="btn-primary flex-1 justify-center text-xs py-2 disabled:opacity-40">
+                      <FileText size={13} /> PDF
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
