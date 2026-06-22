@@ -39,7 +39,7 @@ export default function App() {
               <Route path="/dashboard"       element={<Dashboard />} />
 
               <Route path="/cmk-attendance"  element={
-                <ProtectedRoute allowedRoles={['super_admin','admin','cmk_coordinator']}>
+                <ProtectedRoute allowedRoles={['super_admin','cmk_coordinator']}>
                   <CMKAttendance />
                 </ProtectedRoute>
               } />
@@ -62,7 +62,7 @@ export default function App() {
               } />
 
               <Route path="/reports"         element={
-                <ProtectedRoute allowedRoles={['super_admin','admin','cmk_coordinator']}>
+                <ProtectedRoute allowedRoles={['super_admin','cmk_coordinator']}>
                   <ReportsPage />
                 </ProtectedRoute>
               } />

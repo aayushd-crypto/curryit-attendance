@@ -413,16 +413,16 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (isEmployee && empId) loadAttendance(empId)
+    if ((isEmployee || role === 'admin') && empId) loadAttendance(empId)
   }, [isEmployee, empId])
 
   // Background geo check — shows range indicator before check-in
   useEffect(() => {
-    if (!isEmployee || !empLocation || !navigator.geolocation) return
+    if ((!isEmployee && role !== 'admin') || !empLocation || !navigator.geolocation) return
     const checkGeo = async () => {
       const { data: geo } = await supabase.from('geo_settings').select('*').eq('location', empLocation).single()
       navigator.geolocation.getCurrentPosition(pos => {
-        if (!geo?.enabled || !geo.lat) {
+        if (!geo?.lat || !geo?.lng) {
           setGeoStatus({ ok: true, dist: 0, radius: 0, lat: pos.coords.latitude, lng: pos.coords.longitude, officeLat: 0, officeLng: 0 })
           return
         }
@@ -435,7 +435,7 @@ export default function Dashboard() {
       }, () => {})
     }
     checkGeo()
-  }, [empLocation, isEmployee])
+  }, [empLocation, isEmployee, role])
 
   const distanceM = (lat1: number, lng1: number, lat2: number, lng2: number) => {
     const R = 6371000
@@ -459,7 +459,12 @@ export default function Dashboard() {
     let checkInLat: number | null = null
     let checkInLng: number | null = null
 
-    if (geo?.enabled && workMode !== 'remote') {
+    if (workMode !== 'remote') {
+      // Geo-fence always enforced (regardless of enabled flag)
+      if (!geo || (!geo.lat && !geo.lng)) {
+        setGeoError('Location not configured. Contact admin to set up geo-fencing in Settings.')
+        setGeoChecking(false); return
+      }
       console.log('[GEO] enforcing — radius:', geo.radius_m, 'target:', geo.lat, geo.lng)
       const pos = await new Promise<GeolocationPosition | null>(resolve => {
         if (!navigator.geolocation) { resolve(null); return }
@@ -863,6 +868,64 @@ export default function Dashboard() {
           <RefreshCw size={15} /> Refresh
         </button>
       </div>
+
+      {/* Admin self check-in card */}
+      {role === 'admin' && empId && (
+        <div className="card-elevated rounded-3xl p-6">
+          {!todayRecord ? (
+            <>
+              <h2 className="font-black text-gray-900 text-lg mb-1 tracking-tight">My Check-in</h2>
+              <p className="text-xs text-gray-400 mb-4">Time is recorded by the server and cannot be edited.</p>
+              {/* Work mode selector */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                {[
+                  { mode: 'office' as const, label: 'In Office', icon: Building2, activeColor: 'linear-gradient(135deg,#E8531D,#C44010)' },
+                  { mode: 'remote' as const, label: 'Remote',    icon: Wifi,      activeColor: 'linear-gradient(135deg,#8B5CF6,#7C3AED)' },
+                ].map(({ mode, label, icon: Icon, activeColor }) => (
+                  <button key={mode} onClick={() => setWorkMode(mode)}
+                    className="flex flex-col items-center gap-2 py-3 px-2 rounded-2xl border-2 transition-all"
+                    style={{ borderColor: workMode === mode ? 'transparent' : '#E5E7EB', background: workMode === mode ? activeColor : '#F9FAFB' }}>
+                    <Icon size={20} className={workMode === mode ? 'text-white' : 'text-gray-400'} />
+                    <span className={`text-xs font-bold ${workMode === mode ? 'text-white' : 'text-gray-500'}`}>{label}</span>
+                  </button>
+                ))}
+              </div>
+              {geoStatus && workMode !== 'remote' && (
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold mb-3 ${geoStatus.radius === 0 ? 'bg-gray-50 text-gray-500' : geoStatus.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${geoStatus.radius === 0 ? 'bg-gray-400' : geoStatus.ok ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                  {geoStatus.radius === 0 ? 'Geo-fence not configured' : geoStatus.ok ? `In range — ${geoStatus.dist}m away` : `Out of range — ${geoStatus.dist}m away`}
+                </div>
+              )}
+              {geoError && <p className="text-xs text-red-500 mb-3">{geoError}</p>}
+              {attError && <p className="text-xs text-red-500 mb-3">{attError}</p>}
+              <button onClick={checkIn} disabled={attBusy || geoChecking}
+                className="w-full py-3 rounded-2xl font-bold text-white text-sm transition-all"
+                style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)', opacity: attBusy || geoChecking ? 0.6 : 1 }}>
+                {geoChecking ? 'Checking location…' : attBusy ? 'Checking in…' : 'Check In'}
+              </button>
+            </>
+          ) : !todayRecord.check_out_time ? (
+            <>
+              <h2 className="font-black text-gray-900 text-lg mb-1">Checked in ✓</h2>
+              <p className="text-sm text-gray-500 mb-1">Since {todayRecord.check_in_time ? formatTime(todayRecord.check_in_time) : '—'} · {liveWorked !== null ? hoursLabel(liveWorked) : '—'}</p>
+              {liveWorked !== null && liveWorked > 540 && (
+                <p className="text-xs font-semibold text-orange-500 mb-3">🔥 Overtime: {hoursLabel(liveWorked - 540)}</p>
+              )}
+              {attError && <p className="text-xs text-red-500 mb-3">{attError}</p>}
+              <button onClick={checkOut} disabled={attBusy}
+                className="w-full py-3 rounded-2xl font-bold text-sm border-2 border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">
+                {attBusy ? 'Checking out…' : 'Check Out'}
+              </button>
+            </>
+          ) : (
+            <div className="text-center py-2">
+              <CheckSquare size={28} className="mx-auto text-green-400 mb-2" />
+              <p className="font-bold text-gray-800">Done for today!</p>
+              <p className="text-xs text-gray-500">{formatTime(todayRecord.check_in_time!)} → {formatTime(todayRecord.check_out_time)}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Top stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
