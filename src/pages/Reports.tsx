@@ -121,14 +121,16 @@ export default function ReportsPage() {
         {[
           { key: 'reports', label: 'Attendance Report', icon: BarChart2 },
           ...(isSuperAdmin || role === 'admin' ? [{ key: 'audit', label: 'Audit Log', icon: ClipboardList }] : []),
-        ].map(({ key, label, icon: Icon }) => (
+        ].map((item) => { const { key, label, icon: Icon } = item as any; const labelShort = (item as any).labelShort ?? label; return (
           <button key={key} onClick={() => setTab(key as any)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
               tab === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}>
-            <Icon size={15} /> {label}
+            <Icon size={14} />
+            <span className="hidden sm:inline">{label}</span>
+            <span className="sm:hidden">{labelShort}</span>
           </button>
-        ))}
+        )})}
       </div>
 
       {/* ── REPORTS TAB ── */}

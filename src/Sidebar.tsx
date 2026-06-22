@@ -169,7 +169,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 <UserAvatar value={value} name={profile?.full_name} size={36} />
               </button>
               {pickerOpen && (
-                <EmojiPicker current={value} name={profile?.full_name} onPick={pick} onClose={() => setPickerOpen(false)} />
+                <div className="absolute left-0 bottom-full mb-2 z-50">
+                  <EmojiPicker current={value} name={profile?.full_name} onPick={pick} onClose={() => setPickerOpen(false)} />
+                </div>
               )}
             </div>
             <div className="min-w-0 flex-1">

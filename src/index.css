@@ -106,20 +106,20 @@
   .badge-rejected { @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50    text-red-700    ring-1 ring-red-200/60; }
 
   .page-header   { @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6; }
-  .page-title    { @apply text-2xl font-black text-gray-900; letter-spacing: -0.03em; }
+  .page-title    { @apply text-xl sm:text-2xl font-black text-gray-900; letter-spacing: -0.03em; }
   .page-subtitle { @apply text-sm text-gray-400 mt-0.5 font-medium; }
 
   .table-header {
-    @apply px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3
+    @apply px-4 py-4 sm:px-6 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3
            border-b border-gray-50;
   }
   th {
-    @apply px-5 py-3.5 text-left text-[11px] font-extrabold text-gray-400
+    @apply px-3 py-3 sm:px-5 sm:py-3.5 text-left text-[10px] sm:text-[11px] font-extrabold text-gray-400
            uppercase tracking-widest bg-gray-50/60;
   }
   th:first-child { border-radius: 1rem 0 0 0; }
   th:last-child  { border-radius: 0 1rem 0 0; }
-  td { @apply px-5 py-3.5 text-sm text-gray-700; }
+  td { @apply px-3 py-3 sm:px-5 sm:py-3.5 text-xs sm:text-sm text-gray-700; }
   tr { @apply border-b border-gray-50 transition-colors duration-100; }
   tbody tr:hover { background: rgba(232,83,29,0.025); }
   tr:last-child  { @apply border-b-0; }

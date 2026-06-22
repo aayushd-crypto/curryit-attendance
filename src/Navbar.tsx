@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, Bell, Search, CheckCheck } from 'lucide-react'
+import { Menu, Bell, Search, CheckCheck, X } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useAuth } from './AuthContext'
 import { getAvatar } from './Sidebar'
@@ -40,10 +40,13 @@ export function Navbar({ onMenuClick }: NavbarProps) {
     return () => clearInterval(flip)
   }, [])
 
-  const [q, setQ]         = useState('')
-  const [hits, setHits]   = useState<Hit[]>([])
-  const [open, setOpen]   = useState(false)
-  const boxRef = useRef<HTMLDivElement>(null)
+  const [q, setQ]               = useState('')
+  const [hits, setHits]         = useState<Hit[]>([])
+  const [open, setOpen]         = useState(false)
+  const [mobileSearch, setMobileSearch] = useState(false)
+  const boxRef        = useRef<HTMLDivElement>(null)
+  const mobileBoxRef  = useRef<HTMLDivElement>(null)
+  const mobileInputRef = useRef<HTMLInputElement>(null)
 
   // ── Notifications ─────────────────────────────────────────────────────────
   const [notifs, setNotifs]       = useState<Notif[]>([])
@@ -109,15 +112,13 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
   useEffect(() => {
     const trimmed = q.trim()
-    if (!trimmed) { setHits([]); return }
+    if (!trimmed) { setHits([]); setOpen(false); return }
     const lower = trimmed.toLowerCase()
 
-    // Page hits — instant, no async
     const pageHits = ALL_PAGES.filter(p =>
       p.label.toLowerCase().includes(lower) || p.description.toLowerCase().includes(lower)
     ).slice(0, 3) as Hit[]
 
-    // Employee hits — only admins, debounced
     const t = setTimeout(async () => {
       let empHits: Hit[] = []
       if (isAdmin) {
@@ -133,98 +134,134 @@ export function Navbar({ onMenuClick }: NavbarProps) {
     return () => clearTimeout(t)
   }, [q, isAdmin])
 
+  // close desktop search on outside click
   useEffect(() => {
     const close = (e: MouseEvent) => { if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false) }
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
   }, [])
 
+  // close mobile search on outside click
+  useEffect(() => {
+    if (!mobileSearch) return
+    const close = (e: MouseEvent) => {
+      if (mobileBoxRef.current && !mobileBoxRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [mobileSearch])
+
+  // auto-focus mobile search input when opened
+  useEffect(() => {
+    if (mobileSearch) {
+      setTimeout(() => mobileInputRef.current?.focus(), 50)
+    } else {
+      setQ(''); setOpen(false)
+    }
+  }, [mobileSearch])
+
   const go = (hit: Hit) => {
-    setQ(''); setOpen(false)
+    setQ(''); setOpen(false); setMobileSearch(false)
     if (hit.kind === 'page') { navigate(hit.to); return }
     navigate(`/employees?q=${encodeURIComponent(hit.name)}`)
   }
 
+  const SearchResults = ({ width }: { width?: string }) => (
+    open && hits.length > 0 ? (
+      <div className={`absolute top-full mt-2 left-0 rounded-2xl overflow-hidden z-50 bg-white ${width ?? 'w-[340px]'}`}
+        style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid rgba(0,0,0,0.06)' }}>
+        {hits.map((h) => h.kind === 'page' ? (
+          <button key={h.to} onClick={() => go(h)}
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50/60 active:bg-orange-50 transition-colors text-left border-b border-gray-50 last:border-0">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0"
+              style={{ background: 'rgba(232,83,29,0.08)' }}>
+              {h.icon}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-900">{h.label}</p>
+              <p className="text-xs text-gray-400">{h.description}</p>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 flex-shrink-0">Page</span>
+          </button>
+        ) : (
+          <button key={h.id} onClick={() => go(h)}
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left border-b border-gray-50 last:border-0">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
+              {getAvatar(h.name)}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-900 truncate">{h.name}</p>
+              <p className="text-xs text-gray-400">{h.employee_code} · {h.designation}</p>
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${h.location === 'office' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'}`}>
+              {h.location === 'office' ? 'Office' : 'CMK'}
+            </span>
+          </button>
+        ))}
+      </div>
+    ) : null
+  )
+
   return (
-    <header className="sticky top-0 z-20 px-4 sm:px-6 py-3 navbar-bg"
+    <header className="sticky top-0 z-20 navbar-bg"
       style={{ background: 'var(--navbar-bg)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-      <div className="flex items-center gap-3">
-        <button onClick={onMenuClick} className="sm:hidden p-2 rounded-xl bg-white text-gray-500" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+
+      {/* ── Main row ── */}
+      <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-3">
+
+        {/* Hamburger — mobile only */}
+        <button onClick={onMenuClick} className="sm:hidden p-2 rounded-xl bg-white text-gray-500 flex-shrink-0" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
           <Menu size={20} />
         </button>
 
         {/* Mobile: compact greeting + clock */}
-        <div className="flex sm:hidden flex-col leading-tight px-2 py-1 rounded-2xl" style={{ background: 'var(--tile-bg)' }}>
-          <span className="text-xs font-black text-gray-800" style={{ transition: 'opacity 0.3s', opacity: greetVisible ? 1 : 0 }}>{GREETINGS[greetIdx]} {profile?.full_name?.split(' ')[0]}</span>
+        <div className="flex sm:hidden flex-col leading-tight px-2 py-1 rounded-2xl min-w-0 flex-1" style={{ background: 'var(--tile-bg)' }}>
+          <span className="text-xs font-black text-gray-800 truncate" style={{ transition: 'opacity 0.3s', opacity: greetVisible ? 1 : 0 }}>{GREETINGS[greetIdx]} {profile?.full_name?.split(' ')[0]}</span>
           <span className="text-[10px] font-mono text-gray-500">{clock}</span>
         </div>
 
         {/* Desktop: 3 separate tiles */}
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-2xl" style={{ background: 'var(--tile-bg)' }}>
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-2xl flex-shrink-0" style={{ background: 'var(--tile-bg)' }}>
           <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse flex-shrink-0" />
           <span className="text-lg font-black text-gray-800 tracking-tight" style={{ transition: 'opacity 0.3s', opacity: greetVisible ? 1 : 0 }}>{GREETINGS[greetIdx]} {profile?.full_name?.split(' ')[0]}</span>
         </div>
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl" style={{ background: 'var(--tile-bg)' }}>
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl flex-shrink-0" style={{ background: 'var(--tile-bg)' }}>
           <span className="text-lg font-bold text-gray-700 tracking-tight">{today}</span>
         </div>
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl font-mono" style={{ background: 'var(--tile-bg)' }}>
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl font-mono flex-shrink-0" style={{ background: 'var(--tile-bg)' }}>
           <span className="text-lg font-bold text-gray-700 tracking-tight">{clock}</span>
         </div>
 
-        <div className="flex-1" />
+        <div className="hidden sm:block flex-1" />
 
-        {/* Global search */}
-        {(
-          <div ref={boxRef} className="relative hidden md:block">
-            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl min-w-[260px]"
-              style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-              <Search size={14} className="text-gray-400 flex-shrink-0" />
-              <input value={q} onChange={e => setQ(e.target.value)} onFocus={() => q && setOpen(true)}
-                placeholder="Search pages, employees..."
-                className="bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400 w-full" />
-            </div>
-            {open && hits.length > 0 && (
-              <div className="absolute top-full mt-2 left-0 w-[340px] rounded-2xl overflow-hidden z-50 bg-white"
-                style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid rgba(0,0,0,0.06)' }}>
-                {hits.map((h, i) => h.kind === 'page' ? (
-                  <button key={h.to} onClick={() => go(h)}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50/60 transition-colors text-left border-b border-gray-50 last:border-0">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0"
-                      style={{ background: 'rgba(232,83,29,0.08)' }}>
-                      {h.icon}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-gray-900">{h.label}</p>
-                      <p className="text-xs text-gray-400">{h.description}</p>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-600">Page</span>
-                  </button>
-                ) : (
-                  <button key={h.id} onClick={() => go(h)}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-0">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0"
-                      style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
-                      {getAvatar(h.name)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{h.name}</p>
-                      <p className="text-xs text-gray-400">{h.employee_code} · {h.designation}</p>
-                    </div>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${h.location === 'office' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'}`}>
-                      {h.location === 'office' ? 'Office' : 'CMK'}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
+        {/* Desktop search */}
+        <div ref={boxRef} className="relative hidden md:block">
+          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl min-w-[260px]"
+            style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+            <Search size={14} className="text-gray-400 flex-shrink-0" />
+            <input value={q} onChange={e => setQ(e.target.value)} onFocus={() => q && setOpen(true)}
+              placeholder="Search pages, employees..."
+              className="bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400 w-full" />
           </div>
-        )}
+          <SearchResults />
+        </div>
+
+        {/* Mobile search toggle */}
+        <button
+          onClick={() => setMobileSearch(v => !v)}
+          className="md:hidden p-2.5 rounded-xl flex-shrink-0 transition-colors"
+          style={{ background: mobileSearch ? 'rgba(232,83,29,0.08)' : 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.07)' }}>
+          {mobileSearch ? <X size={17} className="text-brand-600" /> : <Search size={17} className="text-gray-500" />}
+        </button>
 
         {/* Bell + dropdown */}
-        <div ref={notifRef} className="relative">
+        <div ref={notifRef} className="relative flex-shrink-0">
           <button onClick={openNotifs} className="relative p-2.5 rounded-xl transition-colors"
             style={{ background: notifOpen ? 'rgba(232,83,29,0.08)' : 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.07)' }}>
-            <Bell size={17} className={unread > 0 ? 'text-brand-600' : 'text-gray-500'} />
+            <Bell size={17} className={unread > 0 ? 'text-orange-500' : 'text-gray-500'} />
             {unread > 0 && (
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 text-white text-[9px] font-black rounded-full flex items-center justify-center"
                 style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
@@ -234,12 +271,16 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           </button>
 
           {notifOpen && (
-            <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl overflow-hidden z-50 bg-white"
-              style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid rgba(0,0,0,0.06)' }}>
+            <div className="absolute right-0 top-full mt-2 rounded-2xl overflow-hidden z-50 bg-white"
+              style={{
+                width: 'min(320px, calc(100vw - 1rem))',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                border: '1px solid rgba(0,0,0,0.06)',
+              }}>
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                 <span className="font-bold text-gray-900 text-sm">Notifications</span>
-                {notifs.some(n => n.read === false) && (
-                  <button onClick={markAllRead} className="flex items-center gap-1 text-xs text-brand-600 font-semibold hover:text-brand-700">
+                {notifs.some(n => !n.read) && (
+                  <button onClick={markAllRead} className="flex items-center gap-1 text-xs text-orange-600 font-semibold hover:text-orange-700">
                     <CheckCheck size={13} /> Mark all read
                   </button>
                 )}
@@ -248,7 +289,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
                 {notifs.length === 0 ? (
                   <div className="px-4 py-8 text-center text-sm text-gray-400">No notifications yet</div>
                 ) : notifs.map(n => (
-                  <div key={n.id} className={`px-4 py-3 flex gap-3 items-start transition-colors ${n.read ? 'bg-white' : 'bg-orange-50/40'}`}>
+                  <div key={n.id} className={`px-4 py-3 flex gap-3 items-start ${n.read ? 'bg-white' : 'bg-orange-50/40'}`}>
                     <span className="text-lg flex-shrink-0 mt-0.5">{typeIcon(n.type)}</span>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm leading-snug ${n.read ? 'text-gray-700' : 'text-gray-900 font-semibold'}`}>{n.title}</p>
@@ -263,9 +304,10 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           )}
         </div>
 
-        <div className="relative">
+        {/* Avatar pill + emoji picker */}
+        <div className="relative flex-shrink-0">
           <button onClick={() => setAvatarPickerOpen(v => !v)}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-black/5 transition-colors"
+            className="flex items-center gap-2 sm:gap-2.5 px-2 sm:px-3 py-2 rounded-xl hover:bg-black/5 transition-colors"
             style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.07)' }}
             title="Change avatar">
             <UserAvatar value={value} name={profile?.full_name} size={28} />
@@ -274,12 +316,72 @@ export function Navbar({ onMenuClick }: NavbarProps) {
             </span>
           </button>
           {avatarPickerOpen && (
-            <div className="absolute right-0 top-full mt-2">
+            <div className="absolute right-0 top-full mt-2 z-50">
               <EmojiPicker current={value} name={profile?.full_name} onPick={pick} onClose={() => setAvatarPickerOpen(false)} />
             </div>
           )}
         </div>
       </div>
+
+      {/* ── Mobile search row (expands below main row) ── */}
+      {mobileSearch && (
+        <div className="md:hidden px-4 pb-3" ref={mobileBoxRef}>
+          <div className="relative">
+            <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl w-full"
+              style={{ background: 'rgba(255,255,255,0.95)', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              <Search size={15} className="text-gray-400 flex-shrink-0" />
+              <input
+                ref={mobileInputRef}
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                onFocus={() => q && setOpen(true)}
+                placeholder="Search pages, employees..."
+                className="bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400 flex-1"
+              />
+              {q && (
+                <button onClick={() => { setQ(''); setOpen(false) }} className="text-gray-300 hover:text-gray-500">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            {/* Mobile search results — full width */}
+            {open && hits.length > 0 && (
+              <div className="absolute top-full mt-2 left-0 right-0 rounded-2xl overflow-hidden z-50 bg-white"
+                style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid rgba(0,0,0,0.06)' }}>
+                {hits.map((h) => h.kind === 'page' ? (
+                  <button key={h.to} onClick={() => go(h)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-50/60 active:bg-orange-50 transition-colors text-left border-b border-gray-50 last:border-0">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                      style={{ background: 'rgba(232,83,29,0.08)' }}>
+                      {h.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900">{h.label}</p>
+                      <p className="text-xs text-gray-400">{h.description}</p>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 flex-shrink-0">Page</span>
+                  </button>
+                ) : (
+                  <button key={h.id} onClick={() => go(h)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left border-b border-gray-50 last:border-0">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
+                      style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
+                      {getAvatar(h.name)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{h.name}</p>
+                      <p className="text-xs text-gray-400">{h.employee_code} · {h.designation}</p>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${h.location === 'office' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'}`}>
+                      {h.location === 'office' ? 'Office' : 'CMK'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   )
 }

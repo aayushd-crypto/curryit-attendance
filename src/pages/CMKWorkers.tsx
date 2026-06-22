@@ -128,14 +128,14 @@ export default function CMKWorkers() {
       </div>
 
       {/* Summary tiles */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         {[
           { label: 'Present', value: presentCount, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'Absent',  value: absentCount,  color: 'text-red-500',     bg: 'bg-red-50' },
           { label: 'Unmarked',value: unmarked,      color: 'text-amber-500',   bg: 'bg-amber-50' },
         ].map(t => (
-          <div key={t.label} className={`card-elevated rounded-2xl p-5 text-center ${t.bg}`}>
-            <p className={`text-3xl font-black ${t.color}`}>{t.value}</p>
+          <div key={t.label} className={`card-elevated rounded-2xl p-3 sm:p-5 text-center ${t.bg}`}>
+            <p className={`text-2xl sm:text-3xl font-black ${t.color}`}>{t.value}</p>
             <p className="text-xs font-bold text-gray-500 mt-1">{t.label}</p>
           </div>
         ))}
