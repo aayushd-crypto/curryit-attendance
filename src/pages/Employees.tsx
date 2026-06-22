@@ -93,9 +93,11 @@ export default function EmployeesPage() {
     // For admin role, scope to their assigned department
     let deptId: string | null = null
     if (role === 'admin' && profile?.email) {
-      const { data: prof } = await supabase.from('profiles').select('department_id').eq('email', profile.email).maybeSingle()
-      deptId = prof?.department_id ?? null
-      setAdminDeptId(deptId)
+      try {
+        const { data: prof } = await supabase.from('profiles').select('department_id').eq('email', profile.email).maybeSingle()
+        deptId = prof?.department_id ?? null
+        setAdminDeptId(deptId)
+      } catch { deptId = null }
     }
     let empQuery = supabase.from('employees').select('*, departments(name, location)').order('name')
     if (role === 'admin' && deptId) empQuery = empQuery.eq('department_id', deptId)

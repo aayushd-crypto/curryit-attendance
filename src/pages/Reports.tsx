@@ -33,28 +33,31 @@ export default function ReportsPage() {
 
   const loadReport = async () => {
     setLoading(true)
-    // For admin, resolve their department scope
+    // For admin, resolve their department scope (safe)
     let deptId = adminDeptId
     if (role === 'admin' && deptId === null && profile?.email) {
-      const { data: prof } = await supabase.from('profiles').select('department_id').eq('email', profile.email).maybeSingle()
-      deptId = prof?.department_id ?? null
-      setAdminDeptId(deptId)
+      try {
+        const { data: prof } = await supabase.from('profiles').select('department_id').eq('email', profile.email).maybeSingle()
+        deptId = prof?.department_id ?? null
+        setAdminDeptId(deptId)
+      } catch { deptId = null }
     }
     let query = supabase
       .from('attendance')
-      .select('date, status, work_mode, check_in_time, source, location, employees!inner(employee_code, name, department_id, departments(name))')
+      .select('date, status, work_mode, check_in_time, source, location, employees(employee_code, name, department_id, departments(name))')
       .gte('date', dateFrom)
       .lte('date', dateTo)
       .order('date', { ascending: false })
-
-    if (role === 'admin' && deptId) query = (query as any).eq('employees.department_id', deptId)
     if (location !== 'all') query = query.eq('location', location)
     if (statusF  !== 'all') query = query.eq('status', statusF)
     if (workModeF !== 'all') query = query.eq('work_mode', workModeF)
 
     const { data } = await query
 
-    setRows((data ?? []).map((r: any) => ({
+    const filtered = deptId
+      ? (data ?? []).filter((r: any) => r.employees?.department_id === deptId)
+      : (data ?? [])
+    setRows(filtered.map((r: any) => ({
       date:          r.date,
       employee_code: r.employees?.employee_code ?? '—',
       employee_name: r.employees?.name ?? '—',
