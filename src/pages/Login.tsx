@@ -118,12 +118,9 @@ export default function LoginPage() {
         <div className="relative z-10 w-full max-w-sm">
 
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <img src="/logo.png" alt="CURRYiT" className="h-10 w-auto" />
-            <div>
-              <p className="text-white font-black text-lg leading-none">CURRYiT</p>
-              <p className="text-white/30 text-[10px] font-semibold uppercase tracking-widest">Attendance Portal</p>
-            </div>
+          <div className="lg:hidden text-center mb-8">
+            <img src="/logo.png" alt="CURRYiT" className="h-20 w-auto mx-auto mb-3 drop-shadow-2xl" />
+            <p className="text-white/30 text-[10px] font-bold uppercase tracking-[3px]">Attendance Portal</p>
           </div>
 
           <h2 className="text-3xl font-black text-white mb-1 tracking-tight">Welcome back</h2>
