@@ -5,6 +5,9 @@ import {
 } from 'lucide-react'
 import { useAuth } from './AuthContext'
 import { getAvatar } from './Sidebar'
+import { useUserAvatar } from './useUserAvatar'
+import { EmojiPicker } from './EmojiPicker'
+import { useState } from 'react'
 import type { UserRole } from './database'
 
 interface NavItem { to: string; icon: React.ElementType; label: string; roles: UserRole[] }
@@ -39,6 +42,8 @@ interface Props { onMenuClick: () => void }
 
 export function MiniSidebar({ onMenuClick }: Props) {
   const { role, profile, signOut } = useAuth()
+  const { emoji: myEmoji, pick: pickEmoji } = useUserAvatar()
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   return (
     <aside
@@ -100,18 +105,22 @@ export function MiniSidebar({ onMenuClick }: Props) {
         })}
       </nav>
 
-      {/* User avatar */}
-      <div className="w-full flex items-center h-10 px-2.5 mb-1 overflow-hidden flex-shrink-0"
-        title={profile?.full_name ?? 'User'}>
-        <div className="w-7 h-7 rounded-xl flex items-center justify-center text-sm flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg, #E8531D, #C44010)', boxShadow: '0 4px 12px rgba(232,83,29,0.4)' }}>
-          {getAvatar(profile?.full_name)}
-        </div>
+      {/* User avatar with picker */}
+      <div className="w-full flex items-center h-10 px-2.5 mb-1 overflow-hidden flex-shrink-0 relative">
+        <button onClick={() => setPickerOpen(v => !v)}
+          className="w-7 h-7 rounded-xl flex items-center justify-center text-base flex-shrink-0 hover:scale-110 transition-transform"
+          style={{ background: 'linear-gradient(135deg, #E8531D, #C44010)', boxShadow: '0 4px 12px rgba(232,83,29,0.4)' }}
+          title="Change avatar">
+          {myEmoji}
+        </button>
         <div className="ml-2.5 overflow-hidden opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
           <p className="text-xs font-semibold text-white whitespace-nowrap truncate" style={{ maxWidth: '130px' }}>
             {profile?.full_name ?? 'User'}
           </p>
         </div>
+        {pickerOpen && (
+          <EmojiPicker current={myEmoji} onPick={pickEmoji} onClose={() => setPickerOpen(false)} />
+        )}
       </div>
 
       {/* Logout */}

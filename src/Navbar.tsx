@@ -4,6 +4,8 @@ import { Menu, Bell, Search, CheckCheck, Moon, Sun } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useAuth } from './AuthContext'
 import { getAvatar } from './Sidebar'
+import { useUserAvatar } from './useUserAvatar'
+import { EmojiPicker } from './EmojiPicker'
 import { useTheme } from './useTheme'
 import { supabase } from './supabase'
 
@@ -15,6 +17,8 @@ interface Notif { id: string; title: string; body: string | null; type: string; 
 
 export function Navbar({ onMenuClick }: NavbarProps) {
   const { profile, role, user } = useAuth()
+  const { emoji: myEmoji, pick: pickEmoji } = useUserAvatar()
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
   const { dark, toggle } = useTheme()
   const navigate = useNavigate()
   const isAdmin = role === 'admin' || role === 'super_admin'
@@ -268,14 +272,24 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.07)' }}>
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs text-white"
-            style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
-            {getAvatar(profile?.full_name)}
-          </div>
-          <span className="hidden sm:block text-sm font-semibold text-gray-700 max-w-[120px] truncate">
-            {profile?.full_name?.split(' ')[0] ?? 'User'}
-          </span>
+        <div className="relative">
+          <button onClick={() => setAvatarPickerOpen(v => !v)}
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-black/5 transition-colors"
+            style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.07)' }}
+            title="Change avatar">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-base"
+              style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
+              {myEmoji}
+            </div>
+            <span className="hidden sm:block text-sm font-semibold text-gray-700 max-w-[120px] truncate">
+              {profile?.full_name?.split(' ')[0] ?? 'User'}
+            </span>
+          </button>
+          {avatarPickerOpen && (
+            <div className="absolute right-0 bottom-full mb-2">
+              <EmojiPicker current={myEmoji} onPick={pickEmoji} onClose={() => setAvatarPickerOpen(false)} />
+            </div>
+          )}
         </div>
       </div>
     </header>

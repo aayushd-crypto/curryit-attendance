@@ -6,6 +6,8 @@ import {
   Zap, KeyRound, Palmtree, Users2
 } from 'lucide-react'
 import { useAuth } from './AuthContext'
+import { useUserAvatar } from './useUserAvatar'
+import { EmojiPicker } from './EmojiPicker'
 import { supabase } from './supabase'
 import type { UserRole } from './database'
 
@@ -60,6 +62,8 @@ interface SidebarProps { open: boolean; onClose: () => void }
 export function Sidebar({ open, onClose }: SidebarProps) {
   const { profile, role, signOut } = useAuth()
 
+  const { emoji: myEmoji, pick: pickEmoji } = useUserAvatar()
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [pwModal, setPwModal]     = useState(false)
   const [newPw, setNewPw]         = useState('')
   const [confirmPw, setConfirmPw] = useState('')
@@ -156,9 +160,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex items-center gap-3 p-3 rounded-xl mb-2"
             style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #E8531D, #C44010)', boxShadow: '0 4px 12px rgba(232,83,29,0.4)' }}>
-              {getAvatar(profile?.full_name)}
+            <div className="relative">
+              <button onClick={() => setPickerOpen(v => !v)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 hover:scale-110 transition-transform"
+                style={{ background: 'linear-gradient(135deg, #E8531D, #C44010)', boxShadow: '0 4px 12px rgba(232,83,29,0.4)' }}
+                title="Change avatar">
+                {myEmoji}
+              </button>
+              {pickerOpen && (
+                <EmojiPicker current={myEmoji} onPick={pickEmoji} onClose={() => setPickerOpen(false)} />
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-white truncate">{profile?.full_name ?? 'User'}</p>
