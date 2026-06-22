@@ -3,8 +3,8 @@ import { format } from 'date-fns'
 import { Plus, Trash2, UserCheck, UserX, Users, ClipboardList } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useAuth } from '../AuthContext'
-import { Modal } from '../components/Modal'
-import { Spinner } from '../components/Spinner'
+import { Modal } from '../Modal'
+import { Spinner } from '../Spinner'
 
 interface Worker { id: string; name: string; mobile: string; employee_code: string }
 interface AttRecord { id: string; employee_id: string; status: string }
