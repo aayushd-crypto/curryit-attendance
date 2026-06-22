@@ -109,16 +109,16 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right panel — login form ── */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 relative">
+      <div className="flex-1 flex flex-col items-center justify-between p-6 sm:p-10 relative min-h-screen lg:min-h-0">
         {/* Subtle right-side bg */}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #111122 0%, #0d0d1a 100%)' }} />
         <div className="absolute top-0 right-0 w-64 h-64 opacity-10 rounded-full"
           style={{ background: 'radial-gradient(circle, #E8531D, transparent)', transform: 'translate(30%, -30%)' }} />
 
-        <div className="relative z-10 w-full max-w-sm">
+        <div className="relative z-10 w-full max-w-sm flex-1 flex flex-col justify-center">
 
           {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-8">
+          <div className="lg:hidden text-center mb-10">
             <img src="/logo.png" alt="CURRYiT" className="h-20 w-auto mx-auto mb-3 drop-shadow-2xl" />
             <p className="text-white/30 text-[10px] font-bold uppercase tracking-[3px]">Attendance Portal</p>
           </div>
@@ -200,8 +200,11 @@ export default function LoginPage() {
             </form>
           )}
         </div>
+        {/* Credit — always at bottom */}
+        <p className="relative z-10 text-center text-[10px] text-white/20 pt-6">
+          Designed & Developed by <a href="https://www.linkedin.com/in/aayushdiman22/" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/40">Aayush Dhiman</a>
+        </p>
       </div>
-      <p className="text-center text-[10px] text-white/20 mt-4 pb-4">Designed & Developed by <a href="https://www.linkedin.com/in/aayushdiman22/" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/40">Aayush Dhiman</a></p>
     </div>
   )
 }
