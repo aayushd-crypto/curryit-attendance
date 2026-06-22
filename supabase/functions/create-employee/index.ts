@@ -31,6 +31,27 @@ serve(async (req) => {
     }
 
     const body = await req.json()
+
+    // ── Reset password action (super_admin only) ──────────────────────────────
+    if (body.action === 'reset_password') {
+      if (callerProfile?.role !== 'super_admin') {
+        return new Response(JSON.stringify({ error: 'Only super_admin can reset passwords' }), { status: 403, headers: corsHeaders })
+      }
+      const { email: targetEmail, new_password } = body
+      if (!targetEmail || !new_password) {
+        return new Response(JSON.stringify({ error: 'email and new_password required' }), { status: 400, headers: corsHeaders })
+      }
+      // Find the auth user by email
+      const { data: { users }, error: listErr } = await adminClient.auth.admin.listUsers()
+      if (listErr) throw listErr
+      const target = users.find((u: any) => u.email === targetEmail)
+      if (!target) return new Response(JSON.stringify({ error: 'User not found' }), { status: 404, headers: corsHeaders })
+      const { error: updateErr } = await adminClient.auth.admin.updateUserById(target.id, { password: new_password })
+      if (updateErr) throw updateErr
+      return new Response(JSON.stringify({ updated: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    // ── Create employee ───────────────────────────────────────────────────────
     const { name, email, mobile, department_id, designation, location, joining_date, role = 'employee', temp_password } = body
 
     if (!name || !email || !temp_password) {

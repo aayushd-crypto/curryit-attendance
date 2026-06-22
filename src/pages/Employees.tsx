@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import {
-  Plus, Search, Edit2, UserX, UserCheck,
+  Plus, Search, Edit2, UserX, UserCheck, KeyRound,
   ChevronDown, Eye, EyeOff, Copy, CheckCheck,
   BookOpen, Calendar, X, BarChart2, Clock, TrendingUp, Upload, Download, AlertTriangle, CheckCircle2
 } from 'lucide-react'
@@ -47,6 +47,10 @@ export default function EmployeesPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | EmployeeStatus>('all')
   const [modalOpen, setModalOpen]     = useState(false)
   const [editing, setEditing]         = useState<Employee | null>(null)
+  const [pwEmp, setPwEmp]             = useState<Employee | null>(null)
+  const [newPw, setNewPw]             = useState('')
+  const [pwBusy, setPwBusy]           = useState(false)
+  const [pwMsg, setPwMsg]             = useState<{ok:boolean;text:string}|null>(null)
   const [saving, setSaving]           = useState(false)
   const [error, setError]             = useState<string | null>(null)
   const [successMsg, setSuccessMsg]   = useState<string | null>(null)
@@ -355,6 +359,31 @@ export default function EmployeesPage() {
     }
   }
 
+  // ── Super admin: reset employee password ─────────────────────────────────
+  const resetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!pwEmp || !user) return
+    setPwBusy(true); setPwMsg(null)
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-employee`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ action: 'reset_password', email: pwEmp.email, new_password: newPw }),
+      }
+    )
+    const json = await res.json().catch(() => ({}))
+    if (res.ok || json.updated) {
+      setPwMsg({ ok: true, text: 'Password updated successfully!' })
+      await logAudit({ userId: user.id, userName: profile!.full_name, userRole: role!, action: `Reset password for: ${pwEmp.name}` })
+      setTimeout(() => { setPwEmp(null); setNewPw(''); setPwMsg(null) }, 1500)
+    } else {
+      setPwMsg({ ok: false, text: json.error ?? 'Failed to update password.' })
+    }
+    setPwBusy(false)
+  }
+
   // ── Edit: only updates employee fields, does NOT touch auth
   const saveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -501,6 +530,11 @@ export default function EmployeesPage() {
                       <button onClick={() => openEdit(emp)} className="p-1.5 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-lg transition-colors" title="Edit">
                         <Edit2 size={13} />
                       </button>
+                      {role === 'super_admin' && (
+                        <button onClick={() => { setPwEmp(emp); setNewPw(''); setPwMsg(null) }} className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition-colors" title="Reset password">
+                          <KeyRound size={13} />
+                        </button>
+                      )}
                       <button onClick={() => toggleStatus(emp)}
                         className={`p-1.5 rounded-lg transition-colors ${emp.status === 'active' ? 'bg-red-50 hover:bg-red-100 text-red-500' : 'bg-green-50 hover:bg-green-100 text-green-600'}`}
                         title={emp.status === 'active' ? 'Deactivate' : 'Activate'}>
@@ -868,6 +902,40 @@ export default function EmployeesPage() {
           </div>
         </form>
       </Modal>
+
+      {/* ── RESET PASSWORD MODAL (super_admin) ── */}
+      {pwEmp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h3 className="font-bold text-gray-900">Reset password</h3>
+                <p className="text-xs text-gray-400 mt-0.5">{pwEmp.name}</p>
+              </div>
+              <button onClick={() => setPwEmp(null)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={18} /></button>
+            </div>
+            <form onSubmit={resetPassword} className="p-6 space-y-4">
+              {pwMsg ? (
+                <div className={`px-4 py-3 rounded-xl text-sm font-medium ${pwMsg.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                  {pwMsg.ok ? '✅ ' : '⚠️ '}{pwMsg.text}
+                </div>
+              ) : null}
+              <div>
+                <label className="label">New password</label>
+                <input type="text" value={newPw} onChange={e => setNewPw(e.target.value)}
+                  className="input font-mono" required minLength={6} placeholder="Min 6 characters" />
+              </div>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setPwEmp(null)} className="btn-secondary flex-1 justify-center">Cancel</button>
+                <button type="submit" disabled={pwBusy} className="btn-primary flex-1 justify-center">
+                  {pwBusy ? <Spinner size="sm" /> : <KeyRound size={14} />}
+                  {pwBusy ? 'Saving...' : 'Update'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ── CSV IMPORT MODAL ── */}
       {csvModal && (

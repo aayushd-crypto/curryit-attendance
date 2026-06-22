@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
       const checkInMins  = inH * 60 + inM
       const checkOutMins = checkoutH * 60 + checkoutM
       const worked       = Math.max(0, checkOutMins - checkInMins)
-      const overtime     = Math.max(0, worked - 480) // 8h standard
+      const overtime     = Math.max(0, worked - 540) // 9h standard
 
       return supabase
         .from('attendance')
