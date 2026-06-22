@@ -31,23 +31,29 @@ export default function CMKWorkers() {
 
   const load = async () => {
     setLoading(true)
-    const { data: emps } = await supabase
-      .from('employees')
-      .select('id, name, mobile, employee_code')
-      .eq('employee_type', 'labor')
-      .eq('location', 'cmk')
-      .eq('status', 'active')
-      .order('name')
+    try {
+      const { data: emps, error: empErr } = await supabase
+        .from('employees')
+        .select('id, name, mobile, employee_code')
+        .eq('employee_type', 'labor')
+        .eq('location', 'cmk')
+        .eq('status', 'active')
+        .order('name')
 
-    const { data: attData } = await supabase
-      .from('attendance')
-      .select('id, employee_id, status')
-      .eq('date', today)
-      .in('employee_id', (emps ?? []).map(e => e.id))
+      if (empErr) { console.error('Load workers error:', empErr); setLoading(false); return }
 
-    setWorkers((emps ?? []) as Worker[])
-    setAtt((attData ?? []) as AttRecord[])
-    setLoading(false)
+      const ids = (emps ?? []).map(e => e.id)
+      const attData = ids.length > 0
+        ? (await supabase.from('attendance').select('id, employee_id, status').eq('date', today).in('employee_id', ids)).data
+        : []
+
+      setWorkers((emps ?? []) as Worker[])
+      setAtt((attData ?? []) as AttRecord[])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [])
