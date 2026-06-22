@@ -5,10 +5,6 @@ import {
   Settings, Zap, Palmtree, LogOut, Users2
 } from 'lucide-react'
 import { useAuth } from './AuthContext'
-import { getAvatar } from './Sidebar'
-import { useUserAvatar } from './useUserAvatar'
-import { UserAvatar } from './UserAvatar'
-import { EmojiPicker } from './EmojiPicker'
 import type { UserRole } from './database'
 
 interface NavItem { to: string; icon: React.ElementType; label: string; roles: UserRole[] }
@@ -40,34 +36,27 @@ const navGroups: NavGroup[] = [
   },
 ]
 
-const roleLabel: Record<UserRole, string> = {
-  super_admin: 'Super Admin', admin: 'Admin',
-  cmk_coordinator: 'CMK Coordinator', employee: 'Employee',
-}
-
 export function MiniSidebar() {
-  const { role, profile, signOut } = useAuth()
-  const { value, pick } = useUserAvatar()
-  const [pickerOpen, setPickerOpen] = useState(false)
+  const { role, signOut } = useAuth()
   const [hovered, setHovered] = useState(false)
 
   return (
     <aside
       className="hidden sm:flex fixed top-0 left-0 z-30 h-full flex-col py-4 overflow-hidden"
       style={{
-        width: hovered ? '220px' : '60px',
+        width: hovered ? '210px' : '60px',
         transition: 'width 0.25s cubic-bezier(0.4,0,0.2,1)',
         background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-        borderRight: '1px solid rgba(255,255,255,0.08)',
+        borderRight: '1px solid rgba(255,255,255,0.06)',
       }}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setPickerOpen(false) }}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Logo */}
       <div className="flex items-center h-10 px-4 mb-3 flex-shrink-0">
         <img src="/logo.png" alt="CURRYiT" className="w-8 h-8 object-contain flex-shrink-0" />
         <span className="ml-3 font-black text-white text-sm whitespace-nowrap"
-          style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.2s', transitionDelay: hovered ? '0.05s' : '0s' }}>
+          style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.15s', transitionDelay: hovered ? '0.08s' : '0s' }}>
           CURRYiT
         </span>
       </div>
@@ -81,10 +70,9 @@ export function MiniSidebar() {
           if (!visible.length) return null
           return (
             <div key={gi} className="w-full">
-              {/* Section heading */}
-              {group.heading && hovered && (
-                <p className="text-[9px] font-extrabold text-white/20 uppercase tracking-widest px-3 mb-1 mt-2 whitespace-nowrap"
-                  style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.15s' }}>
+              {group.heading && (
+                <p className="text-[9px] font-extrabold text-white/20 uppercase tracking-widest px-3 mb-1 mt-2 whitespace-nowrap overflow-hidden"
+                  style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.12s' }}>
                   {group.heading}
                 </p>
               )}
@@ -100,7 +88,7 @@ export function MiniSidebar() {
                   } : {}}>
                   <item.icon size={18} className="flex-shrink-0" />
                   <span className="ml-3 text-sm font-medium"
-                    style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.15s', transitionDelay: hovered ? '0.05s' : '0s' }}>
+                    style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.12s', transitionDelay: hovered ? '0.06s' : '0s' }}>
                     {item.label}
                   </span>
                 </NavLink>
@@ -111,32 +99,13 @@ export function MiniSidebar() {
         })}
       </nav>
 
-      {/* User */}
+      {/* Sign out only */}
       <div className="px-2 mt-2 flex-shrink-0">
-        <div className="w-px" /> {/* spacer */}
-        <div className="flex items-center h-11 px-1 rounded-xl overflow-hidden relative"
-          style={{ background: 'rgba(255,255,255,0.05)' }}>
-          <button
-            onClick={() => setPickerOpen(v => !v)}
-            className="hover:scale-110 transition-transform flex-shrink-0"
-            style={{ background: 'none', boxShadow: 'none', padding: 0 }}
-            title="Change avatar">
-            <UserAvatar value={value} name={profile?.full_name} size={32} />
-          </button>
-          <div className="ml-2.5 flex-1 min-w-0 overflow-hidden"
-            style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.15s', transitionDelay: hovered ? '0.05s' : '0s' }}>
-            <p className="text-xs font-bold text-white truncate whitespace-nowrap">{profile?.full_name ?? 'User'}</p>
-            <p className="text-[10px] text-white/35 whitespace-nowrap">{role ? roleLabel[role] : ''}</p>
-          </div>
-          {pickerOpen && (
-            <EmojiPicker current={value} name={profile?.full_name} onPick={pick} onClose={() => setPickerOpen(false)} />
-          )}
-        </div>
         <button onClick={signOut}
-          className="w-full flex items-center h-9 px-3 mt-1 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors overflow-hidden whitespace-nowrap">
+          className="w-full flex items-center h-10 px-3 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors overflow-hidden whitespace-nowrap">
           <LogOut size={16} className="flex-shrink-0" />
           <span className="ml-3 text-sm font-medium"
-            style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.15s', transitionDelay: hovered ? '0.05s' : '0s' }}>
+            style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.12s', transitionDelay: hovered ? '0.06s' : '0s' }}>
             Sign out
           </span>
         </button>

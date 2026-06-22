@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { MiniSidebar } from './MiniSidebar'
 import { Navbar } from './Navbar'
+import { DarkModeToggle } from './DarkModeToggle'
 
 export function AppLayout() {
   // Mobile-only drawer — desktop uses hover-expand MiniSidebar
@@ -19,6 +20,7 @@ export function AppLayout() {
       {/* Main content — offset by collapsed sidebar width (60px) on desktop */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden sm:ml-[60px]">
         <Navbar onMenuClick={() => setMobileOpen(true)} />
+        <DarkModeToggle />
         <main className="flex-1 overflow-auto p-4 sm:p-5 lg:p-6">
           <div className="animate-fadeUp">
             <Outlet />

@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, Bell, Search, CheckCheck, Moon, Sun } from 'lucide-react'
+import { Menu, Bell, Search, CheckCheck } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useAuth } from './AuthContext'
 import { getAvatar } from './Sidebar'
 import { useUserAvatar } from './useUserAvatar'
 import { UserAvatar } from './UserAvatar'
 import { EmojiPicker } from './EmojiPicker'
-import { useTheme } from './useTheme'
 import { supabase } from './supabase'
 
 interface NavbarProps { onMenuClick: () => void }
@@ -20,7 +19,6 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   const { profile, role, user } = useAuth()
   const { value, pick } = useUserAvatar()
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
-  const { dark, toggle } = useTheme()
   const navigate = useNavigate()
   const isAdmin = role === 'admin' || role === 'super_admin'
   const [now, setNow] = useState(new Date())
@@ -174,14 +172,6 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         </div>
 
         <div className="flex-1" />
-
-        {/* Dark mode toggle */}
-        <button onClick={toggle}
-          className="p-2 rounded-xl transition-colors hover:bg-black/5 dark:hover:bg-white/10"
-          title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-          style={{ color: 'var(--tile-subtext)' }}>
-          {dark ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
 
         {/* Global search */}
         {(
