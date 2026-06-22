@@ -7,6 +7,7 @@ import {
 import { useAuth } from './AuthContext'
 import { getAvatar } from './Sidebar'
 import { useUserAvatar } from './useUserAvatar'
+import { UserAvatar } from './UserAvatar'
 import { EmojiPicker } from './EmojiPicker'
 import type { UserRole } from './database'
 
@@ -46,7 +47,7 @@ const roleLabel: Record<UserRole, string> = {
 
 export function MiniSidebar() {
   const { role, profile, signOut } = useAuth()
-  const { emoji: myEmoji, pick: pickEmoji } = useUserAvatar()
+  const { value, pick } = useUserAvatar()
   const [pickerOpen, setPickerOpen] = useState(false)
   const [hovered, setHovered] = useState(false)
 
@@ -117,10 +118,10 @@ export function MiniSidebar() {
           style={{ background: 'rgba(255,255,255,0.05)' }}>
           <button
             onClick={() => setPickerOpen(v => !v)}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0 hover:scale-110 transition-transform"
-            style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)', boxShadow: '0 3px 10px rgba(232,83,29,0.4)' }}
+            className="hover:scale-110 transition-transform flex-shrink-0"
+            style={{ background: 'none', boxShadow: 'none', padding: 0 }}
             title="Change avatar">
-            {myEmoji}
+            <UserAvatar value={value} name={profile?.full_name} size={32} />
           </button>
           <div className="ml-2.5 flex-1 min-w-0 overflow-hidden"
             style={{ opacity: hovered ? 1 : 0, transition: 'opacity 0.15s', transitionDelay: hovered ? '0.05s' : '0s' }}>
@@ -128,7 +129,7 @@ export function MiniSidebar() {
             <p className="text-[10px] text-white/35 whitespace-nowrap">{role ? roleLabel[role] : ''}</p>
           </div>
           {pickerOpen && (
-            <EmojiPicker current={myEmoji} onPick={pickEmoji} onClose={() => setPickerOpen(false)} />
+            <EmojiPicker current={value} name={profile?.full_name} onPick={pick} onClose={() => setPickerOpen(false)} />
           )}
         </div>
         <button onClick={signOut}
