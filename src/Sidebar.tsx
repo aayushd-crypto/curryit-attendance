@@ -1,33 +1,52 @@
-import { Users2, useState } from 'react'
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, Users, FileText,
-  ClipboardList, Settings, LogOut, X, ChevronRight,
-  Zap, KeyRound, Palmtree
-, Users2
+  Settings, LogOut, X, ChevronRight,
+  Zap, KeyRound, Palmtree, Users2
 } from 'lucide-react'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabase'
 import type { UserRole } from './database'
 
 interface NavItem {
-  to: string
-  icon: React.ElementType
-  label: string
-  roles: UserRole[]
-  badge?: string
+  to: string; icon: React.ElementType; label: string; roles: UserRole[]
+}
+interface NavGroup {
+  heading?: string; items: NavItem[]
 }
 
-const navItems: NavItem[] = [
-  { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard',      roles: ['super_admin','admin','cmk_coordinator','employee'] },
-  { to: '/cmk-attendance', icon: Zap,             label: 'CMK Attendance', roles: ['super_admin','cmk_coordinator'] },
-  { to: '/cmk-workers',     icon: Users2,         label: 'CMK Workers',    roles: ['super_admin','cmk_coordinator'] },
-  { to: '/leave',          icon: Calendar,        label: 'Leave',          roles: ['super_admin','admin','cmk_coordinator','employee'] },
-  { to: '/holidays',       icon: Palmtree,        label: 'Holidays',       roles: ['super_admin','admin','cmk_coordinator','employee'] },
-  { to: '/employees',      icon: Users,           label: 'Employees',      roles: ['super_admin','admin'] },
-  { to: '/reports',        icon: FileText,        label: 'Reports',        roles: ['super_admin','admin','cmk_coordinator'] },
-  { to: '/audit-log',      icon: ClipboardList,   label: 'Audit Log',      roles: ['super_admin','admin'] },
-  { to: '/settings',       icon: Settings,        label: 'Settings',       roles: ['super_admin'] },
+// Helper: initials from full name (first + last letter of each word pair)
+export function getInitials(name: string | null | undefined): string {
+  if (!name) return 'U'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? 'U'
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
+const navGroups: NavGroup[] = [
+  {
+    items: [
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin','admin','cmk_coordinator','employee'] },
+      { to: '/leave',     icon: Calendar,        label: 'Leave',      roles: ['super_admin','admin','cmk_coordinator','employee'] },
+      { to: '/holidays',  icon: Palmtree,        label: 'Holidays',   roles: ['super_admin','admin','cmk_coordinator','employee'] },
+    ],
+  },
+  {
+    heading: 'CMK',
+    items: [
+      { to: '/cmk-attendance', icon: Zap,    label: 'CMK Attendance', roles: ['super_admin','cmk_coordinator'] },
+      { to: '/cmk-workers',    icon: Users2, label: 'CMK Workers',    roles: ['super_admin','cmk_coordinator'] },
+    ],
+  },
+  {
+    heading: 'Office',
+    items: [
+      { to: '/employees', icon: Users,    label: 'Employees', roles: ['super_admin','admin'] },
+      { to: '/reports',   icon: FileText, label: 'Reports',   roles: ['super_admin','admin','cmk_coordinator'] },
+      { to: '/settings',  icon: Settings, label: 'Settings',  roles: ['super_admin'] },
+    ],
+  },
 ]
 
 const roleLabel: Record<UserRole, string> = {
@@ -39,7 +58,6 @@ interface SidebarProps { open: boolean; onClose: () => void }
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const { profile, role, signOut } = useAuth()
-  const visible = navItems.filter(i => role && i.roles.includes(role))
 
   const [pwModal, setPwModal]     = useState(false)
   const [newPw, setNewPw]         = useState('')
@@ -91,37 +109,46 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
-          <p className="text-[10px] font-extrabold text-white/20 uppercase tracking-widest px-3 mb-3">
-            Navigation
-          </p>
-          {visible.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={onClose}
-              className={({ isActive }) => `
-                flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium
-                transition-all duration-150 group relative
-                ${isActive
-                  ? 'text-white'
-                  : 'text-white/50 hover:text-white/90 hover:bg-white/6'
-                }
-              `}
-              style={({ isActive }) => isActive ? {
-                background: 'linear-gradient(135deg, rgba(232,83,29,0.9) 0%, rgba(196,64,16,0.9) 100%)',
-                boxShadow: '0 4px 20px rgba(232,83,29,0.4)',
-              } : {}}
-            >
-              {({ isActive }) => (
-                <>
-                  <item.icon size={17} className={isActive ? 'text-white' : 'text-white/40 group-hover:text-white/70'} />
-                  <span className="flex-1">{item.label}</span>
-                  {isActive && <ChevronRight size={13} className="text-white/60" />}
-                </>
-              )}
-            </NavLink>
-          ))}
+        <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-4">
+          {navGroups.map((group, gi) => {
+            const visible = group.items.filter(i => role && i.roles.includes(role))
+            if (!visible.length) return null
+            return (
+              <div key={gi}>
+                {group.heading && (
+                  <p className="text-[10px] font-extrabold text-white/20 uppercase tracking-widest px-3 mb-2">
+                    {group.heading}
+                  </p>
+                )}
+                <div className="space-y-0.5">
+                  {visible.map(item => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={onClose}
+                      className={({ isActive }) => `
+                        flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium
+                        transition-all duration-150 group relative
+                        ${isActive ? 'text-white' : 'text-white/50 hover:text-white/90 hover:bg-white/6'}
+                      `}
+                      style={({ isActive }) => isActive ? {
+                        background: 'linear-gradient(135deg, rgba(232,83,29,0.9) 0%, rgba(196,64,16,0.9) 100%)',
+                        boxShadow: '0 4px 20px rgba(232,83,29,0.4)',
+                      } : {}}
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <item.icon size={17} className={isActive ? 'text-white' : 'text-white/40 group-hover:text-white/70'} />
+                          <span className="flex-1">{item.label}</span>
+                          {isActive && <ChevronRight size={13} className="text-white/60" />}
+                        </>
+                      )}
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </nav>
 
         {/* User */}
@@ -130,7 +157,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             style={{ background: 'rgba(255,255,255,0.06)' }}>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white flex-shrink-0"
               style={{ background: 'linear-gradient(135deg, #E8531D, #C44010)', boxShadow: '0 4px 12px rgba(232,83,29,0.4)' }}>
-              {profile?.full_name?.[0]?.toUpperCase() ?? 'U'}
+              {getInitials(profile?.full_name)}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-white truncate">{profile?.full_name ?? 'User'}</p>

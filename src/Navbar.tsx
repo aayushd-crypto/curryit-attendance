@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Menu, Bell, Search, CheckCheck, Moon, Sun } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useAuth } from './AuthContext'
+import { getInitials } from './Sidebar'
 import { useTheme } from './useTheme'
 import { supabase } from './supabase'
 
@@ -167,7 +168,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
                     className="w-full flex items-center gap-3 px-4 py-3 hover:bg-brand-50/60 transition-colors text-left">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-black flex-shrink-0"
                       style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
-                      {h.name[0]}
+                      {getInitials(h.name)}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-gray-900 truncate">{h.name}</p>
@@ -229,7 +230,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.07)' }}>
           <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs text-white"
             style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
-            {profile?.full_name?.[0]?.toUpperCase() ?? 'U'}
+            {getInitials(profile?.full_name)}
           </div>
           <span className="hidden sm:block text-sm font-semibold text-gray-700 max-w-[120px] truncate">
             {profile?.full_name?.split(' ')[0] ?? 'User'}

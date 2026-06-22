@@ -5,19 +5,18 @@ import { AppLayout } from './AppLayout'
 import { PageLoader } from './Spinner'
 import { Suspense, lazy } from 'react'
 
-const LoginPage       = lazy(() => import('./pages/Login'))
-const Dashboard       = lazy(() => import('./pages/Dashboard'))
-const CMKAttendance   = lazy(() => import('./pages/CMKAttendance'))
-const LeavePage       = lazy(() => import('./pages/Leave'))
-const EmployeesPage   = lazy(() => import('./pages/Employees'))
-const ReportsPage     = lazy(() => import('./pages/Reports'))
-const AuditLogPage    = lazy(() => import('./pages/AuditLog'))
-const SettingsPage    = lazy(() => import('./pages/Settings'))
-const ResetPassword      = lazy(() => import('./pages/ResetPassword'))
-const AttendanceDayPage    = lazy(() => import('./pages/AttendanceDay'))
-const EmployeeDetailPage   = lazy(() => import('./pages/EmployeeDetail'))
-const HolidaysPage         = lazy(() => import('./pages/Holidays'))
-const CMKWorkersPage        = lazy(() => import('./pages/CMKWorkers'))
+const LoginPage           = lazy(() => import('./pages/Login'))
+const Dashboard           = lazy(() => import('./pages/Dashboard'))
+const CMKAttendance       = lazy(() => import('./pages/CMKAttendance'))
+const LeavePage           = lazy(() => import('./pages/Leave'))
+const EmployeesPage       = lazy(() => import('./pages/Employees'))
+const ReportsPage         = lazy(() => import('./pages/Reports'))
+const SettingsPage        = lazy(() => import('./pages/Settings'))
+const ResetPassword       = lazy(() => import('./pages/ResetPassword'))
+const AttendanceDayPage   = lazy(() => import('./pages/AttendanceDay'))
+const EmployeeDetailPage  = lazy(() => import('./pages/EmployeeDetail'))
+const HolidaysPage        = lazy(() => import('./pages/Holidays'))
+const CMKWorkersPage      = lazy(() => import('./pages/CMKWorkers'))
 
 export default function App() {
   return (
@@ -28,7 +27,7 @@ export default function App() {
             {/* Public */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/"      element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
             {/* Protected app routes */}
             <Route element={
@@ -36,21 +35,22 @@ export default function App() {
                 <AppLayout />
               </ProtectedRoute>
             }>
-              <Route path="/dashboard"       element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
 
-              <Route path="/cmk-attendance"  element={
+              <Route path="/cmk-attendance" element={
                 <ProtectedRoute allowedRoles={['super_admin','cmk_coordinator']}>
                   <CMKAttendance />
                 </ProtectedRoute>
               } />
 
-              <Route path="/leave"           element={<LeavePage />} />
-              <Route path="/holidays"         element={<HolidaysPage />} />
               <Route path="/cmk-workers" element={
                 <ProtectedRoute allowedRoles={['super_admin','cmk_coordinator']}>
                   <CMKWorkersPage />
                 </ProtectedRoute>
               } />
+
+              <Route path="/leave" element={<LeavePage />} />
+              <Route path="/holidays" element={<HolidaysPage />} />
               <Route path="/attendance/:date" element={<AttendanceDayPage />} />
 
               <Route path="/employees/:id" element={
@@ -59,25 +59,19 @@ export default function App() {
                 </ProtectedRoute>
               } />
 
-              <Route path="/employees"       element={
+              <Route path="/employees" element={
                 <ProtectedRoute allowedRoles={['super_admin','admin']}>
                   <EmployeesPage />
                 </ProtectedRoute>
               } />
 
-              <Route path="/reports"         element={
-                <ProtectedRoute allowedRoles={['super_admin','cmk_coordinator']}>
+              <Route path="/reports" element={
+                <ProtectedRoute allowedRoles={['super_admin','admin','cmk_coordinator']}>
                   <ReportsPage />
                 </ProtectedRoute>
               } />
 
-              <Route path="/audit-log"       element={
-                <ProtectedRoute allowedRoles={['super_admin','admin']}>
-                  <AuditLogPage />
-                </ProtectedRoute>
-              } />
-
-              <Route path="/settings"        element={
+              <Route path="/settings" element={
                 <ProtectedRoute allowedRoles={['super_admin']}>
                   <SettingsPage />
                 </ProtectedRoute>
