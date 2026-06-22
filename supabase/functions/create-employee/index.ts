@@ -10,14 +10,12 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    // Admin client — uses service role key (server only, never exposed to browser)
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    // Verify caller is admin/super_admin
     const authHeader = req.headers.get('Authorization')
     const { data: { user }, error: authErr } = await adminClient.auth.getUser(
       authHeader?.replace('Bearer ', '') ?? ''
@@ -32,7 +30,6 @@ serve(async (req) => {
 
     const body = await req.json()
 
-    // ── Reset password action (super_admin only) ──────────────────────────────
     if (body.action === 'reset_password') {
       if (callerProfile?.role !== 'super_admin') {
         return new Response(JSON.stringify({ error: 'Only super_admin can reset passwords' }), { status: 403, headers: corsHeaders })
@@ -41,28 +38,30 @@ serve(async (req) => {
       if (!targetEmail || !new_password) {
         return new Response(JSON.stringify({ error: 'email and new_password required' }), { status: 400, headers: corsHeaders })
       }
-      // Find the auth user by email
-      const { data: { users }, error: listErr } = await adminClient.auth.admin.listUsers()
-      if (listErr) throw listErr
-      const target = users.find((u: any) => u.email === targetEmail)
-      if (!target) return new Response(JSON.stringify({ error: 'User not found' }), { status: 404, headers: corsHeaders })
-      const { error: updateErr } = await adminClient.auth.admin.updateUserById(target.id, { password: new_password })
+
+      // Look up auth user ID from profiles table using email
+      const { data: profile, error: profileErr } = await adminClient
+        .from('profiles').select('id').eq('email', targetEmail).single()
+
+      if (profileErr || !profile) {
+        return new Response(JSON.stringify({ error: 'User not found in profiles' }), { status: 404, headers: corsHeaders })
+      }
+
+      const { error: updateErr } = await adminClient.auth.admin.updateUserById(profile.id, { password: new_password })
       if (updateErr) throw updateErr
+
       return new Response(JSON.stringify({ updated: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // ── Create employee ───────────────────────────────────────────────────────
     const { name, email, mobile, department_id, designation, location, joining_date, role = 'employee', temp_password } = body
 
     if (!name || !email || !temp_password) {
       return new Response(JSON.stringify({ error: 'name, email and temp_password are required' }), { status: 400, headers: corsHeaders })
     }
 
-    // 1. Generate employee code
     const { count } = await adminClient.from('employees').select('*', { count: 'exact', head: true })
     const emp_code = `EMP${String((count ?? 0) + 1).padStart(3, '0')}`
 
-    // 2. Create employee record first
     const { data: emp, error: empErr } = await adminClient.from('employees').insert({
       employee_code: emp_code, name, mobile: mobile ?? '', email,
       department_id: department_id ?? null, designation: designation ?? 'Employee',
@@ -75,25 +74,21 @@ serve(async (req) => {
       throw empErr
     }
 
-    // 3. Create auth user with temp password
     const { data: authUser, error: authCreateErr } = await adminClient.auth.admin.createUser({
       email, password: temp_password,
-      email_confirm: true,  // skip email verification — admin is creating this
+      email_confirm: true,
       user_metadata: { full_name: name, role },
     })
     if (authCreateErr) {
-      // rollback employee record
       await adminClient.from('employees').delete().eq('id', emp.id)
       throw authCreateErr
     }
 
-    // 4. Upsert profile with employee_id already linked
     await adminClient.from('profiles').upsert({
       id: authUser.user.id, email, full_name: name,
       role, employee_id: emp.id,
     }, { onConflict: 'id' })
 
-    // 5. Create leave balance for current year
     await adminClient.from('leave_balances').insert({
       employee_id: emp.id, year: new Date().getFullYear(),
       casual_total: 12, sick_total: 12, emergency_total: 6, paid_total: 15,
