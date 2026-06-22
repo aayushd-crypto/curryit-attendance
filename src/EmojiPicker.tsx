@@ -24,7 +24,7 @@ export function EmojiPicker({ current, name, onPick, onClose }: Props) {
 
   return (
     <div ref={ref}
-      className="absolute bottom-full mb-2 left-0 z-50 p-3 rounded-2xl shadow-2xl"
+      className="absolute left-0 z-50 p-3 rounded-2xl shadow-2xl"
       style={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', width: '204px' }}>
       <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 px-0.5">
         Your avatar

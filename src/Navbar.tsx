@@ -274,7 +274,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
             </span>
           </button>
           {avatarPickerOpen && (
-            <div className="absolute right-0 bottom-full mb-2">
+            <div className="absolute right-0 top-full mt-2">
               <EmojiPicker current={value} name={profile?.full_name} onPick={pick} onClose={() => setAvatarPickerOpen(false)} />
             </div>
           )}
