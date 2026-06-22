@@ -12,11 +12,18 @@ export function EmojiPicker({ current, name, onPick, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+    // Delay so the triggering click doesn't immediately fire the outside-click handler
+    let handler: (e: MouseEvent) => void
+    const t = setTimeout(() => {
+      handler = (e: MouseEvent) => {
+        if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+      }
+      document.addEventListener('mousedown', handler)
+    }, 10)
+    return () => {
+      clearTimeout(t)
+      if (handler) document.removeEventListener('mousedown', handler)
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
   }, [onClose])
 
   const initials = getInitials(name)
@@ -25,7 +32,7 @@ export function EmojiPicker({ current, name, onPick, onClose }: Props) {
   return (
     <div ref={ref}
       className="absolute left-0 z-50 p-3 rounded-2xl shadow-2xl"
-      style={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', width: '204px' }}>
+      style={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', width: '212px' }}>
       <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 px-0.5">
         Your avatar
       </p>
@@ -51,7 +58,6 @@ export function EmojiPicker({ current, name, onPick, onClose }: Props) {
 
       <div className="w-full h-px bg-white/10 mb-2" />
 
-      {/* Food emojis grid */}
       <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1.5 px-0.5">
         Food emojis
       </p>
