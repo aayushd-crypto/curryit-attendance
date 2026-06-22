@@ -4,6 +4,7 @@ import { Users, UserCheck, Monitor, Plane, TrendingUp, RefreshCw, CheckSquare, C
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, parseISO, addMonths, subMonths, isSameMonth, isToday, isSunday } from 'date-fns'
 import { supabase } from '../supabase'
+import { LiveMap } from '../components/LiveMap'
 import { StatCard } from '../StatCard'
 import { Spinner } from '../Spinner'
 import { Modal } from '../Modal'
@@ -669,19 +670,14 @@ export default function Dashboard() {
                 {geoStatus && (
                   <div className="mb-4 rounded-2xl overflow-hidden border border-gray-100">
                     {/* Map */}
-                    <div className="relative w-full h-44">
-                      <iframe
-                        title="location-map"
-                        width="100%" height="100%"
-                        style={{ border: 0 }}
-                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${geoStatus.lng-0.003}%2C${geoStatus.lat-0.003}%2C${geoStatus.lng+0.003}%2C${geoStatus.lat+0.003}&layer=mapnik&marker=${geoStatus.lat}%2C${geoStatus.lng}`}
+                    <div className="relative w-full overflow-hidden">
+                      <LiveMap
+                        lat={geoStatus.lat} lng={geoStatus.lng}
+                        targetLat={geoStatus.officeLat || undefined}
+                        targetLng={geoStatus.officeLng || undefined}
+                        radiusM={geoStatus.radius || undefined}
+                        onUpdate={(lat, lng, dist) => setGeoStatus(prev => prev ? { ...prev, lat, lng, dist, ok: dist <= prev.radius } : prev)}
                       />
-                      <a
-                        href={`https://www.openstreetmap.org/?mlat=${geoStatus.lat}&mlon=${geoStatus.lng}#map=16/${geoStatus.lat}/${geoStatus.lng}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="absolute bottom-2 right-2 text-[10px] bg-white/80 px-2 py-1 rounded-lg text-gray-500 hover:text-gray-700">
-                        Open map ↗
-                      </a>
                     </div>
                     {/* Status bar */}
                     <div className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold ${
