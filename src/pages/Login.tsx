@@ -204,7 +204,7 @@ export default function LoginPage() {
           )}
         </div>
       </div>
+      <p className="text-center text-[10px] text-white/20 mt-4 pb-4">Designed & Developed by <a href="https://www.linkedin.com/in/aayushdiman22/" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/40">Aayush Dhiman</a></p>
     </div>
-    <p className="text-center text-[10px] text-white/20 mt-4">Designed & Developed by <a href="https://www.linkedin.com/in/aayushdiman22/" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/40">Aayush Dhiman</a></p>
   )
 }
