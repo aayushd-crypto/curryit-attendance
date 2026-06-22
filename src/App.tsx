@@ -17,6 +17,7 @@ const ResetPassword      = lazy(() => import('./pages/ResetPassword'))
 const AttendanceDayPage    = lazy(() => import('./pages/AttendanceDay'))
 const EmployeeDetailPage   = lazy(() => import('./pages/EmployeeDetail'))
 const HolidaysPage         = lazy(() => import('./pages/Holidays'))
+const CMKWorkersPage        = lazy(() => import('./pages/CMKWorkers'))
 
 export default function App() {
   return (
@@ -45,6 +46,7 @@ export default function App() {
 
               <Route path="/leave"           element={<LeavePage />} />
               <Route path="/holidays"         element={<HolidaysPage />} />
+              <Route path="/cmk-workers"       element={<CMKWorkersPage />} />
               <Route path="/attendance/:date" element={<AttendanceDayPage />} />
 
               <Route path="/employees/:id" element={

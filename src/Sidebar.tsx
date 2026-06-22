@@ -20,6 +20,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard',      roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/cmk-attendance', icon: Zap,             label: 'CMK Attendance', roles: ['super_admin','admin','cmk_coordinator'] },
+  { to: '/cmk-workers',     icon: HardHat,         label: 'CMK Workers',    roles: ['super_admin','admin','cmk_coordinator'] },
   { to: '/leave',          icon: Calendar,        label: 'Leave',          roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/holidays',       icon: Palmtree,        label: 'Holidays',       roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/employees',      icon: Users,           label: 'Employees',      roles: ['super_admin','admin'] },
