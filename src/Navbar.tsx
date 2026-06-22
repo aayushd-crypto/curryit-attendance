@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, Bell, Search } from 'lucide-react'
-import { format } from 'date-fns'
+import { Menu, Bell, Search, CheckCheck } from 'lucide-react'
+import { format, formatDistanceToNow } from 'date-fns'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabase'
 
-interface NavbarProps { onMenuClick: () => void; notifCount?: number }
+interface NavbarProps { onMenuClick: () => void }
 interface Hit { id: string; name: string; employee_code: string; designation: string; location: string }
+interface Notif { id: string; title: string; body: string | null; type: string; read: boolean; created_at: string }
 
-export function Navbar({ onMenuClick, notifCount = 0 }: NavbarProps) {
-  const { profile, role } = useAuth()
+export function Navbar({ onMenuClick }: NavbarProps) {
+  const { profile, role, user } = useAuth()
   const navigate = useNavigate()
   const isAdmin = role === 'admin' || role === 'super_admin'
   const [now, setNow] = useState(new Date())
@@ -22,6 +23,57 @@ export function Navbar({ onMenuClick, notifCount = 0 }: NavbarProps) {
   const [open, setOpen]   = useState(false)
   const boxRef = useRef<HTMLDivElement>(null)
 
+  // ── Notifications ─────────────────────────────────────────────────────────
+  const [notifs, setNotifs]       = useState<Notif[]>([])
+  const [notifOpen, setNotifOpen] = useState(false)
+  const notifRef = useRef<HTMLDivElement>(null)
+  const unread = notifs.filter(n => !n.read).length
+
+  const loadNotifs = async () => {
+    if (!user) return
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(20)
+    setNotifs((data ?? []) as Notif[])
+  }
+
+  const markAllRead = async () => {
+    if (!user) return
+    await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false)
+    setNotifs(prev => prev.map(n => ({ ...n, read: true })))
+  }
+
+  useEffect(() => {
+    loadNotifs()
+    const channel = supabase
+      .channel('notifications')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user?.id}` },
+        (payload) => { setNotifs(prev => [payload.new as Notif, ...prev]) })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user])
+
+  // close notif dropdown on outside click
+  useEffect(() => {
+    const close = (e: MouseEvent) => { if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false) }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [])
+
+  const openNotifs = () => { setNotifOpen(v => !v); if (!notifOpen) markAllRead() }
+
+  const typeIcon = (type: string) => {
+    if (type === 'leave_approved') return '✅'
+    if (type === 'leave_rejected') return '❌'
+    if (type === 'leave_request') return '📋'
+    if (type === 'holiday') return '🎉'
+    return '🔔'
+  }
+
+  // ── Employee search ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!q.trim() || !isAdmin) { setHits([]); return }
     const t = setTimeout(async () => {
@@ -107,13 +159,48 @@ export function Navbar({ onMenuClick, notifCount = 0 }: NavbarProps) {
           </div>
         )}
 
-        <button className="relative p-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.07)' }}>
-          <Bell size={17} className="text-gray-500" />
-          {notifCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 text-white text-[9px] font-black rounded-full flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>{notifCount}</span>
+        {/* Bell + dropdown */}
+        <div ref={notifRef} className="relative">
+          <button onClick={openNotifs} className="relative p-2.5 rounded-xl transition-colors"
+            style={{ background: notifOpen ? 'rgba(232,83,29,0.08)' : 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.07)' }}>
+            <Bell size={17} className={unread > 0 ? 'text-brand-600' : 'text-gray-500'} />
+            {unread > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 text-white text-[9px] font-black rounded-full flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+          </button>
+
+          {notifOpen && (
+            <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl overflow-hidden z-50 bg-white"
+              style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid rgba(0,0,0,0.06)' }}>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <span className="font-bold text-gray-900 text-sm">Notifications</span>
+                {notifs.some(n => n.read === false) && (
+                  <button onClick={markAllRead} className="flex items-center gap-1 text-xs text-brand-600 font-semibold hover:text-brand-700">
+                    <CheckCheck size={13} /> Mark all read
+                  </button>
+                )}
+              </div>
+              <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
+                {notifs.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-sm text-gray-400">No notifications yet</div>
+                ) : notifs.map(n => (
+                  <div key={n.id} className={`px-4 py-3 flex gap-3 items-start transition-colors ${n.read ? 'bg-white' : 'bg-orange-50/40'}`}>
+                    <span className="text-lg flex-shrink-0 mt-0.5">{typeIcon(n.type)}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm leading-snug ${n.read ? 'text-gray-700' : 'text-gray-900 font-semibold'}`}>{n.title}</p>
+                      {n.body && <p className="text-xs text-gray-400 mt-0.5">{n.body}</p>}
+                      <p className="text-[10px] text-gray-300 mt-1">{formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}</p>
+                    </div>
+                    {!n.read && <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: '#E8531D' }} />}
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
-        </button>
+        </div>
 
         <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.07)' }}>
           <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs text-white"

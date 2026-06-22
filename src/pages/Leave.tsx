@@ -91,6 +91,19 @@ export default function LeavePage() {
     else {
       await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!,
         action: `Applied casual leave (${days}d)` })
+      // Notify all admins & super_admins
+      const { data: admins } = await supabase
+        .from('profiles').select('id').in('role', ['admin', 'super_admin'])
+      if (admins && admins.length > 0) {
+        await supabase.from('notifications').insert(
+          admins.map((a: any) => ({
+            user_id: a.id,
+            title: `${profile.full_name} applied for ${days}-day leave`,
+            body: reason || null,
+            type: 'leave_request',
+          }))
+        )
+      }
       setModal(false); setStartDate(''); setEndDate(''); setReason('')
       await load()
     }
@@ -103,6 +116,22 @@ export default function LeavePage() {
     const { error: err } = await supabase.from('leave_requests').update({ status, remarks: remarks ?? null, approved_by: user.id }).eq('id', id)
     if (err) { setDecideError('Failed to update leave request. Please try again.'); return }
     await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!, action: `${status} leave request` })
+    // Notify the employee via in-app notification
+    const req = leaves.find(r => r.id === id)
+    if (req) {
+      const { data: empProfile } = await supabase
+        .from('profiles').select('id').eq('employee_id', req.employee_id).single()
+      if (empProfile) {
+        await supabase.from('notifications').insert({
+          user_id: empProfile.id,
+          title: status === 'approved' ? '✅ Leave approved!' : '❌ Leave rejected',
+          body: status === 'approved'
+            ? `Your ${req.total_days}-day leave has been approved.`
+            : remarks ? `Reason: ${remarks}` : `Your ${req.total_days}-day leave was not approved.`,
+          type: status === 'approved' ? 'leave_approved' : 'leave_rejected',
+        })
+      }
+    }
     // Fire-and-forget email notification — don't block UI on this
     supabase.functions.invoke('send-leave-email', {
       body: { leave_request_id: id, status, remarks: remarks ?? null }
