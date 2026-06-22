@@ -661,7 +661,7 @@ export default function Dashboard() {
                   {attBusy ? 'Checking out...' : 'Check Out'}
                 </button>
                 <p className="text-xs text-gray-400 mt-3 flex items-center justify-center gap-1.5">
-                  <Clock size={11} /> Standard day: 8 hours · overtime tracked automatically
+                  <Clock size={11} /> Standard day: 9 hours · overtime tracked automatically
                 </p>
               </div>
             )}
