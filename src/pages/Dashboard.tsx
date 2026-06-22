@@ -317,9 +317,17 @@ export default function Dashboard() {
         }
       }
 
-      // Total active employees (scoped by location for non-admins)
+      // For admin role, resolve department scope
+      let adminDeptId: string | null = null
+      if (role === 'admin' && profile?.email) {
+        const { data: prof } = await supabase.from('profiles').select('department_id').eq('email', profile.email).maybeSingle()
+        adminDeptId = prof?.department_id ?? null
+      }
+
+      // Total active employees (scoped by location for non-admins, by dept for admin)
       let empQuery = supabase.from('employees').select('*', { count: 'exact', head: true }).eq('status', 'active')
       if (!isAdmin && myLocation) empQuery = empQuery.eq('location', myLocation)
+      if (role === 'admin' && adminDeptId) empQuery = empQuery.eq('department_id', adminDeptId)
       const { count: totalEmployees } = await empQuery
 
       // Fetch employee name map
@@ -327,8 +335,11 @@ export default function Dashboard() {
       const empMap: Record<string, string> = Object.fromEntries((allEmps ?? []).map((e: any) => [e.id, e.name]))
       setEmpMap(empMap)
 
-      // Today's attendance
-      let attQuery = supabase.from('attendance').select('status, work_mode, location, employee_id').eq('date', todayStr)
+      // Today's attendance — for admin scoped to their department
+      let attQuery = supabase.from('attendance')
+        .select('status, work_mode, location, employee_id, employees!inner(department_id)')
+        .eq('date', todayStr) as any
+      if (role === 'admin' && adminDeptId) attQuery = attQuery.eq('employees.department_id', adminDeptId)
       const { data: todayAtt } = await attQuery
       setTodayAttFull((todayAtt ?? []).map((r: any) => ({ ...r, empName: empMap[r.employee_id] ?? '—' })) as any[])
 

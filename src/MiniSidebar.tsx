@@ -1,8 +1,8 @@
 import { NavLink } from 'react-router-dom'
+import { useTheme } from './useTheme'
 import {
   LayoutDashboard, Calendar, Users, FileText,
-  ClipboardList, Settings, Zap, Palmtree, Menu, LogOut
-, Users2
+  ClipboardList, Settings, Zap, Palmtree, Menu, LogOut, Users2, Moon, Sun
 } from 'lucide-react'
 import { useAuth } from './AuthContext'
 import type { UserRole } from './database'
@@ -11,8 +11,8 @@ interface NavItem { to: string; icon: React.ElementType; label: string; roles: U
 
 const navItems: NavItem[] = [
   { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard',      roles: ['super_admin','admin','cmk_coordinator','employee'] },
-  { to: '/cmk-attendance', icon: Zap,             label: 'CMK Attendance', roles: ['super_admin','admin','cmk_coordinator'] },
-  { to: '/cmk-workers',     icon: Users2,         label: 'CMK Workers',    roles: ['super_admin','admin','cmk_coordinator'] },
+  { to: '/cmk-attendance', icon: Zap,             label: 'CMK Attendance', roles: ['super_admin','cmk_coordinator'] },
+  { to: '/cmk-workers',     icon: Users2,         label: 'CMK Workers',    roles: ['super_admin','cmk_coordinator'] },
   { to: '/leave',          icon: Calendar,        label: 'Leave',          roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/holidays',       icon: Palmtree,        label: 'Holidays',       roles: ['super_admin','admin','cmk_coordinator','employee'] },
   { to: '/employees',      icon: Users,           label: 'Employees',      roles: ['super_admin','admin'] },
@@ -25,6 +25,7 @@ interface Props { onMenuClick: () => void }
 
 export function MiniSidebar({ onMenuClick }: Props) {
   const { role, profile, signOut } = useAuth()
+  const { dark, toggle } = useTheme()
   const visible = navItems.filter(i => role && i.roles.includes(role))
 
   return (
@@ -82,6 +83,12 @@ export function MiniSidebar({ onMenuClick }: Props) {
         style={{ background: 'linear-gradient(135deg, #E8531D, #C44010)', boxShadow: '0 4px 12px rgba(232,83,29,0.4)' }}>
         {profile?.full_name?.[0]?.toUpperCase() ?? 'U'}
       </div>
+
+      {/* Dark mode toggle */}
+      <button onClick={toggle} title={dark ? 'Light mode' : 'Dark mode'}
+        className="w-10 h-10 flex items-center justify-center rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-colors">
+        {dark ? <Sun size={17} /> : <Moon size={17} />}
+      </button>
 
       {/* Logout */}
       <button onClick={signOut} title="Sign out"

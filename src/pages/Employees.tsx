@@ -37,6 +37,7 @@ interface EmpSummary {
 
 export default function EmployeesPage() {
   const { user, profile, role } = useAuth()
+  const [adminDeptId, setAdminDeptId] = useState<string | null>(null)
   const [params] = useSearchParams()
 
   const [employees, setEmployees]     = useState<Employee[]>([])
@@ -89,8 +90,17 @@ export default function EmployeesPage() {
 
   const loadData = async () => {
     setLoading(true)
+    // For admin role, scope to their assigned department
+    let deptId: string | null = null
+    if (role === 'admin' && profile?.email) {
+      const { data: prof } = await supabase.from('profiles').select('department_id').eq('email', profile.email).maybeSingle()
+      deptId = prof?.department_id ?? null
+      setAdminDeptId(deptId)
+    }
+    let empQuery = supabase.from('employees').select('*, departments(name, location)').order('name')
+    if (role === 'admin' && deptId) empQuery = empQuery.eq('department_id', deptId)
     const [{ data: emps }, { data: depts }] = await Promise.all([
-      supabase.from('employees').select('*, departments(name, location)').order('name'),
+      empQuery,
       supabase.from('departments').select('*').eq('status', 'active').order('name'),
     ])
     setEmployees((emps ?? []) as unknown as Employee[])

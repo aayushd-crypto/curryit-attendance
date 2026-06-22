@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, Key, AlertCircle, MapPin, Navigation } from 'lucide-react'
+import { Plus, Trash2, Key, AlertCircle, MapPin, Navigation, Users } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useAuth } from '../AuthContext'
 import { Modal } from '../Modal'
@@ -23,6 +23,19 @@ export default function SettingsPage() {
 
   const [geoSettings, setGeoSettings] = useState<Record<string, any>>({})
   const [geoSaving, setGeoSaving] = useState<string | null>(null)
+
+  // ── Admin management (super_admin only) ──────────────────────────────────
+  const [admins, setAdmins] = useState<any[]>([])
+  const [savingAdmin, setSavingAdmin] = useState<string | null>(null)
+
+  const loadAdmins = async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name, email, role, department_id')
+      .in('role', ['admin'])
+      .order('full_name')
+    setAdmins(data ?? [])
+  }
 
   const loadGeo = async () => {
     const { data } = await supabase.from('geo_settings').select('*')
@@ -54,7 +67,7 @@ export default function SettingsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { loadDepts(); loadGeo() }, [])
+  useEffect(() => { loadDepts(); loadGeo(); if (profile?.role === 'super_admin') loadAdmins() }, [profile?.role])
 
   const addDepartment = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,7 +97,7 @@ export default function SettingsPage() {
     setSaving(false)
   }
 
-  const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'admin'
+  const isSuperAdmin = profile?.role === 'super_admin'
 
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size="lg" /></div>
 
@@ -214,6 +227,64 @@ export default function SettingsPage() {
                 </div>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Admin Department Assignment (super_admin only) */}
+      {isSuperAdmin && (
+        <div className="card overflow-hidden">
+          <div className="table-header">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
+                <Users size={15} style={{ color: '#E8531D' }} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Admin Management</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Assign department scope to each admin</p>
+              </div>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead><tr><th>Admin</th><th>Email</th><th>Department</th><th>Save</th></tr></thead>
+              <tbody>
+                {admins.map(a => (
+                  <tr key={a.id}>
+                    <td className="font-medium text-gray-900">{a.full_name}</td>
+                    <td className="text-gray-500 text-xs">{a.email}</td>
+                    <td>
+                      <select
+                        defaultValue={a.department_id ?? ''}
+                        onChange={e => { a._newDept = e.target.value }}
+                        className="input py-1.5 text-xs pr-6 appearance-none">
+                        <option value="">All departments</option>
+                        {departments.filter(d => d.status === 'active').map(d => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <button
+                        disabled={savingAdmin === a.id}
+                        onClick={async () => {
+                          setSavingAdmin(a.id)
+                          const deptId = a._newDept !== undefined ? a._newDept : a.department_id
+                          await supabase.from('profiles').update({ department_id: deptId || null }).eq('id', a.id)
+                          await loadAdmins()
+                          setSavingAdmin(null)
+                        }}
+                        className="btn-primary py-1.5 text-xs px-3">
+                        {savingAdmin === a.id ? 'Saving…' : 'Save'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {admins.length === 0 && (
+                  <tr><td colSpan={4} className="text-center text-gray-400 py-6">No admin accounts found</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

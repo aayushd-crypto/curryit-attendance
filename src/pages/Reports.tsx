@@ -19,7 +19,8 @@ interface ReportRow {
 }
 
 export default function ReportsPage() {
-  const { role } = useAuth()
+  const { role, profile } = useAuth()
+  const [adminDeptId, setAdminDeptId] = useState<string | null>(null)
   const [rows, setRows]           = useState<ReportRow[]>([])
   const [loading, setLoading]     = useState(false)
   const [dateFrom, setDateFrom]   = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'))
@@ -32,13 +33,21 @@ export default function ReportsPage() {
 
   const loadReport = async () => {
     setLoading(true)
+    // For admin, resolve their department scope
+    let deptId = adminDeptId
+    if (role === 'admin' && deptId === null && profile?.email) {
+      const { data: prof } = await supabase.from('profiles').select('department_id').eq('email', profile.email).maybeSingle()
+      deptId = prof?.department_id ?? null
+      setAdminDeptId(deptId)
+    }
     let query = supabase
       .from('attendance')
-      .select('date, status, work_mode, check_in_time, source, location, employees(employee_code, name, departments(name))')
+      .select('date, status, work_mode, check_in_time, source, location, employees!inner(employee_code, name, department_id, departments(name))')
       .gte('date', dateFrom)
       .lte('date', dateTo)
       .order('date', { ascending: false })
 
+    if (role === 'admin' && deptId) query = (query as any).eq('employees.department_id', deptId)
     if (location !== 'all') query = query.eq('location', location)
     if (statusF  !== 'all') query = query.eq('status', statusF)
     if (workModeF !== 'all') query = query.eq('work_mode', workModeF)
