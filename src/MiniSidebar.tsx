@@ -1,7 +1,8 @@
-import { Users2, NavLink } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, Users, FileText,
   ClipboardList, Settings, Zap, Palmtree, Menu, LogOut
+, Users2
 } from 'lucide-react'
 import { useAuth } from './AuthContext'
 import type { UserRole } from './database'

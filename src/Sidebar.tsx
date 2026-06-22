@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Calendar, Users, FileText,
   ClipboardList, Settings, LogOut, X, ChevronRight,
   Zap, KeyRound, Palmtree
+, Users2
 } from 'lucide-react'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabase'
