@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { Menu, Bell, Search, CheckCheck, Moon, Sun } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useAuth } from './AuthContext'
-import { getInitials } from './Sidebar'
+import { getAvatar } from './Sidebar'
 import { useTheme } from './useTheme'
 import { supabase } from './supabase'
 
 interface NavbarProps { onMenuClick: () => void }
-interface Hit { id: string; name: string; employee_code: string; designation: string; location: string }
+interface EmpHit { kind: 'employee'; id: string; name: string; employee_code: string; designation: string; location: string }
+interface PageHit { kind: 'page'; label: string; description: string; to: string; icon: string }
+type Hit = EmpHit | PageHit
 interface Notif { id: string; title: string; body: string | null; type: string; read: boolean; created_at: string }
 
 export function Navbar({ onMenuClick }: NavbarProps) {
@@ -90,18 +92,43 @@ export function Navbar({ onMenuClick }: NavbarProps) {
     return '🔔'
   }
 
-  // ── Employee search ────────────────────────────────────────────────────────
+  // ── Global search ───────────────────────────────────────────────────────
+  const ALL_PAGES: PageHit[] = [
+    { kind: 'page', label: 'Dashboard',      description: 'Overview & check-in',         to: '/dashboard',      icon: '🏠' },
+    { kind: 'page', label: 'Leave',          description: 'Apply for or manage leave',   to: '/leave',          icon: '🌴' },
+    { kind: 'page', label: 'Holidays',       description: 'Upcoming & past holidays',    to: '/holidays',       icon: '🎉' },
+    { kind: 'page', label: 'Employees',      description: 'Manage office employees',     to: '/employees',      icon: '👥' },
+    { kind: 'page', label: 'Reports',        description: 'Attendance reports & audit',  to: '/reports',        icon: '📊' },
+    { kind: 'page', label: 'CMK Attendance', description: 'CMK daily attendance',        to: '/cmk-attendance', icon: '⚡' },
+    { kind: 'page', label: 'CMK Workers',    description: 'CMK labor management',        to: '/cmk-workers',    icon: '👷' },
+    { kind: 'page', label: 'Settings',       description: 'Departments, geo, holidays',  to: '/settings',       icon: '⚙️' },
+  ]
+
   useEffect(() => {
-    if (!q.trim() || !isAdmin) { setHits([]); return }
+    const trimmed = q.trim()
+    if (!trimmed) { setHits([]); return }
+    const lower = trimmed.toLowerCase()
+
+    // Page hits — instant, no async
+    const pageHits = ALL_PAGES.filter(p =>
+      p.label.toLowerCase().includes(lower) || p.description.toLowerCase().includes(lower)
+    ).slice(0, 3) as Hit[]
+
+    // Employee hits — only admins, debounced
     const t = setTimeout(async () => {
-      const { data } = await supabase.from('employees')
-        .select('id, name, employee_code, designation, location')
-        .or(`name.ilike.%${q}%,employee_code.ilike.%${q}%,email.ilike.%${q}%`)
-        .eq('status', 'active').limit(6)
-      setHits((data ?? []) as Hit[]); setOpen(true)
-    }, 250)
+      let empHits: Hit[] = []
+      if (isAdmin) {
+        const { data } = await supabase.from('employees')
+          .select('id, name, employee_code, designation, location')
+          .or(`name.ilike.%${trimmed}%,employee_code.ilike.%${trimmed}%`)
+          .eq('status', 'active').limit(5)
+        empHits = (data ?? []).map((d: any) => ({ kind: 'employee' as const, ...d }))
+      }
+      const combined = [...pageHits, ...empHits].slice(0, 7)
+      setHits(combined); setOpen(combined.length > 0)
+    }, 220)
     return () => clearTimeout(t)
-  }, [q])
+  }, [q, isAdmin])
 
   useEffect(() => {
     const close = (e: MouseEvent) => { if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false) }
@@ -111,6 +138,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
   const go = (hit: Hit) => {
     setQ(''); setOpen(false)
+    if (hit.kind === 'page') { navigate(hit.to); return }
     navigate(`/employees?q=${encodeURIComponent(hit.name)}`)
   }
 
@@ -150,25 +178,38 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           {dark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
-        {/* Live search — admin only */}
-        {isAdmin && (
+        {/* Global search */}
+        {(
           <div ref={boxRef} className="relative hidden md:block">
             <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl min-w-[260px]"
               style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
               <Search size={14} className="text-gray-400 flex-shrink-0" />
               <input value={q} onChange={e => setQ(e.target.value)} onFocus={() => q && setOpen(true)}
-                placeholder="Search employees..."
+                placeholder="Search pages, employees..."
                 className="bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400 w-full" />
             </div>
             {open && hits.length > 0 && (
-              <div className="absolute top-full mt-2 left-0 right-0 rounded-2xl overflow-hidden z-50 bg-white"
+              <div className="absolute top-full mt-2 left-0 w-[340px] rounded-2xl overflow-hidden z-50 bg-white"
                 style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid rgba(0,0,0,0.06)' }}>
-                {hits.map(h => (
+                {hits.map((h, i) => h.kind === 'page' ? (
+                  <button key={h.to} onClick={() => go(h)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50/60 transition-colors text-left border-b border-gray-50 last:border-0">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0"
+                      style={{ background: 'rgba(232,83,29,0.08)' }}>
+                      {h.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900">{h.label}</p>
+                      <p className="text-xs text-gray-400">{h.description}</p>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-600">Page</span>
+                  </button>
+                ) : (
                   <button key={h.id} onClick={() => go(h)}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-brand-50/60 transition-colors text-left">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-black flex-shrink-0"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-0">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0"
                       style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
-                      {getInitials(h.name)}
+                      {getAvatar(h.name)}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-gray-900 truncate">{h.name}</p>
@@ -230,7 +271,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.07)' }}>
           <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs text-white"
             style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
-            {getInitials(profile?.full_name)}
+            {getAvatar(profile?.full_name)}
           </div>
           <span className="hidden sm:block text-sm font-semibold text-gray-700 max-w-[120px] truncate">
             {profile?.full_name?.split(' ')[0] ?? 'User'}

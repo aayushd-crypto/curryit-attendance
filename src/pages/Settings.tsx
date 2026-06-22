@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, Key, AlertCircle, MapPin, Navigation, Users, Building2, ChevronDown } from 'lucide-react'
+import { Plus, Trash2, Key, AlertCircle, MapPin, Navigation, Users, Building2, ChevronDown, CalendarDays, Upload, Download, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { format, parseISO, isFuture, isToday } from 'date-fns'
 import { supabase } from '../supabase'
 import { useAuth } from '../AuthContext'
 import { Modal } from '../Modal'
@@ -38,6 +39,75 @@ function Section({ icon, title, subtitle, children, defaultOpen = false }: {
         style={{ maxHeight: open ? '2000px' : '0px', opacity: open ? 1 : 0, transition: 'max-height 0.35s ease, opacity 0.25s ease' }}>
         {children}
       </div>
+
+      {/* Add Holiday Modal */}
+      {addHModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="font-bold text-gray-900">Add Holiday</h2>
+              <button onClick={() => setAddHModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={18} /></button>
+            </div>
+            <form onSubmit={saveHoliday} className="p-6 space-y-4">
+              <div><label className="label">Date</label><input type="date" value={newHDate} onChange={e => setNewHDate(e.target.value)} className="input" required /></div>
+              <div><label className="label">Holiday name</label><input type="text" value={newHName} onChange={e => setNewHName(e.target.value)} className="input" required placeholder="e.g. Diwali" /></div>
+              <div><label className="label">Applies to</label>
+                <select value={newHLoc} onChange={e => setNewHLoc(e.target.value as any)} className="input">
+                  <option value="all">All employees</option><option value="office">Office only</option><option value="cmk">CMK only</option>
+                </select>
+              </div>
+              {hSaveErr && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-xl">{hSaveErr}</p>}
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setAddHModal(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
+                <button type="submit" disabled={hSaving} className="btn-primary flex-1 justify-center">
+                  {hSaving ? <Spinner size="sm" /> : <Plus size={15} />}{hSaving ? 'Saving...' : 'Add'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk CSV Modal */}
+      {csvModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div><h2 className="font-bold text-gray-900">Bulk Import Holidays</h2>
+                <p className="text-xs text-gray-400 mt-0.5">CSV format: <code className="bg-gray-100 px-1 rounded">date,name,location</code></p></div>
+              <button onClick={() => setCsvModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={18} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              {importDone ? (
+                <div className="text-center py-8"><p className="text-4xl mb-2">✅</p><p className="font-bold text-gray-800">Imported!</p></div>
+              ) : (
+                <>
+                  <textarea value={csvText} onChange={e => { setCsvText(e.target.value); setCsvRows(parseCSV(e.target.value)) }}
+                    rows={6} className="input font-mono text-xs resize-none"
+                    placeholder="2026-01-26,Republic Day,all&#10;2026-08-15,Independence Day,all" />
+                  {csvRows.length > 0 && (
+                    <div className="text-xs space-y-1 max-h-32 overflow-y-auto">
+                      {csvRows.map((r, i) => (
+                        <div key={i} className={`flex gap-2 px-2 py-1 rounded ${r.err ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                          <span className="font-mono">{r.date}</span><span className="flex-1">{r.name}</span>
+                          <span>{r.err ?? '✓'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-3">
+                    <button onClick={() => setCsvModal(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
+                    <button onClick={importCSV} disabled={importing || !csvRows.filter(r=>!r.err).length} className="btn-primary flex-1 justify-center">
+                      {importing ? <Spinner size="sm" /> : <Upload size={14} />}
+                      {importing ? 'Importing...' : `Import ${csvRows.filter(r=>!r.err).length}`}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -127,6 +197,66 @@ export default function SettingsPage() {
   }
 
   const isSuperAdmin = profile?.role === 'super_admin'
+  // ── Holidays state ─────────────────────────────────────────────────────
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const locationLabel = (l: string) => l === 'all' ? 'All' : l === 'office' ? 'Office' : 'CMK'
+  const locationColor  = (l: string) =>
+    l === 'all' ? 'bg-purple-100 text-purple-700' : l === 'office' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+
+  const [hYear, setHYear]           = useState(new Date().getFullYear())
+  const [holidays, setHolidays]     = useState<{id:string;holiday_date:string;name:string;location:string}[]>([])
+  const [hLoading, setHLoading]     = useState(false)
+  const [addHModal, setAddHModal]   = useState(false)
+  const [newHDate, setNewHDate]     = useState('')
+  const [newHName, setNewHName]     = useState('')
+  const [newHLoc, setNewHLoc]       = useState<'all'|'office'|'cmk'>('all')
+  const [hSaving, setHSaving]       = useState(false)
+  const [hSaveErr, setHSaveErr]     = useState<string|null>(null)
+  const [csvModal, setCsvModal]     = useState(false)
+  const [csvText, setCsvText]       = useState('')
+  const [csvRows, setCsvRows]       = useState<{date:string;name:string;location:string;err?:string}[]>([])
+  const [importing, setImporting]   = useState(false)
+  const [importDone, setImportDone] = useState(false)
+  const [delIds, setDelIds]         = useState<Set<string>>(new Set())
+  const [delBusy, setDelBusy]       = useState(false)
+
+  const loadHolidays = async () => {
+    setHLoading(true)
+    const { data } = await supabase.from('holidays').select('id,holiday_date,name,location')
+      .gte('holiday_date', `${hYear}-01-01`).lte('holiday_date', `${hYear}-12-31`).order('holiday_date')
+    setHolidays((data ?? []) as any); setHLoading(false)
+  }
+
+  useEffect(() => { if (isSuperAdmin) loadHolidays() }, [hYear, isSuperAdmin])
+
+  const saveHoliday = async (e: React.FormEvent) => {
+    e.preventDefault(); setHSaveErr(null); setHSaving(true)
+    const { error } = await (supabase.from('holidays') as any).insert({ holiday_date: newHDate, name: newHName.trim(), location: newHLoc })
+    if (error) { setHSaveErr(error.message); setHSaving(false); return }
+    setAddHModal(false); setNewHDate(''); setNewHName(''); setNewHLoc('all'); await loadHolidays(); setHSaving(false)
+  }
+  const parseCSV = (raw: string) => {
+    return raw.trim().split('\n').filter(l => l.trim()).map(line => {
+      const [date, name, location = 'all'] = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''))
+      const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(date); const locOk = ['all','office','cmk'].includes(location)
+      return { date, name, location, err: !dateOk ? 'Invalid date' : !name ? 'Name required' : !locOk ? 'Bad location' : undefined }
+    })
+  }
+  const importCSV = async () => {
+    const valid = csvRows.filter(r => !r.err); if (!valid.length) return
+    setImporting(true)
+    await (supabase.from('holidays') as any).insert(valid.map(r => ({ holiday_date: r.date, name: r.name, location: r.location })))
+    setImportDone(true); setImporting(false); await loadHolidays()
+    setTimeout(() => { setCsvModal(false); setCsvText(''); setCsvRows([]); setImportDone(false) }, 1500)
+  }
+  const toggleDel = (id: string) => setDelIds(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
+  const deleteSelected = async () => {
+    if (!delIds.size) return; setDelBusy(true)
+    await supabase.from('holidays').delete().in('id', [...delIds]); setDelIds(new Set()); await loadHolidays(); setDelBusy(false)
+  }
+  const hByMonth: Record<number, typeof holidays> = {}
+  holidays.forEach(h => { const m = parseISO(h.holiday_date).getMonth(); if (!hByMonth[m]) hByMonth[m] = []; hByMonth[m].push(h) })
+
 
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size="lg" /></div>
 
@@ -304,6 +434,76 @@ export default function SettingsPage() {
         </Section>
       )}
 
+
+      {/* ── Holidays ── */}
+      {isSuperAdmin && (
+        <Section
+          icon={<CalendarDays size={15} style={{ color: '#E8531D' }} />}
+          title="Holidays"
+          subtitle={`${holidays.length} holidays in ${hYear}`}>
+          <div className="p-5 border-t border-gray-50 space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <button onClick={() => setHYear(y => y - 1)} className="p-1.5 rounded-xl border border-gray-200 hover:bg-gray-50"><ChevronLeft size={15} /></button>
+                <span className="text-lg font-black text-gray-900 min-w-[50px] text-center">{hYear}</span>
+                <button onClick={() => setHYear(y => y + 1)} className="p-1.5 rounded-xl border border-gray-200 hover:bg-gray-50"><ChevronRight size={15} /></button>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {delIds.size > 0 && (
+                  <button onClick={deleteSelected} disabled={delBusy} className="btn-secondary text-red-600 border-red-200">
+                    {delBusy ? <Spinner size="sm" /> : <Trash2 size={14} />} Delete ({delIds.size})
+                  </button>
+                )}
+                <button onClick={() => { setCsvModal(true); setImportDone(false) }} className="btn-secondary">
+                  <Upload size={14} /> Bulk Import
+                </button>
+                <button onClick={() => { setAddHModal(true); setHSaveErr(null) }} className="btn-primary">
+                  <Plus size={14} /> Add Holiday
+                </button>
+              </div>
+            </div>
+
+            {hLoading ? <div className="flex justify-center py-8"><Spinner /></div> : (
+              Object.keys(hByMonth).length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <CalendarDays size={32} className="mx-auto text-gray-200 mb-2" />
+                  <p className="text-sm">No holidays for {hYear}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {Object.entries(hByMonth).map(([mStr, hols]) => {
+                    const m = Number(mStr)
+                    return (
+                      <div key={m} className="p-3 rounded-2xl border border-gray-100">
+                        <h4 className="font-black text-gray-600 text-xs uppercase tracking-wider mb-2">{MONTHS[m]}</h4>
+                        <div className="space-y-1.5">
+                          {hols.map(h => {
+                            const selected = delIds.has(h.id)
+                            return (
+                              <div key={h.id} className={`flex items-center gap-2 p-2 rounded-xl ${selected ? 'bg-red-50' : 'bg-gray-50'}`}>
+                                <input type="checkbox" checked={selected} onChange={() => toggleDel(h.id)}
+                                  className="w-3.5 h-3.5 accent-red-500 flex-shrink-0" />
+                                <span className="font-bold text-gray-700 text-sm w-8 flex-shrink-0">{format(parseISO(h.holiday_date), 'dd')}</span>
+                                <span className="flex-1 text-sm text-gray-800 truncate">{h.name}</span>
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${locationColor(h.location)}`}>{locationLabel(h.location)}</span>
+                                <button onClick={async () => { await supabase.from('holidays').delete().eq('id', h.id); await loadHolidays() }}
+                                  className="p-1 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 flex-shrink-0">
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            )}
+          </div>
+        </Section>
+      )}
+
       {/* Add department modal */}
       <Modal isOpen={deptModal} onClose={() => setDeptModal(false)} title="Add department" size="sm">
         <form onSubmit={addDepartment} className="space-y-4">
@@ -347,6 +547,75 @@ export default function SettingsPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Add Holiday Modal */}
+      {addHModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="font-bold text-gray-900">Add Holiday</h2>
+              <button onClick={() => setAddHModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={18} /></button>
+            </div>
+            <form onSubmit={saveHoliday} className="p-6 space-y-4">
+              <div><label className="label">Date</label><input type="date" value={newHDate} onChange={e => setNewHDate(e.target.value)} className="input" required /></div>
+              <div><label className="label">Holiday name</label><input type="text" value={newHName} onChange={e => setNewHName(e.target.value)} className="input" required placeholder="e.g. Diwali" /></div>
+              <div><label className="label">Applies to</label>
+                <select value={newHLoc} onChange={e => setNewHLoc(e.target.value as any)} className="input">
+                  <option value="all">All employees</option><option value="office">Office only</option><option value="cmk">CMK only</option>
+                </select>
+              </div>
+              {hSaveErr && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-xl">{hSaveErr}</p>}
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setAddHModal(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
+                <button type="submit" disabled={hSaving} className="btn-primary flex-1 justify-center">
+                  {hSaving ? <Spinner size="sm" /> : <Plus size={15} />}{hSaving ? 'Saving...' : 'Add'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk CSV Modal */}
+      {csvModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div><h2 className="font-bold text-gray-900">Bulk Import Holidays</h2>
+                <p className="text-xs text-gray-400 mt-0.5">CSV format: <code className="bg-gray-100 px-1 rounded">date,name,location</code></p></div>
+              <button onClick={() => setCsvModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={18} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              {importDone ? (
+                <div className="text-center py-8"><p className="text-4xl mb-2">✅</p><p className="font-bold text-gray-800">Imported!</p></div>
+              ) : (
+                <>
+                  <textarea value={csvText} onChange={e => { setCsvText(e.target.value); setCsvRows(parseCSV(e.target.value)) }}
+                    rows={6} className="input font-mono text-xs resize-none"
+                    placeholder="2026-01-26,Republic Day,all&#10;2026-08-15,Independence Day,all" />
+                  {csvRows.length > 0 && (
+                    <div className="text-xs space-y-1 max-h-32 overflow-y-auto">
+                      {csvRows.map((r, i) => (
+                        <div key={i} className={`flex gap-2 px-2 py-1 rounded ${r.err ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                          <span className="font-mono">{r.date}</span><span className="flex-1">{r.name}</span>
+                          <span>{r.err ?? '✓'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-3">
+                    <button onClick={() => setCsvModal(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
+                    <button onClick={importCSV} disabled={importing || !csvRows.filter(r=>!r.err).length} className="btn-primary flex-1 justify-center">
+                      {importing ? <Spinner size="sm" /> : <Upload size={14} />}
+                      {importing ? 'Importing...' : `Import ${csvRows.filter(r=>!r.err).length}`}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

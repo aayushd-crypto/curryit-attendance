@@ -16,12 +16,13 @@ interface NavGroup {
   heading?: string; items: NavItem[]
 }
 
-// Helper: initials from full name (first + last letter of each word pair)
-export function getInitials(name: string | null | undefined): string {
-  if (!name) return 'U'
-  const parts = name.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? 'U'
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+// Food emoji avatar — deterministic per name
+const FOOD_EMOJIS = ['🍕','🍔','🌮','🍜','🍣','🍩','🧇','🌯','🥗','🍛','🍱','🥘','🍝','🌽','🫕','🥙','🍟','🧆','🥞','🍙','🍤','🌶️','🥐','🧀','🥨']
+export function getAvatar(name: string | null | undefined): string {
+  if (!name) return '🍕'
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0
+  return FOOD_EMOJIS[hash % FOOD_EMOJIS.length]
 }
 
 const navGroups: NavGroup[] = [
@@ -29,7 +30,7 @@ const navGroups: NavGroup[] = [
     items: [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin','admin','cmk_coordinator','employee'] },
       { to: '/leave',     icon: Calendar,        label: 'Leave',      roles: ['super_admin','admin','cmk_coordinator','employee'] },
-      { to: '/holidays',  icon: Palmtree,        label: 'Holidays',   roles: ['super_admin','admin','cmk_coordinator','employee'] },
+      { to: '/holidays',  icon: Palmtree,        label: 'Holidays',   roles: ['admin','cmk_coordinator','employee'] },
     ],
   },
   {
@@ -157,7 +158,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             style={{ background: 'rgba(255,255,255,0.06)' }}>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white flex-shrink-0"
               style={{ background: 'linear-gradient(135deg, #E8531D, #C44010)', boxShadow: '0 4px 12px rgba(232,83,29,0.4)' }}>
-              {getInitials(profile?.full_name)}
+              {getAvatar(profile?.full_name)}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-white truncate">{profile?.full_name ?? 'User'}</p>
