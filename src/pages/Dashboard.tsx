@@ -278,6 +278,8 @@ export default function Dashboard() {
   const [todayRecord, setTodayRecord] = useState<AttRecord | null>(null)
   const [history, setHistory]         = useState<AttRecord[]>([])
   const [workMode, setWorkMode]       = useState<'office' | 'remote'>('office')
+  const [geoError, setGeoError]       = useState<string | null>(null)
+  const [geoChecking, setGeoChecking] = useState(false)
   const [attBusy, setAttBusy]         = useState(false)
   const [attError, setAttError]       = useState<string | null>(null)
   const [now, setNow]                 = useState(new Date())
@@ -412,19 +414,54 @@ export default function Dashboard() {
     if (isEmployee && empId) loadAttendance(empId)
   }, [isEmployee, empId])
 
+  const distanceM = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371000
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLng = (lng2 - lng1) * Math.PI / 180
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+  }
+
   const checkIn = async () => {
     if (!user || !profile || !empId) {
       setAttError('Your account is not linked to an employee record. Please contact admin.')
       return
     }
+    setGeoError(null); setGeoChecking(true)
+
+    // Load geo settings for this employee's location
+    const { data: geo } = await supabase.from('geo_settings').select('*').eq('location', empLocation).single()
+
+    let checkInLat: number | null = null
+    let checkInLng: number | null = null
+
+    if (geo?.enabled) {
+      const pos = await new Promise<GeolocationPosition | null>(resolve => {
+        if (!navigator.geolocation) { resolve(null); return }
+        navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 10000 })
+      })
+      if (!pos) {
+        setGeoError('Location access denied. Please enable GPS and try again.')
+        setGeoChecking(false); return
+      }
+      checkInLat = pos.coords.latitude
+      checkInLng = pos.coords.longitude
+      const dist = distanceM(checkInLat, checkInLng, geo.lat, geo.lng)
+      if (dist > geo.radius_m) {
+        setGeoError(`You are ${Math.round(dist)}m away. Check-in requires being within ${geo.radius_m}m of ${empLocation === 'cmk' ? 'CMK' : 'the office'}.`)
+        setGeoChecking(false); return
+      }
+    }
+    setGeoChecking(false)
     setAttBusy(true); setAttError(null)
 
     const { error: e } = await supabase.from('attendance').insert({
       employee_id: empId,
       date: todayStr,
-      check_in_time: '00:00:00', // server trigger overwrites with real IST time
+      check_in_time: '00:00:00',
       location: empLocation as any,
       work_mode: workMode,
+      ...(checkInLat !== null ? { check_in_lat: checkInLat, check_in_lng: checkInLng } : {}),
       status: 'present',
       source: 'self_marked',
       marked_by: user.id,
@@ -606,11 +643,17 @@ export default function Dashboard() {
                 </div>
                 )}
 
-                <button onClick={checkIn} disabled={attBusy}
+                <button onClick={checkIn} disabled={attBusy || geoChecking}
                   className="btn-primary w-full justify-center py-4 rounded-2xl text-base">
-                  {attBusy ? <Spinner size="sm" /> : <LogIn size={19} />}
-                  {attBusy ? 'Checking in...' : 'Check In'}
+                  {(attBusy || geoChecking) ? <Spinner size="sm" /> : <LogIn size={19} />}
+                  {geoChecking ? 'Verifying location...' : attBusy ? 'Checking in...' : 'Check In'}
                 </button>
+                {geoError && (
+                  <div className="mt-3 px-4 py-3 rounded-xl text-sm text-red-300 text-center"
+                    style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                    📍 {geoError}
+                  </div>
+                )}
                 <p className="text-xs text-center text-gray-400 mt-3 flex items-center justify-center gap-1.5">
                   <Clock size={11} /> One entry per day · time is server-stamped
                 </p>

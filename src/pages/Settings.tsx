@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, Key, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, Key, AlertCircle, MapPin, Navigation } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useAuth } from '../AuthContext'
 import { Modal } from '../Modal'
@@ -21,13 +21,40 @@ export default function SettingsPage() {
   const [error, setError]       = useState<string | null>(null)
   const [success, setSuccess]   = useState<string | null>(null)
 
+  const [geoSettings, setGeoSettings] = useState<Record<string, any>>({})
+  const [geoSaving, setGeoSaving] = useState<string | null>(null)
+
+  const loadGeo = async () => {
+    const { data } = await supabase.from('geo_settings').select('*')
+    const map: Record<string, any> = {}
+    ;(data ?? []).forEach((r: any) => { map[r.location] = { ...r } })
+    setGeoSettings(map)
+  }
+
+  const saveGeo = async (location: string) => {
+    const s = geoSettings[location]
+    if (!s) return
+    setGeoSaving(location)
+    await supabase.from('geo_settings').update({ lat: s.lat, lng: s.lng, radius_m: s.radius_m, enabled: s.enabled }).eq('location', location)
+    setGeoSaving(null)
+    setSuccess('Geo settings saved!')
+    setTimeout(() => setSuccess(null), 2000)
+  }
+
+  const useMyLocation = (location: string) => {
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(pos => {
+      setGeoSettings(prev => ({ ...prev, [location]: { ...prev[location], lat: pos.coords.latitude, lng: pos.coords.longitude } }))
+    })
+  }
+
   const loadDepts = async () => {
     const { data } = await supabase.from('departments').select('*').order('name')
     setDepartments((data ?? []) as Department[])
     setLoading(false)
   }
 
-  useEffect(() => { loadDepts() }, [])
+  useEffect(() => { loadDepts(); loadGeo() }, [])
 
   const addDepartment = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,6 +83,8 @@ export default function SettingsPage() {
     else { setSuccess('Password updated successfully.'); setPwModal(false); setOldPw(''); setNewPw(''); setConfirmPw('') }
     setSaving(false)
   }
+
+  const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'admin'
 
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size="lg" /></div>
 
@@ -126,6 +155,68 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* ── Geo-Fencing Settings ── */}
+      {isSuperAdmin && (
+        <div className="card overflow-hidden">
+          <div className="table-header">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
+                <MapPin size={15} style={{ color: '#E8531D' }} />
+              </div>
+              <h3 className="font-bold text-gray-900">Geo-Fencing</h3>
+            </div>
+          </div>
+          <div className="p-6 space-y-6">
+            {['office', 'cmk'].map(loc => {
+              const s = geoSettings[loc] ?? { lat: 0, lng: 0, radius_m: 200, enabled: false }
+              return (
+                <div key={loc} className="p-5 rounded-2xl border border-gray-100 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-gray-800">{loc === 'cmk' ? 'CMK Location' : 'Office Location'}</h4>
+                    <div className="flex items-center gap-2 cursor-pointer"
+                      onClick={() => setGeoSettings(p => ({ ...p, [loc]: { ...p[loc], enabled: !p[loc]?.enabled } }))}>
+                      <span className="text-xs font-semibold text-gray-500">Enforce</span>
+                      <div className={`w-10 h-5 rounded-full transition-colors ${s.enabled ? 'bg-brand-500' : 'bg-gray-200'}`}
+                        style={{ background: s.enabled ? '#E8531D' : undefined }}>
+                        <div className={`w-4 h-4 rounded-full bg-white shadow m-0.5 transition-transform ${s.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="label">Latitude</label>
+                      <input type="number" step="any" value={s.lat}
+                        onChange={e => setGeoSettings(p => ({ ...p, [loc]: { ...p[loc], lat: parseFloat(e.target.value)||0 } }))}
+                        className="input" placeholder="e.g. 28.6139" />
+                    </div>
+                    <div>
+                      <label className="label">Longitude</label>
+                      <input type="number" step="any" value={s.lng}
+                        onChange={e => setGeoSettings(p => ({ ...p, [loc]: { ...p[loc], lng: parseFloat(e.target.value)||0 } }))}
+                        className="input" placeholder="e.g. 77.2090" />
+                    </div>
+                  </div>
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1">
+                      <label className="label">Allowed radius (metres)</label>
+                      <input type="number" value={s.radius_m}
+                        onChange={e => setGeoSettings(p => ({ ...p, [loc]: { ...p[loc], radius_m: parseInt(e.target.value)||100 } }))}
+                        className="input" />
+                    </div>
+                    <button onClick={() => useMyLocation(loc)} className="btn-secondary gap-2 flex items-center">
+                      <Navigation size={14} /> Use my location
+                    </button>
+                  </div>
+                  <button onClick={() => saveGeo(loc)} disabled={geoSaving === loc} className="btn-primary gap-2 flex items-center">
+                    {geoSaving === loc ? <Spinner size="sm" /> : <MapPin size={14} />} Save {loc === 'cmk' ? 'CMK' : 'Office'} settings
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Add department modal */}
       <Modal isOpen={deptModal} onClose={() => setDeptModal(false)} title="Add department" size="sm">
