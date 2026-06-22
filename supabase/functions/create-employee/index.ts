@@ -120,6 +120,42 @@ serve(async (req) => {
       casual_total: 12, sick_total: 12, emergency_total: 6, paid_total: 15,
     }).throwOnError()
 
+    // Send welcome email with credentials
+    const resendKey = Deno.env.get('RESEND_API_KEY')
+    const fromEmail = Deno.env.get('FROM_EMAIL') ?? 'noreply@curryit.in'
+    if (resendKey) {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: `CURRYiT Attendance <${fromEmail}>`,
+          to: [email],
+          subject: `Welcome to CURRYiT Attendance Portal — Your Login Details`,
+          html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #eee;">
+              <div style="background:linear-gradient(135deg,#E8531D,#C44010);padding:32px 24px;text-align:center;">
+                <h1 style="color:white;margin:0;font-size:24px;font-weight:900;">Welcome to CURRYiT! 🎉</h1>
+                <p style="color:rgba(255,255,255,0.8);margin:8px 0 0;font-size:14px;">Your attendance portal account is ready</p>
+              </div>
+              <div style="padding:32px 24px;">
+                <p style="color:#374151;font-size:15px;">Hi <strong>${name}</strong>,</p>
+                <p style="color:#6B7280;font-size:14px;">Your account has been created. Here are your login details:</p>
+                <div style="background:#F9FAFB;border-radius:8px;padding:20px;margin:20px 0;border:1px solid #E5E7EB;">
+                  <table style="width:100%;border-collapse:collapse;">
+                    <tr><td style="color:#6B7280;font-size:13px;padding:6px 0;">Employee ID</td><td style="color:#111827;font-weight:700;font-size:14px;">${emp_code}</td></tr>
+                    <tr><td style="color:#6B7280;font-size:13px;padding:6px 0;">Email</td><td style="color:#111827;font-weight:700;font-size:14px;">${email}</td></tr>
+                    <tr><td style="color:#6B7280;font-size:13px;padding:6px 0;">Password</td><td style="color:#E8531D;font-weight:700;font-size:14px;font-family:monospace;">${temp_password}</td></tr>
+                  </table>
+                </div>
+                <a href="${Deno.env.get('VITE_APP_URL') ?? 'https://curryit-attendance.vercel.app'}" style="display:block;background:linear-gradient(135deg,#E8531D,#C44010);color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Sign In Now →</a>
+                <p style="color:#9CA3AF;font-size:12px;margin-top:20px;">Please change your password after first login. If you have any issues, contact your admin.</p>
+              </div>
+            </div>
+          `
+        })
+      }).catch(() => {/* email failure is non-critical */})
+    }
+
     return new Response(JSON.stringify({
       success: true,
       employee_code: emp_code,
