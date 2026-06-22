@@ -81,26 +81,24 @@ export default function CMKWorkers() {
     e.preventDefault()
     if (!name.trim()) { setAddErr('Name is required'); return }
     setAddBusy(true); setAddErr('')
-
-    // Generate employee code
-    const { count } = await supabase.from('employees').select('*', { count: 'exact', head: true })
-    const code = `CMK${String((count ?? 0) + 1).padStart(3, '0')}`
-
-    const { error } = await supabase.from('employees').insert({
-      employee_code: code,
-      name: name.trim(),
-      mobile: mobile.trim() || '',
-      email: `${code.toLowerCase()}@cmk.labor`,
-      location: 'cmk',
-      employee_type: 'labor',
-      designation: 'CMK Worker',
-      joining_date: today,
-      status: 'active',
-    })
-
-    if (error) { setAddErr(error.message); setAddBusy(false); return }
-    setName(''); setMobile(''); setAddOpen(false); setAddBusy(false)
-    await load()
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-employee`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+          body: JSON.stringify({ action: 'add_labor_worker', name: name.trim(), mobile: mobile.trim() }),
+        }
+      )
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) { setAddErr(json.error ?? 'Failed to add worker'); setAddBusy(false); return }
+      setName(''); setMobile(''); setAddOpen(false)
+      await load()
+    } catch (err: any) {
+      setAddErr(err.message ?? 'Unexpected error')
+    }
+    setAddBusy(false)
   }
 
   const deleteWorker = async (id: string) => {

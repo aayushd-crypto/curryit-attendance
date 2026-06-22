@@ -24,11 +24,37 @@ serve(async (req) => {
 
     const { data: callerProfile } = await adminClient
       .from('profiles').select('role').eq('id', user.id).single()
-    if (!['admin', 'super_admin'].includes(callerProfile?.role)) {
+
+    const body = await req.json()
+
+    // CMK coordinator can only add labor workers
+    if (callerProfile?.role === 'cmk_coordinator' && body.action !== 'add_labor_worker') {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders })
+    }
+    if (!['admin', 'super_admin', 'cmk_coordinator'].includes(callerProfile?.role)) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders })
     }
 
-    const body = await req.json()
+    // ── Add CMK labor worker (cmk_coordinator or admin) ─────────────────────
+    if (body.action === 'add_labor_worker') {
+      const { name, mobile } = body
+      if (!name) return new Response(JSON.stringify({ error: 'name required' }), { status: 400, headers: corsHeaders })
+      const { count } = await adminClient.from('employees').select('*', { count: 'exact', head: true })
+      const code = `CMK${String((count ?? 0) + 1).padStart(3, '0')}`
+      const { data: emp, error: empErr } = await adminClient.from('employees').insert({
+        employee_code: code,
+        name: name.trim(),
+        mobile: mobile?.trim() || '',
+        email: `${code.toLowerCase()}@cmk.labor`,
+        location: 'cmk',
+        employee_type: 'labor',
+        designation: 'CMK Worker',
+        joining_date: new Date().toISOString().split('T')[0],
+        status: 'active',
+      }).select().single()
+      if (empErr) throw empErr
+      return new Response(JSON.stringify({ success: true, employee: emp }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
     if (body.action === 'reset_password') {
       if (callerProfile?.role !== 'super_admin') {
