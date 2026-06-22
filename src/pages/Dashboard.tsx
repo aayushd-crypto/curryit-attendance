@@ -458,7 +458,7 @@ export default function Dashboard() {
     let checkInLat: number | null = null
     let checkInLng: number | null = null
 
-    if (geo?.enabled) {
+    if (geo?.enabled && workMode !== 'remote') {
       const pos = await new Promise<GeolocationPosition | null>(resolve => {
         if (!navigator.geolocation) { resolve(null); return }
         navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 10000 })
