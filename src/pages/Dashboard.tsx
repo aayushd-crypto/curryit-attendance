@@ -964,29 +964,6 @@ export default function Dashboard() {
         <StatCard label="Attendance %"     value={`${summary?.attendancePct ?? 0}%`}         icon={TrendingUp} color="blue"  sub="vs total active" />
       </div>
 
-      {/* Current month summary */}
-      {monthSummary && (
-        <div className="card p-5">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <CalendarDays size={16} className="text-brand-500" />
-            {format(new Date(), 'MMMM yyyy')} — monthly overview
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[
-              { label: 'Total present days', val: monthSummary.totalPresent, cls: 'text-green-600', bg: 'bg-green-50' },
-              { label: 'Total remote days',  val: monthSummary.totalRemote,  cls: 'text-purple-600', bg: 'bg-purple-50' },
-              { label: 'Total absent days',  val: monthSummary.totalAbsent,  cls: 'text-red-600',    bg: 'bg-red-50'    },
-              { label: 'Total leave days',   val: monthSummary.totalLeave,   cls: 'text-orange-600', bg: 'bg-orange-50' },
-            ].map(({ label, val, cls, bg }) => (
-              <div key={label} className={`text-center p-4 ${bg} rounded-xl`}>
-                <p className={`text-3xl font-bold ${cls}`}>{val}</p>
-                <p className="text-xs text-gray-500 mt-1">{label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Office and CMK side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Office */}
@@ -1038,6 +1015,29 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Current month summary */}
+      {monthSummary && (
+        <div className="card p-5">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <CalendarDays size={16} className="text-brand-500" />
+            {format(new Date(), 'MMMM yyyy')} — monthly overview
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              { label: 'Total present days', val: monthSummary.totalPresent, cls: 'text-green-600', bg: 'bg-green-50' },
+              { label: 'Total remote days',  val: monthSummary.totalRemote,  cls: 'text-purple-600', bg: 'bg-purple-50' },
+              { label: 'Total absent days',  val: monthSummary.totalAbsent,  cls: 'text-red-600',    bg: 'bg-red-50'    },
+              { label: 'Total leave days',   val: monthSummary.totalLeave,   cls: 'text-orange-600', bg: 'bg-orange-50' },
+            ].map(({ label, val, cls, bg }) => (
+              <div key={label} className={`text-center p-4 ${bg} rounded-xl`}>
+                <p className={`text-3xl font-bold ${cls}`}>{val}</p>
+                <p className="text-xs text-gray-500 mt-1">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Calendar + Breakdown row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
