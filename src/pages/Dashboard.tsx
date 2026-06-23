@@ -620,7 +620,8 @@ export default function Dashboard() {
 
     return (
       <div className="space-y-5 max-w-5xl mx-auto">
-        <div className="page-header">
+        {/* Header */}
+        <div className="page-header flex-wrap gap-2">
           <div>
             <h1 className="page-title">My Dashboard</h1>
             <p className="page-subtitle">{formatDate(todayStr)} · {format(now, 'hh:mm:ss a')} · {empLocation === 'office' ? 'Office' : 'CMK'}</p>
@@ -630,26 +631,31 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Employee — personal current month stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { label: 'Present this month', color: 'bg-green-50', cls: 'text-green-600',  rows: history.filter(r => r.status === 'present' && r.work_mode !== 'remote') },
-            ...(role !== 'cmk_coordinator' ? [{ label: 'Remote this month',  color: 'bg-purple-50', cls: 'text-purple-600', rows: history.filter(r => r.work_mode === 'remote') }] : []),
-            { label: 'Absent this month',  color: 'bg-red-50',    cls: 'text-red-600',    rows: history.filter(r => r.status === 'absent') },
-            { label: 'On leave this month',color: 'bg-orange-50', cls: 'text-orange-600', rows: history.filter(r => r.status === 'leave') },
-          ].map(({ label, color, cls, rows }) => (
-            <button key={label} onClick={() => setDrillModal({ title: label, rows: rows.map(r => ({ name: formatDate(r.date), sub: r.check_in_time ? `${formatTime(r.check_in_time)}${r.check_out_time ? ' → ' + formatTime(r.check_out_time) : ''}` : undefined })) })}
-              className={`card p-4 text-center ${color} cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all`}>
-              <p className={`text-3xl font-bold ${cls}`}>{rows.length}</p>
-              <p className="text-xs text-gray-500 mt-1">{label}</p>
+        {/* Month stats — icon pills */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {([
+            { label: 'Present', sublabel: 'this month', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: '✅', rows: history.filter(r => r.status === 'present' && r.work_mode !== 'remote') },
+            ...(role !== 'cmk_coordinator' ? [{ label: 'Remote', sublabel: 'this month', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe', icon: '🏠', rows: history.filter(r => r.work_mode === 'remote') }] : []),
+            { label: 'Absent',  sublabel: 'this month', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: '❌', rows: history.filter(r => r.status === 'absent') },
+            { label: 'On Leave',sublabel: 'this month', color: '#ea580c', bg: '#fff7ed', border: '#fed7aa', icon: '🏖️', rows: history.filter(r => r.status === 'leave') },
+          ] as any[]).map(({ label, sublabel, color, bg, border, icon, rows }) => (
+            <button key={label}
+              onClick={() => setDrillModal({ title: `${label} — ${sublabel}`, rows: rows.map((r: any) => ({ name: formatDate(r.date), sub: r.check_in_time ? `${formatTime(r.check_in_time)}${r.check_out_time ? ' → ' + formatTime(r.check_out_time) : ''}` : undefined })) })}
+              className="card p-4 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all text-left"
+              style={{ background: bg, borderColor: border }}>
+              <span className="text-2xl flex-shrink-0">{icon}</span>
+              <div className="min-w-0">
+                <p className="text-2xl font-black leading-none" style={{ color }}>{rows.length}</p>
+                <p className="text-xs text-gray-500 mt-0.5 truncate font-medium">{label}</p>
+              </div>
             </button>
           ))}
         </div>
 
-        {/* Check-in/out widget + compact calendar side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Check-in/out card — hidden for CMK coordinators */}
-          <div className="lg:col-span-2 card-elevated rounded-3xl p-4 sm:p-7">
+        {/* Check-in widget + calendar */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+          {/* Check-in/out card */}
+          <div className="card-elevated rounded-3xl p-5 sm:p-7">
             {/* ── NOT CHECKED IN ── */}
             {!checkedIn && !attError && (
               <>
@@ -837,8 +843,8 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Compact monthly calendar */}
-          <AttendanceCalendar employeeId={empId} location={empLocation} compact onDayClick={(dateStr) => navigate(`/attendance/${dateStr}`)} />
+          {/* Monthly calendar */}
+          <AttendanceCalendar employeeId={empId} location={empLocation} small onDayClick={(dateStr) => navigate(`/attendance/${dateStr}`)} />
         </div>
 
         {/* History table */}
