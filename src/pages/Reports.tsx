@@ -132,7 +132,7 @@ export default function ReportsPage() {
       <div className="flex gap-1 p-1 rounded-2xl bg-gray-100" style={{ width: 'fit-content' }}>
         {[
           { key: 'reports', label: 'Attendance Report', icon: BarChart2 },
-          ...(isSuperAdmin || role === 'admin' ? [{ key: 'audit', label: 'Audit Log', icon: ClipboardList }] : []),
+          ...(isSuperAdmin ? [{ key: 'audit', label: 'Audit Log', icon: ClipboardList }] : []),
         ].map((item) => { const { key, label, icon: Icon } = item as any; const labelShort = (item as any).labelShort ?? label; return (
           <button key={key} onClick={() => setTab(key as any)}
             className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
