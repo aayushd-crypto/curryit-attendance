@@ -178,8 +178,8 @@ function AttendanceCalendar({ employeeId, location, compact, small, empMap, onDa
       ) : (
         <div className="grid grid-cols-7 gap-0.5">
           {/* Week day headers */}
-          {(compact || small ? weekDaysShort : weekDays).map((d, i) => (
-            <div key={`${d}-${i}`} className={`text-center font-medium py-1 ${compact || small ? 'text-[10px]' : 'text-xs'} ${i === 0 ? 'text-red-400' : 'text-gray-400'}`}>
+          {(compact ? weekDaysShort : weekDays).map((d, i) => (
+            <div key={`${d}-${i}`} className={`text-center font-medium py-1 ${compact ? 'text-[10px]' : 'text-xs'} ${i === 0 ? 'text-red-500 font-bold' : 'text-gray-900 font-semibold'}`}>
               {d}
             </div>
           ))}
