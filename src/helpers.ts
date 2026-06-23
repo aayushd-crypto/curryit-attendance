@@ -16,9 +16,6 @@ export const formatTime = (t: string) => {
 }
 export const formatDateTime = (d: string) => format(parseISO(d), 'dd MMM yyyy, hh:mm a')
 
-  return count
-}
-
 export function getLeaveDays(start: string, end: string): number {
   return differenceInCalendarDays(parseISO(end), parseISO(start)) + 1
 }
@@ -120,5 +117,3 @@ export async function logAudit(params: {
     ip_address: null,
   })
 }
-
-// ── Attendance percentage ──────────────────────────────────────────────────────
