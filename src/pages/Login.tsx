@@ -109,22 +109,22 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right panel — login form ── */}
-      <div className="flex-1 flex flex-col items-center justify-between p-6 sm:p-10 relative min-h-screen lg:min-h-0">
+      <div className="flex-1 flex flex-col items-center justify-between p-5 sm:p-10 relative min-h-screen lg:min-h-0 overflow-y-auto">
         {/* Subtle right-side bg */}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #111122 0%, #0d0d1a 100%)' }} />
         <div className="absolute top-0 right-0 w-64 h-64 opacity-10 rounded-full"
           style={{ background: 'radial-gradient(circle, #E8531D, transparent)', transform: 'translate(30%, -30%)' }} />
 
-        <div className="relative z-10 w-full max-w-sm flex-1 flex flex-col justify-center">
+        <div className="relative z-10 w-full max-w-sm flex-1 flex flex-col justify-center py-4">
 
           {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-10">
-            <img src="/logo.png" alt="CURRYiT" className="h-20 w-auto mx-auto mb-3 drop-shadow-2xl" />
+          <div className="lg:hidden text-center mb-6">
+            <img src="/logo.png" alt="CURRYiT" className="h-14 w-auto mx-auto mb-2 drop-shadow-2xl" />
             <p className="text-white/30 text-[10px] font-bold uppercase tracking-[3px]">Attendance Portal</p>
           </div>
 
-          <h2 className="text-3xl font-black text-white mb-1 tracking-tight">Welcome back</h2>
-          <p className="text-white/40 text-sm mb-8">Sign in to manage your team</p>
+          <h2 className="text-2xl sm:text-3xl font-black text-white mb-1 tracking-tight">Welcome back</h2>
+          <p className="text-white/40 text-sm mb-5">Sign in to manage your team</p>
 
           {resetSent ? (
             <div className="text-center py-8 px-4 rounded-2xl"
@@ -134,7 +134,7 @@ export default function LoginPage() {
               <p className="text-white/40 text-sm">Check your inbox for the password reset link.</p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
               {/* Email */}
               <div>
                 <label className="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">Email</label>
