@@ -17,11 +17,10 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
     <div
       className="fixed inset-0 z-50 flex justify-center"
       style={{
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-        background: 'rgba(15,23,42,0.2)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         alignItems: 'flex-start',
-        paddingTop: '110px',
+        paddingTop: '72px',
       }}
       onClick={onClose}>
       <div
