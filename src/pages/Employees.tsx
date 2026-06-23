@@ -901,7 +901,7 @@ export default function EmployeesPage() {
               <label className="label">Joining date</label>
               <input type="date" value={editForm.joining_date} onChange={e => setEditForm({ ...editForm, joining_date: e.target.value })} className="input" required />
             </div>
-            <div>
+            <div className={role === 'super_admin' ? '' : 'col-span-2'}>
               <label className="label">Status</label>
               <div className="relative">
                 <select value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value as EmployeeStatus })} className="input pr-8 appearance-none">
