@@ -655,7 +655,7 @@ export default function Dashboard() {
         {/* Check-in widget + calendar */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Check-in/out card */}
-          <div className="card-elevated rounded-3xl p-5 sm:p-7 flex flex-col">
+          <div className="card-elevated rounded-3xl p-4 sm:p-6 flex flex-col">
             {/* ── NOT CHECKED IN ── */}
             {!checkedIn && !attError && (
               <>
@@ -790,7 +790,7 @@ export default function Dashboard() {
 
                 {/* Timer + progress */}
                 <div className="text-center">
-                  <p className="text-6xl font-black text-gray-900 tracking-tight tabular-nums leading-none mb-1">
+                  <p className="text-5xl sm:text-6xl font-black text-gray-900 tracking-tight tabular-nums leading-none mb-1">
                     {liveWorked !== null ? fmtMins(liveWorked) : '—'}
                   </p>
                   <p className="text-sm text-gray-400">
@@ -823,7 +823,7 @@ export default function Dashboard() {
                 )}
 
                 {/* Info row */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <div className="p-3 rounded-xl bg-gray-50 text-center">
                     <p className="text-xs text-gray-400 font-medium">Checked in</p>
                     <p className="font-bold text-gray-900 text-sm mt-0.5">{formatTime(todayRecord!.check_in_time ?? '')}</p>
@@ -860,14 +860,14 @@ export default function Dashboard() {
                     <CheckCircle2 size={20} className="text-emerald-600" />
                   </div>
                   <div>
-                    <h2 className="font-black text-gray-900 text-lg leading-tight">Day complete!</h2>
+                    <h2 className="font-black text-gray-900 text-base sm:text-lg leading-tight">Day complete!</h2>
                     <p className="text-xs text-gray-400">{formatDate(todayStr)}</p>
                   </div>
                 </div>
 
                 {/* Big worked time */}
                 <div className="text-center py-4 rounded-2xl" style={{ background: 'linear-gradient(135deg,#f0fdf4,#dcfce7)' }}>
-                  <p className="text-5xl font-black text-emerald-700 tabular-nums leading-none">
+                  <p className="text-4xl sm:text-5xl font-black text-emerald-700 tabular-nums leading-none">
                     {fmtMins(todayRecord!.worked_minutes ?? 0)}
                   </p>
                   <p className="text-xs text-emerald-600 font-semibold mt-1.5 uppercase tracking-wide">Total worked</p>
