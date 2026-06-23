@@ -117,7 +117,7 @@ export default function CMKWorkers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="page-title">CMK Workers</h1>
           <p className="page-subtitle">{todayLabel}</p>
@@ -162,7 +162,7 @@ export default function CMKWorkers() {
               const status = getStatus(w.id)
               const busy = attBusy === w.id
               return (
-                <div key={w.id} className="flex items-center gap-4 px-6 py-4">
+                <div key={w.id} className="flex items-center gap-2 sm:gap-4 px-3 sm:px-6 py-3 sm:py-4">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white flex-shrink-0"
                     style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
                     {w.name[0].toUpperCase()}
@@ -184,7 +184,7 @@ export default function CMKWorkers() {
                   )}
 
                   {/* Action buttons */}
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="flex gap-1.5 flex-shrink-0">
                     <button onClick={() => markAttendance(w.id, 'present')} disabled={!!busy}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                         status === 'present'

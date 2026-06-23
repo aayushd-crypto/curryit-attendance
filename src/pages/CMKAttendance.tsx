@@ -233,7 +233,7 @@ export default function CMKAttendancePage() {
       {/* Attendance table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px]">
+          <table className="w-full min-w-[500px]">
             <thead>
               <tr>
                 <th>Employee ID</th>

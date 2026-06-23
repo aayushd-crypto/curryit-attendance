@@ -455,7 +455,7 @@ export default function EmployeesPage() {
           <h1 className="page-title">Employees</h1>
           <p className="page-subtitle">{employees.filter(e => e.status === 'active').length} active employees</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button onClick={() => { setCsvModal(true); setCsvRows([]); setCsvResults([]); setCsvDone(false) }} className="btn-secondary">
             <Upload size={15} /> Import
           </button>
@@ -495,7 +495,7 @@ export default function EmployeesPage() {
       {/* Table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px]">
+          <table className="w-full min-w-[540px]">
             <thead>
               <tr>
                 <th>Emp ID</th><th>Name</th><th>Department</th>
@@ -818,7 +818,7 @@ export default function EmployeesPage() {
             {/* Temp password */}
             <div>
               <label className="label">Temporary password — share with employee</label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <div className="relative flex-1">
                   <input type={showPw ? 'text' : 'password'} value={form.temp_password}
                     onChange={e => setForm({ ...form, temp_password: e.target.value })}

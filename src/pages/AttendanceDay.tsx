@@ -95,7 +95,7 @@ export default function AttendanceDayPage() {
   })
 
   const isValidDate = date ? !isNaN(new Date(date).getTime()) : false
-  const displayDate = isValidDate ? format(parseISO(date!), 'EEEE, dd MMMM yyyy') : 'Invalid date'
+  const displayDate = isValidDate ? format(parseISO(date!), 'EEE, dd MMM yyyy') : 'Invalid date'
 
   const statusBadge = (r: DayRow) => {
     if (r.work_mode === 'remote') return <span className="badge-remote">Remote</span>
@@ -108,13 +108,13 @@ export default function AttendanceDayPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-5">
       {/* Header */}
-      <div className="page-header">
+      <div className="page-header flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors">
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="page-title flex items-center gap-2">
+            <h1 className="page-title flex items-center gap-2 text-lg sm:text-2xl">
               <Calendar size={20} className="text-brand-500" />
               {displayDate}
             </h1>
@@ -171,7 +171,7 @@ export default function AttendanceDayPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[480px]">
               <thead>
                 <tr>
                   {isAdmin && <><th>Employee</th><th>Location</th></>}

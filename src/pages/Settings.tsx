@@ -194,7 +194,7 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
-      <div className="page-header">
+      <div className="page-header flex-wrap gap-2">
         <div>
           <h1 className="page-title">Settings</h1>
           <p className="page-subtitle">Tap any section to expand</p>
@@ -281,7 +281,7 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="label">Latitude</label>
                       <input type="number" step="any" value={s.lat}

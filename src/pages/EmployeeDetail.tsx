@@ -133,14 +133,14 @@ export default function EmployeeDetailPage() {
 
       {/* Leave balance strip */}
       {balance && (
-        <div className="card p-4 flex items-center gap-6">
+        <div className="card p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6">
           <div className="flex items-center gap-2">
             <Plane size={16} className="text-orange-500" />
             <span className="text-sm font-semibold text-gray-700">Casual Leave Balance</span>
           </div>
           <div className="flex items-center gap-4 flex-1">
             <div className="text-center">
-              <p className="text-xl font-black text-gray-900">{balance.casual_total}</p>
+              <p className="text-lg sm:text-xl font-black text-gray-900">{balance.casual_total}</p>
               <p className="text-[10px] text-gray-400">Total</p>
             </div>
             <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -148,11 +148,11 @@ export default function EmployeeDetailPage() {
                 style={{ width: `${balance.casual_total ? Math.min(100, (balance.casual_used / balance.casual_total) * 100) : 0}%` }} />
             </div>
             <div className="text-center">
-              <p className="text-xl font-black text-red-600">{balance.casual_used}</p>
+              <p className="text-lg sm:text-xl font-black text-red-600">{balance.casual_used}</p>
               <p className="text-[10px] text-gray-400">Used</p>
             </div>
             <div className="text-center">
-              <p className="text-xl font-black text-green-600">{balance.casual_total - balance.casual_used}</p>
+              <p className="text-lg sm:text-xl font-black text-green-600">{balance.casual_total - balance.casual_used}</p>
               <p className="text-[10px] text-gray-400">Left</p>
             </div>
           </div>

@@ -175,7 +175,7 @@ export default function LeavePage() {
 
       {/* Casual leave balance card — employees */}
       {(role === 'employee' || role === 'cmk_coordinator') && balance && (
-        <div className="card p-5 flex items-center gap-6">
+        <div className="card p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6">
           <div className="p-3 rounded-xl bg-blue-50">
             <Wallet size={20} className="text-blue-500" />
           </div>
@@ -198,7 +198,7 @@ export default function LeavePage() {
       )}
 
       {/* Filter bar */}
-      <div className="flex gap-2 flex-wrap items-center">
+      <div className="flex gap-2 flex-wrap items-center justify-between sm:justify-start">
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg shadow-brand-500/25"
           style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)' }}>
           <Briefcase size={14} /> Leave requests
@@ -222,7 +222,7 @@ export default function LeavePage() {
       {/* Table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[500px]">
+          <table className="w-full min-w-[420px]">
             <thead>
               <tr>
                 {isAdmin && <th>Employee</th>}

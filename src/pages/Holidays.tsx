@@ -127,7 +127,7 @@ export default function Holidays() {
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="page-header">
+      <div className="page-header flex-wrap gap-2">
         <div>
           <h1 className="page-title">Holidays</h1>
           <p className="page-subtitle">{holidays.length} holiday{holidays.length !== 1 ? 's' : ''} in {year}</p>
@@ -152,7 +152,7 @@ export default function Holidays() {
       </div>
 
       {/* Year selector */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 flex-wrap">
         <button onClick={() => setYear(y => y - 1)} className="p-2 rounded-xl bg-white shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors">
           <ChevronLeft size={16} />
         </button>
