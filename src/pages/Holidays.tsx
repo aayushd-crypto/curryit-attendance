@@ -250,7 +250,8 @@ export default function Holidays() {
 
       {/* ── Add Holiday Modal ─────────────────────────────────────────────── */}
       {addModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h2 className="font-bold text-gray-900">Add Holiday</h2>
@@ -283,13 +284,15 @@ export default function Holidays() {
               </div>
             </form>
           </div>
+          </div>
         </div>
       )}
 
       {/* ── Bulk CSV Modal ────────────────────────────────────────────────── */}
       {csvModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 px-4 pb-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
-          <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl flex flex-col max-h-[85vh]">
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="flex min-h-full items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
                 <h2 className="font-bold text-gray-900">Bulk Import Holidays</h2>
@@ -356,6 +359,7 @@ export default function Holidays() {
                 </button>
               </div>
             )}
+          </div>
           </div>
         </div>
       )}

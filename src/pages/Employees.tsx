@@ -570,7 +570,8 @@ export default function EmployeesPage() {
 
       {/* ── HISTORY Modal ── */}
       {histEmp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -742,6 +743,7 @@ export default function EmployeesPage() {
             <div className="px-6 py-4 border-t border-gray-100">
               <button onClick={() => setHistEmp(null)} className="btn-secondary w-full justify-center">Close</button>
             </div>
+          </div>
           </div>
         </div>
       )}
@@ -936,7 +938,8 @@ export default function EmployeesPage() {
 
       {/* ── RESET PASSWORD MODAL (super_admin) ── */}
       {pwEmp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
@@ -965,12 +968,14 @@ export default function EmployeesPage() {
               </div>
             </form>
           </div>
+          </div>
         </div>
       )}
 
       {/* ── CSV IMPORT MODAL ── */}
       {csvModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 px-4 pb-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
@@ -1065,6 +1070,7 @@ export default function EmployeesPage() {
                 </button>
               )}
             </div>
+          </div>
           </div>
         </div>
       )}
