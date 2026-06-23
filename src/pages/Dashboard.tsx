@@ -488,7 +488,6 @@ export default function Dashboard() {
 
     // Load geo settings for this employee's location
     const { data: geo, error: geoFetchErr } = await supabase.from('geo_settings').select('*').eq('location', effectiveLocation).single()
-    console.log('[GEO] settings:', geo, 'fetchErr:', geoFetchErr, 'workMode:', workMode)
 
     let checkInLat: number | null = null
     let checkInLng: number | null = null
@@ -499,7 +498,6 @@ export default function Dashboard() {
         setGeoError('Location not configured. Contact admin to set up geo-fencing in Settings.')
         setGeoChecking(false); return
       }
-      console.log('[GEO] enforcing — radius:', geo.radius_m, 'target:', geo.lat, geo.lng)
       const pos = await new Promise<GeolocationPosition | null>(resolve => {
         if (!navigator.geolocation) { resolve(null); return }
         navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 10000 })
@@ -511,7 +509,6 @@ export default function Dashboard() {
       checkInLat = pos.coords.latitude
       checkInLng = pos.coords.longitude
       const dist = distanceM(checkInLat, checkInLng, geo.lat, geo.lng)
-      console.log('[GEO] distance:', dist, 'radius:', geo.radius_m, 'blocking:', dist > geo.radius_m)
       if (dist > geo.radius_m) {
         setGeoError(`You are ${Math.round(dist)}m away. Check-in requires being within ${geo.radius_m}m of ${effectiveLocation === 'cmk' ? 'CMK' : 'the office'}.`)
         setGeoChecking(false); return

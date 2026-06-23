@@ -15,16 +15,7 @@ export const formatTime = (t: string) => {
   return `${hour > 12 ? hour - 12 : hour || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`
 }
 export const formatDateTime = (d: string) => format(parseISO(d), 'dd MMM yyyy, hh:mm a')
-export const getMonthName = (d: string) => format(parseISO(d + '-01'), 'MMMM yyyy')
 
-export function countWorkingDays(start: string, end: string): number {
-  let count = 0
-  let current = parseISO(start)
-  const endDate = parseISO(end)
-  while (current <= endDate) {
-    if (!isWeekend(current)) count++
-    current = addDays(current, 1)
-  }
   return count
 }
 
@@ -131,7 +122,3 @@ export async function logAudit(params: {
 }
 
 // ── Attendance percentage ──────────────────────────────────────────────────────
-export function calcAttendancePct(present: number, total: number): number {
-  if (!total) return 0
-  return Math.round((present / total) * 100)
-}
