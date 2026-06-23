@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Plus, Trash2, Key, AlertCircle, MapPin, Navigation, Users, Building2, ChevronDown, CalendarDays, Upload, Download, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { Plus, Trash2, Key, AlertCircle, MapPin, Navigation, Users, Building2, ChevronDown, ChevronUp, CalendarDays, Upload, Download, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, parseISO, isFuture, isToday } from 'date-fns'
 import { supabase } from '../supabase'
 import { useAuth } from '../AuthContext'
@@ -9,38 +9,38 @@ import type { Department, Location } from '../database'
 import { GeoPickerMap } from '../components/GeoPickerMap'
 
 // ── Accordion section wrapper ─────────────────────────────────────────────
-function Section({ icon, title, subtitle, children, defaultOpen = false }: {
+function Section({ icon, title, subtitle, children, defaultOpen = false, actions }: {
   icon: React.ReactNode; title: string; subtitle?: string
-  children: React.ReactNode; defaultOpen?: boolean
+  children: React.ReactNode; defaultOpen?: boolean; actions?: React.ReactNode
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="card overflow-hidden">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full table-header flex items-center justify-between gap-3 text-left hover:bg-gray-50/60 transition-colors"
-        style={{ cursor: 'pointer' }}>
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between table-header">
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="flex-1 flex items-center gap-3 text-left hover:opacity-80 transition-opacity min-w-0"
+          style={{ cursor: 'pointer' }}>
           <div className="p-2 rounded-xl flex-shrink-0" style={{ background: 'rgba(232,83,29,0.08)' }}>
             {icon}
           </div>
-          <div>
-            <h3 className="font-bold text-gray-900">{title}</h3>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-bold text-gray-900 text-sm">{title}</h3>
             {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
           </div>
-        </div>
-        <ChevronDown
-          size={18}
-          className="text-gray-400 flex-shrink-0 transition-transform duration-300"
-          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
-        />
-      </button>
+          <ChevronDown
+            size={18}
+            className="text-gray-400 flex-shrink-0 transition-transform duration-300 mr-2"
+            style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          />
+        </button>
+        {actions && <div className="flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>{actions}</div>}
+      </div>
       <div
-        className="overflow-hidden transition-all duration-300"
-        style={{ maxHeight: open ? '2000px' : '0px', opacity: open ? 1 : 0, transition: 'max-height 0.35s ease, opacity 0.25s ease' }}>
+        className="overflow-hidden"
+        style={{ maxHeight: open ? '4000px' : '0px', opacity: open ? 1 : 0, transition: 'max-height 0.4s ease, opacity 0.25s ease' }}>
         {children}
       </div>
-
     </div>
   )
 }
@@ -207,17 +207,8 @@ export default function SettingsPage() {
       {/* ── Top row: Account + Admin Management ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        {/* Account card */}
-        <div className="card overflow-hidden">
-          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-            <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
-              <Key size={15} style={{ color: '#E8531D' }} />
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 text-sm">Account</h3>
-              <p className="text-xs text-gray-400">Password &amp; profile</p>
-            </div>
-          </div>
+        {/* Account accordion */}
+        <Section icon={<Key size={15} style={{ color: '#E8531D' }} />} title="Account" subtitle="Password & profile">
           <div className="p-5">
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
               <div>
@@ -229,20 +220,11 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
-        </div>
+        </Section>
 
-        {/* Admin Management card (super_admin only) */}
+        {/* Admin Management accordion (super_admin only) */}
         {isSuperAdmin && (
-          <div className="card overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-              <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
-                <Users size={15} style={{ color: '#E8531D' }} />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900 text-sm">Admin Management</h3>
-                <p className="text-xs text-gray-400">Assign department scope to each admin</p>
-              </div>
-            </div>
+          <Section icon={<Users size={15} style={{ color: '#E8531D' }} />} title="Admin Management" subtitle="Assign department scope to each admin">
             <div className="p-5">
               <div className="overflow-x-auto rounded-2xl border border-gray-100">
                 <table className="w-full">
@@ -285,26 +267,16 @@ export default function SettingsPage() {
                 </table>
               </div>
             </div>
-          </div>
+          </Section>
         )}
       </div>
 
       {/* ── Departments — full row ── */}
-      <div className="card overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
-              <Building2 size={15} style={{ color: '#E8531D' }} />
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 text-sm">Departments</h3>
-              <p className="text-xs text-gray-400">{departments.filter(d => d.status === 'active').length} active</p>
-            </div>
-          </div>
-          <button onClick={() => setDeptModal(true)} className="btn-primary">
-            <Plus size={15} /> Add department
-          </button>
-        </div>
+      <Section
+        icon={<Building2 size={15} style={{ color: '#E8531D' }} />}
+        title="Departments"
+        subtitle={`${departments.filter(d => d.status === 'active').length} active`}
+        actions={<button onClick={() => setDeptModal(true)} className="btn-primary"><Plus size={15} /> Add department</button>}>
         <div className="p-5">
           <div className="overflow-x-auto rounded-2xl border border-gray-100">
             <table className="w-full">
@@ -330,20 +302,11 @@ export default function SettingsPage() {
             </table>
           </div>
         </div>
-      </div>
+      </Section>
 
       {/* ── Geo-Fencing — 2-col map grid ── */}
       {isSuperAdmin && (
-        <div className="card overflow-hidden">
-          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
-            <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
-              <MapPin size={15} style={{ color: '#E8531D' }} />
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 text-sm">Geo-Fencing</h3>
-              <p className="text-xs text-gray-400">Office &amp; CMK location boundaries</p>
-            </div>
-          </div>
+        <Section icon={<MapPin size={15} style={{ color: '#E8531D' }} />} title="Geo-Fencing" subtitle="Office & CMK location boundaries">
           <div className="p-4 sm:p-5">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {['office', 'cmk'].map(loc => {
@@ -418,22 +381,16 @@ export default function SettingsPage() {
               })}
             </div>
           </div>
-        </div>
+        </Section>
       )}
 
       {/* ── Holidays — full row ── */}
       {isSuperAdmin && (
-        <div className="card overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50 flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
-                <CalendarDays size={15} style={{ color: '#E8531D' }} />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900 text-sm">Holidays</h3>
-                <p className="text-xs text-gray-400">{holidays.length} holidays in {hYear}</p>
-              </div>
-            </div>
+        <Section
+          icon={<CalendarDays size={15} style={{ color: '#E8531D' }} />}
+          title="Holidays"
+          subtitle={`${holidays.length} holidays in ${hYear}`}
+          actions={
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-1">
                 <button onClick={() => setHYear(y => y - 1)} className="p-1.5 rounded-xl border border-gray-200 hover:bg-gray-50"><ChevronLeft size={14} /></button>
@@ -452,7 +409,7 @@ export default function SettingsPage() {
                 <Plus size={14} /> Add Holiday
               </button>
             </div>
-          </div>
+          }>
           <div className="p-5">
             {hLoading ? <div className="flex justify-center py-8"><Spinner /></div> : (
               Object.keys(hByMonth).length === 0 ? (
@@ -492,10 +449,10 @@ export default function SettingsPage() {
               )
             )}
           </div>
-        </div>
+        </Section>
       )}
 
-            {/* Add department modal */}
+      {/* Add department modal */}
       <Modal isOpen={deptModal} onClose={() => setDeptModal(false)} title="Add department" size="sm">
         <form onSubmit={addDepartment} className="space-y-4">
           <div>
