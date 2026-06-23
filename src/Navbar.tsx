@@ -218,9 +218,9 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         </button>
 
         {/* Mobile: compact greeting + clock */}
-        <div className="flex sm:hidden flex-col leading-tight px-2 py-1 rounded-2xl min-w-0 flex-1" style={{ background: 'var(--tile-bg)' }}>
+        <div className="flex sm:hidden items-center gap-2 px-3 py-1.5 rounded-2xl min-w-0 flex-1" style={{ background: 'var(--tile-bg)' }}>
+          <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse flex-shrink-0" />
           <span className="text-xs font-black text-gray-800 truncate" style={{ transition: 'opacity 0.3s', opacity: greetVisible ? 1 : 0 }}>{GREETINGS[greetIdx]} {profile?.full_name?.split(' ')[0]}</span>
-
         </div>
 
         {/* Desktop: 3 separate tiles */}

@@ -217,7 +217,7 @@ export default function CMKAttendancePage() {
       </div>
 
       {/* Progress bar */}
-      <div className="card p-4">
+      <div className="card p-4 sm:p-5">
         <div className="flex items-center justify-between text-sm mb-2">
           <span className="text-gray-600">Attendance progress</span>
           <span className="font-medium text-gray-900">{marked}/{total} marked</span>

@@ -624,7 +624,7 @@ export default function Dashboard() {
         <div className="page-header flex-wrap gap-2">
           <div>
             <h1 className="page-title">My Dashboard</h1>
-            <p className="page-subtitle">{formatDate(todayStr)} · {format(now, 'hh:mm:ss a')} · {empLocation === 'office' ? 'Office' : 'CMK'}</p>
+            <p className="page-subtitle text-[11px] sm:text-sm">{formatDate(todayStr)} · {format(now, 'hh:mm:ss a')} · {empLocation === 'office' ? 'Office' : 'CMK'}</p>
           </div>
           <button onClick={loadDashboard} className="btn-secondary">
             <RefreshCw size={15} /> Refresh
@@ -645,7 +645,7 @@ export default function Dashboard() {
               style={{ background: bg, borderColor: border }}>
               <span className="text-2xl flex-shrink-0">{icon}</span>
               <div className="min-w-0">
-                <p className="text-2xl font-black leading-none" style={{ color }}>{rows.length}</p>
+                <p className="text-xl sm:text-2xl font-black leading-none" style={{ color }}>{rows.length}</p>
                 <p className="text-xs text-gray-500 mt-0.5 truncate font-medium">{label}</p>
               </div>
             </button>
@@ -655,7 +655,7 @@ export default function Dashboard() {
         {/* Check-in widget + calendar */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Check-in/out card */}
-          <div className="card-elevated rounded-3xl p-4 sm:p-6 flex flex-col">
+          <div className="card-elevated rounded-3xl p-4 sm:p-5 flex flex-col gap-0">
             {/* ── NOT CHECKED IN ── */}
             {!checkedIn && !attError && (
               <>
@@ -988,7 +988,7 @@ export default function Dashboard() {
 
       {/* Admin self check-in card */}
       {role === 'admin' && empId && (
-        <div className="card-elevated rounded-3xl p-6">
+        <div className="card-elevated rounded-3xl p-4 sm:p-6">
           {!todayRecord ? (
             <>
               <h2 className="font-black text-gray-900 text-lg mb-1 tracking-tight">My Check-in</h2>
@@ -1064,7 +1064,7 @@ export default function Dashboard() {
       {/* Office and CMK side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Office */}
-        <div className="card p-5">
+        <div className="card p-4 sm:p-5">
           <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-blue-500 rounded-full" />
             Office attendance
@@ -1079,8 +1079,8 @@ export default function Dashboard() {
               const rows = todayAttFull.filter(fn)
               return (
                 <button key={label} onClick={() => setDrillModal({ title: `Office — ${label} today`, rows: rows.map(r => ({ name: (r as any).empName })) })}
-                  className={`text-center p-3 ${bg} rounded-xl hover:shadow-md hover:-translate-y-0.5 transition-all w-full`}>
-                  <p className={`text-2xl font-bold ${cls}`}>{rows.length}</p>
+                  className={`text-center p-2.5 sm:p-3 ${bg} rounded-xl hover:shadow-md hover:-translate-y-0.5 transition-all w-full`}>
+                  <p className={`text-xl sm:text-2xl font-bold ${cls}`}>{rows.length}</p>
                   <p className="text-xs text-gray-500 mt-1">{label}</p>
                 </button>
               )
@@ -1089,7 +1089,7 @@ export default function Dashboard() {
         </div>
 
         {/* CMK */}
-        <div className="card p-5">
+        <div className="card p-4 sm:p-5">
           <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-brand-500 rounded-full" />
             CMK attendance
@@ -1103,8 +1103,8 @@ export default function Dashboard() {
               const rows = todayAttFull.filter(fn)
               return (
                 <button key={label} onClick={() => setDrillModal({ title: `CMK — ${label} today`, rows: rows.map(r => ({ name: (r as any).empName })) })}
-                  className={`text-center p-3 ${bg} rounded-xl hover:shadow-md hover:-translate-y-0.5 transition-all w-full`}>
-                  <p className={`text-2xl font-bold ${cls}`}>{rows.length}</p>
+                  className={`text-center p-2.5 sm:p-3 ${bg} rounded-xl hover:shadow-md hover:-translate-y-0.5 transition-all w-full`}>
+                  <p className={`text-xl sm:text-2xl font-bold ${cls}`}>{rows.length}</p>
                   <p className="text-xs text-gray-500 mt-1">{label}</p>
                 </button>
               )
@@ -1115,7 +1115,7 @@ export default function Dashboard() {
 
       {/* Current month summary */}
       {monthSummary && (
-        <div className="card p-5">
+        <div className="card p-4 sm:p-5">
           <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <CalendarDays size={16} className="text-brand-500" />
             {format(new Date(), 'MMMM yyyy')} — monthly overview
@@ -1127,8 +1127,8 @@ export default function Dashboard() {
               { label: 'Total absent days',  val: monthSummary.totalAbsent,  cls: 'text-red-600',    bg: 'bg-red-50'    },
               { label: 'Total leave days',   val: monthSummary.totalLeave,   cls: 'text-orange-600', bg: 'bg-orange-50' },
             ].map(({ label, val, cls, bg }) => (
-              <div key={label} className={`text-center p-4 ${bg} rounded-xl`}>
-                <p className={`text-3xl font-bold ${cls}`}>{val}</p>
+              <div key={label} className={`text-center p-3 sm:p-4 ${bg} rounded-xl`}>
+                <p className={`text-2xl sm:text-3xl font-bold ${cls}`}>{val}</p>
                 <p className="text-xs text-gray-500 mt-1">{label}</p>
               </div>
             ))}

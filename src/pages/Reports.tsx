@@ -148,7 +148,7 @@ export default function ReportsPage() {
       {/* ── REPORTS TAB ── */}
       {tab === 'reports' && (
         <>
-          <div className="card p-4">
+          <div className="card p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-3 text-sm font-medium text-gray-700">
               <Filter size={15} /> Filters
             </div>
@@ -238,7 +238,7 @@ export default function ReportsPage() {
       {/* ── AUDIT LOG TAB ── */}
       {tab === 'audit' && (
         <>
-          <div className="card p-4">
+          <div className="card p-4 sm:p-5">
             <input value={auditSearch} onChange={e => setAuditSearch(e.target.value)}
               className="input" placeholder="Search by name or action…" />
           </div>

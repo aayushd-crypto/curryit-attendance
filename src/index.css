@@ -130,3 +130,41 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 .animate-fadeUp { animation: fadeUp 0.4s ease forwards; }
+
+/* ── Mobile Design Parity ── */
+@media (max-width: 639px) {
+  /* Cards keep full visual weight on mobile */
+  .card {
+    border-radius: 1.5rem;
+  }
+  .card-elevated {
+    border-radius: 1.5rem;
+  }
+
+  /* Buttons stay full-sized on mobile */
+  .btn-primary {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  /* Labels stay crisp */
+  .label {
+    letter-spacing: 0.08em;
+  }
+
+  /* Modal full quality on mobile */
+  .modal-content {
+    border-radius: 1.5rem;
+  }
+
+  /* Page titles stay bold on mobile */
+  .page-title {
+    font-size: 1.25rem;
+    letter-spacing: -0.025em;
+  }
+
+  /* Table cells — keep text legible */
+  td {
+    font-size: 0.8rem;
+  }
+}

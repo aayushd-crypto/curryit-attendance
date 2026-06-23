@@ -20,18 +20,18 @@ const colorMap = {
 export function StatCard({ label, value, icon: Icon, color, sub }: StatCardProps) {
   const c = colorMap[color]
   return (
-    <div className="rounded-2xl p-5 transition-all duration-200 hover:-translate-y-0.5"
+    <div className="rounded-2xl p-4 sm:p-5 transition-all duration-200 hover:-translate-y-0.5"
       style={{
         background: c.bg,
         border: `1px solid ${c.glow.replace('0.25', '0.2')}`,
         boxShadow: `0 2px 8px ${c.glow}, 0 1px 3px rgba(0,0,0,0.04)`,
       }}>
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
         <div className="p-2.5 rounded-xl" style={{ background: c.grad, boxShadow: `0 4px 14px ${c.glow}` }}>
           <Icon size={18} className="text-white" />
         </div>
       </div>
-      <p className="text-4xl font-black leading-none mb-2 tracking-tight" style={{ color: c.text }}>{value}</p>
+      <p className="text-2xl sm:text-4xl font-black leading-none mb-2 tracking-tight truncate" style={{ color: c.text }}>{value}</p>
       <p className="text-sm font-semibold text-gray-600">{label}</p>
       {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
     </div>

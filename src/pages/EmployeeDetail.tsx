@@ -186,7 +186,7 @@ export default function EmployeeDetailPage() {
           ].map(({ label, val, cls, bg, key }) => (
             <button key={label}
               onClick={() => key !== 'all' ? setFilter(f => f === key ? 'all' : key) : undefined}
-              className={`${bg} rounded-xl p-3 text-center transition-all ${key !== 'all' ? 'hover:shadow-md cursor-pointer' : 'cursor-default'} ${filter === key ? 'ring-2 ring-offset-1 ring-gray-400' : ''}`}>
+              className={`${bg} rounded-xl p-2.5 sm:p-3 text-center transition-all ${key !== 'all' ? 'hover:shadow-md cursor-pointer' : 'cursor-default'} ${filter === key ? 'ring-2 ring-offset-1 ring-gray-400' : ''}`}>
               <p className={`text-lg font-black ${cls}`}>{val}</p>
               <p className="text-[10px] text-gray-500 mt-0.5">{label}</p>
             </button>
