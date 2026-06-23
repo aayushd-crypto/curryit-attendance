@@ -221,8 +221,8 @@ function AttendanceCalendar({ employeeId, location, compact, small, empMap, onDa
                 {holiday && !compact && (
                   <span className="text-[7px] leading-none opacity-80 mt-0.5">🎉</span>
                 )}
-                {/* Worked hours */}
-                {worked != null && worked > 0 && !holiday && (
+                {/* Worked hours — only for personal calendar */}
+                {employeeId && worked != null && worked > 0 && !holiday && (
                   <span className={`leading-none font-normal opacity-60 mt-0.5 ${compact || small ? 'text-[7px]' : 'text-[9px]'}`}>
                     {fmtHrsShort(worked)}
                   </span>
