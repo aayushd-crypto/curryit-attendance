@@ -224,11 +224,11 @@ export default function SettingsPage() {
 
         {/* Admin Management accordion (super_admin only) */}
         {isSuperAdmin && (
-          <Section icon={<Users size={15} style={{ color: '#E8531D' }} />} title="Admin Management" subtitle="Assign department scope to each admin">
+          <Section icon={<Users size={15} style={{ color: '#E8531D' }} />} title="Manager Management" subtitle="Assign department to each manager">
             <div className="p-5">
               <div className="overflow-x-auto rounded-2xl border border-gray-100">
                 <table className="w-full">
-                  <thead><tr><th>Admin</th><th>Department</th><th></th></tr></thead>
+                  <thead><tr><th>Manager</th><th>Department</th><th></th></tr></thead>
                   <tbody>
                     {admins.map(a => (
                       <tr key={a.id}>
@@ -261,7 +261,7 @@ export default function SettingsPage() {
                       </tr>
                     ))}
                     {admins.length === 0 && (
-                      <tr><td colSpan={3} className="text-center text-gray-400 py-6 text-sm">No admin accounts found</td></tr>
+                      <tr><td colSpan={3} className="text-center text-gray-400 py-6 text-sm">No manager accounts found</td></tr>
                     )}
                   </tbody>
                 </table>
