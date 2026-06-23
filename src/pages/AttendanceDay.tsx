@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { format, parseISO } from 'date-fns'
-import { ArrowLeft, Calendar } from 'lucide-react'
+import { format, parseISO, addDays, subDays } from 'date-fns'
+import { ArrowLeft, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useAuth } from '../AuthContext'
 import { Spinner } from '../Spinner'
@@ -123,6 +123,28 @@ export default function AttendanceDayPage() {
             </p>
           </div>
         </div>
+        {/* Prev / Next date navigation */}
+        {isValidDate && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => navigate(`/attendance/${format(subDays(parseISO(date!), 1), 'yyyy-MM-dd')}`)}
+              className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 border border-gray-200 transition-colors"
+              title="Previous day"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <span className="text-xs text-gray-400 px-1 font-medium">
+              {format(parseISO(date!), 'dd MMM')}
+            </span>
+            <button
+              onClick={() => navigate(`/attendance/${format(addDays(parseISO(date!), 1), 'yyyy-MM-dd')}`)}
+              className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 border border-gray-200 transition-colors"
+              title="Next day"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filter tabs */}
