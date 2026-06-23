@@ -11,6 +11,11 @@ import { Modal } from '../Modal'
 import { useAuth } from '../AuthContext'
 import { formatDate, formatTime, statusLabel, logAudit } from '../helpers'
 
+// ── Locked CMK geo-fence — cannot be changed from Settings ───────────────────
+const CMK_GEO = { lat: 28.46670448416244, lng: 77.15012178466036, radius_m: 200 } as const
+
+
+
 interface TodaySummary {
   totalEmployees: number
   presentTotal: number
@@ -451,18 +456,22 @@ export default function Dashboard() {
   useEffect(() => {
     if ((!isEmployee && role !== 'admin') || !empLocation || !navigator.geolocation) return
     const checkGeo = async () => {
-      const { data: geo } = await supabase.from('geo_settings').select('*').eq('location', empLocation).single()
+      // CMK geo is hardcoded and locked — office geo comes from DB
+      let geoLat: number, geoLng: number, geoRadius: number
+      if (empLocation === 'cmk') {
+        geoLat = CMK_GEO.lat; geoLng = CMK_GEO.lng; geoRadius = CMK_GEO.radius_m
+      } else {
+        const { data: geo } = await supabase.from('geo_settings').select('*').eq('location', empLocation).single()
+        if (!geo?.lat || !geo?.lng) return
+        geoLat = geo.lat; geoLng = geo.lng; geoRadius = geo.radius_m
+      }
       navigator.geolocation.getCurrentPosition(pos => {
-        if (!geo?.lat || !geo?.lng) {
-          setGeoStatus({ ok: true, dist: 0, radius: 0, lat: pos.coords.latitude, lng: pos.coords.longitude, officeLat: 0, officeLng: 0 })
-          return
-        }
         const R = 6371000
-        const dLat = (geo.lat - pos.coords.latitude) * Math.PI / 180
-        const dLng = (geo.lng - pos.coords.longitude) * Math.PI / 180
-        const a = Math.sin(dLat/2)**2 + Math.cos(pos.coords.latitude*Math.PI/180)*Math.cos(geo.lat*Math.PI/180)*Math.sin(dLng/2)**2
+        const dLat = (geoLat - pos.coords.latitude) * Math.PI / 180
+        const dLng = (geoLng - pos.coords.longitude) * Math.PI / 180
+        const a = Math.sin(dLat/2)**2 + Math.cos(pos.coords.latitude*Math.PI/180)*Math.cos(geoLat*Math.PI/180)*Math.sin(dLng/2)**2
         const dist = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)))
-        setGeoStatus({ ok: dist <= geo.radius_m, dist, radius: geo.radius_m, lat: pos.coords.latitude, lng: pos.coords.longitude, officeLat: geo.lat, officeLng: geo.lng })
+        setGeoStatus({ ok: dist <= geoRadius, dist, radius: geoRadius, lat: pos.coords.latitude, lng: pos.coords.longitude, officeLat: geoLat, officeLng: geoLng })
       }, () => {})
     }
     checkGeo()
@@ -486,18 +495,23 @@ export default function Dashboard() {
     // For CMK coordinators, always use 'cmk' location (safety guard)
     const effectiveLocation = role === 'cmk_coordinator' ? 'cmk' : empLocation
 
-    // Load geo settings for this employee's location
-    const { data: geo, error: geoFetchErr } = await supabase.from('geo_settings').select('*').eq('location', effectiveLocation).single()
+    // CMK geo is hardcoded and locked — office geo comes from DB
+    let geoLat: number, geoLng: number, geoRadius: number
+    if (effectiveLocation === 'cmk') {
+      geoLat = CMK_GEO.lat; geoLng = CMK_GEO.lng; geoRadius = CMK_GEO.radius_m
+    } else {
+      const { data: geo } = await supabase.from('geo_settings').select('*').eq('location', effectiveLocation).single()
+      if (!geo || (!geo.lat && !geo.lng)) {
+        setGeoError('Location not configured. Contact admin to set up geo-fencing in Settings.')
+        setGeoChecking(false); return
+      }
+      geoLat = geo.lat; geoLng = geo.lng; geoRadius = geo.radius_m
+    }
 
     let checkInLat: number | null = null
     let checkInLng: number | null = null
 
     if (workMode !== 'remote') {
-      // Geo-fence always enforced (regardless of enabled flag)
-      if (!geo || (!geo.lat && !geo.lng)) {
-        setGeoError('Location not configured. Contact admin to set up geo-fencing in Settings.')
-        setGeoChecking(false); return
-      }
       const pos = await new Promise<GeolocationPosition | null>(resolve => {
         if (!navigator.geolocation) { resolve(null); return }
         navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 10000 })
@@ -508,9 +522,9 @@ export default function Dashboard() {
       }
       checkInLat = pos.coords.latitude
       checkInLng = pos.coords.longitude
-      const dist = distanceM(checkInLat, checkInLng, geo.lat, geo.lng)
-      if (dist > geo.radius_m) {
-        setGeoError(`You are ${Math.round(dist)}m away. Check-in requires being within ${geo.radius_m}m of ${effectiveLocation === 'cmk' ? 'CMK' : 'the office'}.`)
+      const dist = distanceM(checkInLat, checkInLng, geoLat, geoLng)
+      if (dist > geoRadius) {
+        setGeoError(`You are ${Math.round(dist)}m away. Check-in requires being within ${geoRadius}m of ${effectiveLocation === 'cmk' ? 'CMK' : 'the office'}.`)
         setGeoChecking(false); return
       }
     }
