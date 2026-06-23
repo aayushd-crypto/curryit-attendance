@@ -19,6 +19,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
       style={{
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
+        background: 'rgba(0,0,0,0.15)',
         alignItems: 'flex-start',
         paddingTop: '72px',
       }}
