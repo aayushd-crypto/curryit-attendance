@@ -552,13 +552,11 @@ export default function Dashboard() {
 
     // Both office and CMK geo come from DB (configurable in Settings)
     const { data: geo } = await supabase.from('geo_settings').select('*').eq('location', effectiveLocation).single()
-    let geoLat: number, geoLng: number, geoRadius: number
     if (!geo || (!geo.lat && !geo.lng)) {
-        setGeoError('Location not configured. Contact admin to set up geo-fencing in Settings.')
-        setGeoChecking(false); return
-      }
-      geoLat = geo.lat; geoLng = geo.lng; geoRadius = geo.radius_m
+      setGeoError('Location not configured. Contact admin to set up geo-fencing in Settings.')
+      setGeoChecking(false); return
     }
+    const geoLat = geo.lat, geoLng = geo.lng, geoRadius = geo.radius_m
 
     let checkInLat: number | null = null
     let checkInLng: number | null = null
