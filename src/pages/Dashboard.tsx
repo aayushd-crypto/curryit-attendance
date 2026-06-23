@@ -576,9 +576,10 @@ export default function Dashboard() {
   })()
 
   const pieData = summary ? [
-    { name: 'Present',  value: summary.presentTotal + summary.remoteTotal, color: '#16a34a' },
-    { name: 'Absent',   value: summary.absentTotal,  color: '#dc2626' },
-    { name: 'On Leave', value: summary.leaveTotal,   color: '#E8531D' },
+    { name: 'Present',  value: summary.presentTotal,  color: '#16a34a', bg: '#f0fdf4' },
+    { name: 'Remote',   value: summary.remoteTotal,   color: '#8b5cf6', bg: '#f5f3ff' },
+    { name: 'Absent',   value: summary.absentTotal,   color: '#dc2626', bg: '#fef2f2' },
+    { name: 'On Leave', value: summary.leaveTotal,    color: '#f97316', bg: '#fff7ed' },
   ] : []
 
   if (loading) return (
@@ -1092,51 +1093,76 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Today's breakdown — clean stat card */}
-        <div className="card p-5 flex flex-col">
-          <h3 className="font-semibold text-gray-900 mb-1">Today's breakdown</h3>
-          <p className="text-xs text-gray-400 mb-5">All employees</p>
+        {/* Today's breakdown — enhanced card */}
+        <div className="card p-5 flex flex-col gap-4">
+          {/* Header */}
+          <div>
+            <h3 className="font-bold text-gray-900 text-base">Today's breakdown</h3>
+            <p className="text-xs text-gray-400 mt-0.5">{format(new Date(), 'EEEE, dd MMM yyyy')}</p>
+          </div>
 
-          {/* Donut visual */}
           {(() => {
             const total = pieData.reduce((s, d) => s + d.value, 0)
+            // Build donut segments
+            let offset = 25 // start from top
+            const segments = pieData.map(({ value, color }) => {
+              const pct = total > 0 ? (value / total) * 100 : 0
+              const seg = { pct, color, offset }
+              offset += pct
+              return seg
+            })
             return (
               <>
-                <div className="flex justify-center mb-5">
-                  <div className="relative w-28 h-28">
+                {/* Donut + center stats */}
+                <div className="flex items-center gap-4">
+                  <div className="relative flex-shrink-0" style={{ width: 100, height: 100 }}>
                     <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                      {pieData.reduce((acc, { value, color }) => {
-                        const pct = total > 0 ? (value / total) * 100 : 0
-                        const offset = acc.offset
-                        acc.els.push(
-                          <circle key={color} cx="18" cy="18" r="15.9"
-                            fill="none" stroke={color} strokeWidth="3.2"
-                            strokeDasharray={`${pct} ${100 - pct}`}
-                            strokeDashoffset={-offset}
-                          />
-                        )
-                        acc.offset += pct
-                        return acc
-                      }, { els: [] as React.ReactNode[], offset: 0 }).els}
+                      {/* Track */}
+                      <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f3f4f6" strokeWidth="3.5" />
+                      {total === 0 ? (
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e5e7eb" strokeWidth="3.5"
+                          strokeDasharray="100 0" strokeDashoffset="-25" />
+                      ) : segments.map(({ pct, color, offset }, i) => pct > 0 ? (
+                        <circle key={i} cx="18" cy="18" r="15.9" fill="none" stroke={color} strokeWidth="3.5"
+                          strokeDasharray={`${pct} ${100 - pct}`}
+                          strokeDashoffset={-offset}
+                          strokeLinecap="round"
+                        />
+                      ) : null)}
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-2xl font-black text-gray-900">{total}</span>
-                      <span className="text-[10px] text-gray-400 font-medium">total</span>
+                      <span className="text-2xl font-black text-gray-900 leading-none">{total}</span>
+                      <span className="text-[9px] text-gray-400 font-semibold uppercase tracking-wide mt-0.5">Total</span>
                     </div>
+                  </div>
+
+                  {/* Quick stat pills */}
+                  <div className="flex flex-col gap-1.5 flex-1">
+                    {pieData.map(({ name, value, color, bg }) => (
+                      <div key={name} className="flex items-center justify-between px-3 py-1.5 rounded-xl" style={{ background: bg }}>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+                          <span className="text-xs font-semibold text-gray-700">{name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black" style={{ color }}>{value}</span>
+                          <span className="text-[10px] text-gray-400 w-8 text-right">
+                            {total > 0 ? `${Math.round((value/total)*100)}%` : '—'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  {pieData.map(({ name, value, color }) => (
-                    <div key={name} className="flex items-center gap-3">
-                      <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: color }} />
-                      <span className="text-sm text-gray-600 flex-1">{name}</span>
-                      <span className="font-bold text-gray-900 text-sm">{value}</span>
-                      <div className="w-16 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: total > 0 ? `${(value/total)*100}%` : '0%', background: color }} />
-                      </div>
-                    </div>
-                  ))}
+                {/* Full-width progress bar */}
+                <div className="h-2.5 rounded-full overflow-hidden flex gap-0.5 bg-gray-100">
+                  {total === 0 ? (
+                    <div className="h-full w-full rounded-full bg-gray-200" />
+                  ) : pieData.map(({ name, value, color }) => value > 0 ? (
+                    <div key={name} className="h-full rounded-full transition-all"
+                      style={{ width: `${(value/total)*100}%`, background: color }} />
+                  ) : null)}
                 </div>
               </>
             )
