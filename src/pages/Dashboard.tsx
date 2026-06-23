@@ -468,12 +468,39 @@ export default function Dashboard() {
   useEffect(() => { loadDashboard() }, [role, profile?.email])
 
   // ── Load today's attendance + current month history for employee ─────────
+  const autoCheckoutIfMissed = async (record: any, employeeId: string) => {
+    if (!record || record.check_out_time || !record.check_in_time) return
+    // Check if current IST time is past 7 PM
+    const now = new Date()
+    const istOffset = 5.5 * 60 * 60 * 1000
+    const istNow = new Date(now.getTime() + istOffset)
+    const istHour = istNow.getUTCHours()
+    if (istHour < 19) return // not yet 7 PM — do nothing
+
+    // Auto checkout at 19:00:00
+    const checkOutTime = '19:00:00'
+    const [ih, im] = record.check_in_time.split(':').map(Number)
+    const workedMins = Math.max(0, 19 * 60 - (ih * 60 + im))
+    await supabase.from('attendance')
+      .update({ check_out_time: checkOutTime, worked_minutes: workedMins })
+      .eq('id', record.id)
+  }
+
   const loadAttendance = async (employeeId: string) => {
     setAttError(null)
     const { data: today } = await supabase
       .from('attendance').select('*')
       .eq('employee_id', employeeId).eq('date', todayStr).maybeSingle()
-    setTodayRecord(today ?? null)
+
+    // Auto-checkout at 7 PM if employee forgot
+    if (today && !today.check_out_time) {
+      await autoCheckoutIfMissed(today, employeeId)
+    }
+
+    const { data: refreshed } = await supabase
+      .from('attendance').select('*')
+      .eq('employee_id', employeeId).eq('date', todayStr).maybeSingle()
+    setTodayRecord(refreshed ?? today ?? null)
 
     const { data: hist } = await supabase
       .from('attendance').select('*')
