@@ -653,9 +653,9 @@ export default function Dashboard() {
         </div>
 
         {/* Check-in widget + calendar */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Check-in/out card */}
-          <div className="card-elevated rounded-3xl p-5 sm:p-7">
+          <div className="card-elevated rounded-3xl p-5 sm:p-7 flex flex-col">
             {/* ── NOT CHECKED IN ── */}
             {!checkedIn && !attError && (
               <>
