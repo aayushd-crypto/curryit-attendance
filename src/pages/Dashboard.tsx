@@ -158,7 +158,7 @@ function AttendanceCalendar({ employeeId, location, compact, small, empMap, onDa
       </div>
 
       {/* Legend */}
-      {!compact && (
+      {!compact && !small && (
         <div className="flex flex-wrap gap-2 mb-4">
           {[
             { label: 'Present', cls: 'bg-green-100 text-green-700 border border-green-200' },
@@ -206,7 +206,7 @@ function AttendanceCalendar({ employeeId, location, compact, small, empMap, onDa
                 }}
                 className={`
                   flex flex-col items-center justify-center rounded-lg w-full
-                  ${compact ? 'py-1' : small ? 'py-1.5 text-xs' : 'aspect-square text-xs'}
+                  ${compact ? 'py-1' : small ? 'h-8' : 'aspect-square text-xs'}
                   ${statusStyle[status]}
                   ${today ? 'ring-2 ring-brand-500 ring-offset-1' : ''}
                   ${onDayClick && status !== 'none' && status !== 'sunday' && status !== 'festival' ? 'hover:brightness-95 cursor-pointer' : 'cursor-default'}
@@ -1040,9 +1040,9 @@ export default function Dashboard() {
       )}
 
       {/* Calendar + Breakdown row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Calendar with built-in location toggle */}
-        <div className="lg:col-span-2">
+        <div>
           <AttendanceCalendar
             location={calendarLocation}
             empMap={empMap}
