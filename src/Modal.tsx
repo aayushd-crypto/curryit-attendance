@@ -15,15 +15,16 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', background: 'rgba(15,23,42,0.25)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', background: 'rgba(15,23,42,0.2)' }}
       onClick={onClose}>
       <div
-        className={`relative rounded-2xl shadow-2xl w-full ${widths[size]}`}
+        className={`relative rounded-2xl shadow-2xl w-full ${widths[size]} mx-4`}
         style={{ background: 'var(--dropdown-bg)' }}
         onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">{title}</h2>
+        {/* Header — always visible */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 rounded-t-2xl">
+          <h2 className="font-semibold text-gray-900 text-base">{title}</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
             <X size={15} />
           </button>
