@@ -311,6 +311,7 @@ export default function Dashboard() {
 
   const [empMap, setEmpMap]             = useState<Record<string, string>>({})
   const [todayAttFull, setTodayAttFull] = useState<any[]>([])
+  const [teamEmployees, setTeamEmployees] = useState<any[]>([])
   const [drillModal, setDrillModal]   = useState<{ title: string; rows: { name: string; sub?: string }[] } | null>(null)
 
   // live clock
@@ -382,6 +383,20 @@ export default function Dashboard() {
       }
       const { data: todayAtt } = await attQuery
       setTodayAttFull((todayAtt ?? []).map((r: any) => ({ ...r, empName: empMap[r.employee_id] ?? '—' })) as any[])
+
+      // Build per-employee team rows for manager view
+      if (role === 'manager' && scopedEmpIds !== null) {
+        const { data: empDetails } = await supabase
+          .from('employees').select('id, name, designation, department_id, departments(name)')
+          .in('id', scopedEmpIds.length > 0 ? scopedEmpIds : ['none'])
+          .eq('status', 'active').order('name')
+        const attByEmpId: Record<string, any> = {}
+        ;(todayAtt ?? []).forEach((r: any) => { attByEmpId[r.employee_id] = r })
+        setTeamEmployees((empDetails ?? []).map((e: any) => ({
+          ...e,
+          att: attByEmpId[e.id] ?? null,
+        })))
+      }
 
       const att = todayAtt ?? []
       const presentTotal  = att.filter(r => r.status === 'present' && r.work_mode !== 'remote').length
@@ -1193,7 +1208,8 @@ export default function Dashboard() {
         <StatCard label="Attendance %"     value={`${summary?.attendancePct ?? 0}%`}         icon={TrendingUp} color="blue"  sub="vs total active" />
       </div>
 
-      {/* Office and CMK side by side */}
+      {/* Office/CMK breakdown — super_admin only; manager gets employee-wise table below */}
+      {role !== 'manager' && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Office */}
         <div className="card p-4 sm:p-5">
@@ -1219,7 +1235,6 @@ export default function Dashboard() {
             })}
           </div>
         </div>
-
         {/* CMK */}
         <div className="card p-4 sm:p-5">
           <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -1244,9 +1259,59 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      )}
 
-      {/* Current month summary */}
-      {monthSummary && (
+      {/* Manager: employee-wise attendance table */}
+      {role === 'manager' && (
+        <div className="card overflow-hidden">
+          <div className="table-header">
+            <div>
+              <h3 className="font-bold text-gray-900">My Team Today</h3>
+              <p className="text-xs text-gray-400 mt-0.5">{formatDate(todayStr)}</p>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead><tr><th>Employee</th><th>Department</th><th>Status</th><th>Check In</th><th>Check Out</th><th>Hours</th></tr></thead>
+              <tbody>
+                {teamEmployees.length === 0 && (
+                  <tr><td colSpan={6} className="text-center py-8 text-gray-400 text-sm">No employees assigned to you yet</td></tr>
+                )}
+                {teamEmployees.map(e => {
+                  const att = e.att
+                  const statusCls = !att ? 'bg-gray-100 text-gray-500' :
+                    att.status === 'present' && att.work_mode !== 'remote' ? 'badge-present' :
+                    att.work_mode === 'remote' ? 'bg-purple-50 text-purple-700' :
+                    att.status === 'absent' ? 'badge-rejected' :
+                    att.status === 'leave' ? 'bg-orange-50 text-orange-700' : 'bg-gray-100 text-gray-500'
+                  const statusTxt = !att ? 'Not marked' :
+                    att.work_mode === 'remote' ? 'Remote' :
+                    att.status === 'present' ? 'Present' :
+                    att.status === 'absent' ? 'Absent' :
+                    att.status === 'leave' ? 'On Leave' : att.status
+                  const workedMins = att?.worked_minutes ?? 0
+                  return (
+                    <tr key={e.id}>
+                      <td>
+                        <p className="font-semibold text-gray-900 text-xs">{e.name}</p>
+                        <p className="text-gray-400 text-[10px]">{e.designation}</p>
+                      </td>
+                      <td className="text-xs text-gray-600">{e.departments?.name ?? '—'}</td>
+                      <td><span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusCls}`}>{statusTxt}</span></td>
+                      <td className="text-xs font-mono text-gray-700">{att?.check_in_time ? formatTime(att.check_in_time) : '—'}</td>
+                      <td className="text-xs font-mono text-gray-700">{att?.check_out_time ? formatTime(att.check_out_time) : '—'}</td>
+                      <td className="text-xs font-semibold text-gray-700">{workedMins > 0 ? fmtMins(workedMins) : '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Current month summary — hide for manager */}
+      {monthSummary && role !== 'manager' && (
         <div className="card p-4 sm:p-5">
           <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <CalendarDays size={16} className="text-brand-500" />
@@ -1268,8 +1333,8 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Calendar + Breakdown row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Calendar + Breakdown row — hide for manager */}
+      {role !== 'manager' && <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Calendar with built-in location toggle */}
         <div>
           <AttendanceCalendar
@@ -1380,6 +1445,8 @@ export default function Dashboard() {
           })()}
         </div>
       </div>
+
+      }
 
       {/* Pending leaves */}
       {pendingLeaves.length > 0 ? (
