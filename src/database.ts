@@ -1,4 +1,4 @@
-export type UserRole = 'super_admin' | 'admin' | 'cmk_coordinator' | 'employee'
+export type UserRole = 'super_admin' | 'manager' | 'cmk_coordinator' | 'employee'
 export type AttendanceStatus = 'present' | 'absent' | 'leave' | 'holiday'
 export type WorkMode = 'office' | 'remote'
 export type AttendanceSource = 'self_marked' | 'coordinator_marked' | 'admin_marked'

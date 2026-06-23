@@ -319,7 +319,7 @@ export default function Dashboard() {
     return () => clearInterval(t)
   }, [])
 
-  const isAdmin    = role === 'admin' || role === 'super_admin'
+  const isAdmin    = role === 'manager' || role === 'super_admin'
   const isEmployee = role === 'employee' || role === 'cmk_coordinator'
 
   const loadDashboard = async () => {
@@ -344,7 +344,7 @@ export default function Dashboard() {
 
       // For admin role, resolve department scope (safe - column may not exist yet)
       let adminDeptId: string | null = null
-      if (role === 'admin' && profile?.email) {
+      if ((role === 'manager') && profile?.email) {
         try {
           const { data: prof } = await supabase.from('profiles').select('department_id').eq('email', profile.email).maybeSingle()
           adminDeptId = prof?.department_id ?? null
@@ -354,7 +354,7 @@ export default function Dashboard() {
       // Total active employees
       let empQuery = supabase.from('employees').select('*', { count: 'exact', head: true }).eq('status', 'active')
       if (!isAdmin && myLocation) empQuery = empQuery.eq('location', myLocation)
-      if (role === 'admin' && adminDeptId) empQuery = empQuery.eq('department_id', adminDeptId)
+      if ((role === 'manager') && adminDeptId) empQuery = empQuery.eq('department_id', adminDeptId)
       const { count: totalEmployees } = await empQuery
 
       // Fetch employee name map

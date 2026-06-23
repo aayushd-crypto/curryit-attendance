@@ -18,6 +18,7 @@ interface AuditEntry {
 export default function ReportsPage() {
   const { role, profile } = useAuth()
   const isSuperAdmin = role === 'super_admin'
+  const isManager = role === 'manager'
   const [tab, setTab] = useState<'reports' | 'audit'>('reports')
 
   // ── Reports state ────────────────────────────────────────────────────────
@@ -33,7 +34,7 @@ export default function ReportsPage() {
   const loadReport = async () => {
     setLoadingR(true)
     let deptId = adminDeptId
-    if (role === 'admin' && deptId === null && profile?.email) {
+    if (role === 'manager' && deptId === null && profile?.email) {
       try {
         const { data: prof } = await supabase.from('profiles').select('department_id').eq('email', profile.email).maybeSingle()
         deptId = prof?.department_id ?? null; setAdminDeptId(deptId)
@@ -75,7 +76,7 @@ export default function ReportsPage() {
 
   const roleColor = (r: string) => {
     if (r === 'super_admin') return 'bg-purple-50 text-purple-700'
-    if (r === 'admin')       return 'bg-blue-50 text-blue-700'
+    if (r === 'manager')       return 'bg-blue-50 text-blue-700'
     if (r === 'cmk_coordinator') return 'bg-amber-50 text-amber-700'
     return 'bg-gray-50 text-gray-700'
   }

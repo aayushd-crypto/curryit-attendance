@@ -21,7 +21,7 @@ const locationColor  = (l: string) =>
 
 export default function Holidays() {
   const { role } = useAuth()
-  const isAdmin = role === 'admin' || role === 'super_admin'
+  const isAdmin = role === 'manager' || role === 'super_admin'
 
   const [year, setYear]           = useState(new Date().getFullYear())
   const [holidays, setHolidays]   = useState<Holiday[]>([])

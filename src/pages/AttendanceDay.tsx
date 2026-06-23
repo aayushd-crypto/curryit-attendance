@@ -31,7 +31,7 @@ export default function AttendanceDayPage() {
   const { date } = useParams<{ date: string }>()
   const navigate  = useNavigate()
   const { role, profile } = useAuth()
-  const isAdmin   = role === 'admin' || role === 'super_admin'
+  const isAdmin   = role === 'manager' || role === 'super_admin'
 
   const [rows, setRows]       = useState<DayRow[]>([])
   const [loading, setLoading] = useState(true)

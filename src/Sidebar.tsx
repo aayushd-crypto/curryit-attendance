@@ -31,9 +31,9 @@ export function getAvatar(name: string | null | undefined): string {
 const navGroups: NavGroup[] = [
   {
     items: [
-      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin','admin','cmk_coordinator','employee'] },
-      { to: '/leave',     icon: Calendar,        label: 'Leave',      roles: ['super_admin','admin','cmk_coordinator','employee'] },
-      { to: '/holidays',  icon: Palmtree,        label: 'Holidays',   roles: ['admin','cmk_coordinator','employee'] },
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin','manager','cmk_coordinator','employee'] },
+      { to: '/leave',     icon: Calendar,        label: 'Leave',      roles: ['super_admin','manager','cmk_coordinator','employee'] },
+      { to: '/holidays',  icon: Palmtree,        label: 'Holidays',   roles: ['manager','cmk_coordinator','employee'] },
     ],
   },
   {
@@ -46,15 +46,15 @@ const navGroups: NavGroup[] = [
   {
     heading: 'Office',
     items: [
-      { to: '/employees', icon: Users,    label: 'Employees', roles: ['super_admin','admin'] },
-      { to: '/reports',   icon: FileText, label: 'Reports',   roles: ['super_admin','admin','cmk_coordinator'] },
+      { to: '/employees', icon: Users,    label: 'Employees', roles: ['super_admin','manager'] },
+      { to: '/reports',   icon: FileText, label: 'Reports',   roles: ['super_admin','manager','cmk_coordinator'] },
       { to: '/settings',  icon: Settings, label: 'Settings',  roles: ['super_admin'] },
     ],
   },
 ]
 
 const roleLabel: Record<UserRole, string> = {
-  super_admin: 'Super Admin', admin: 'Admin',
+  super_admin: 'Super Admin', manager: 'Manager',
   cmk_coordinator: 'CMK Coordinator', employee: 'Employee',
 }
 

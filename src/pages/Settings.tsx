@@ -68,7 +68,7 @@ export default function SettingsPage() {
   const loadAdmins = async () => {
     const { data } = await supabase
       .from('profiles').select('id, full_name, email, role, department_id')
-      .in('role', ['admin']).order('full_name')
+      .in('role', ['manager']).order('full_name')
     setAdmins(data ?? [])
   }
 

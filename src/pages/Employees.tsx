@@ -92,7 +92,7 @@ export default function EmployeesPage() {
     setLoading(true)
     // For admin role, scope to their assigned department
     let deptId: string | null = null
-    if (role === 'admin' && profile?.email) {
+    if ((role === 'manager') && profile?.email) {
       try {
         const { data: prof } = await supabase.from('profiles').select('department_id').eq('email', profile.email).maybeSingle()
         deptId = prof?.department_id ?? null
@@ -100,7 +100,7 @@ export default function EmployeesPage() {
       } catch { deptId = null }
     }
     let empQuery = supabase.from('employees').select('*, departments(name, location)').order('name')
-    if (role === 'admin' && deptId) empQuery = empQuery.eq('department_id', deptId)
+    if ((role === 'manager') && deptId) empQuery = empQuery.eq('department_id', deptId)
     const [{ data: emps }, { data: depts }] = await Promise.all([
       empQuery,
       supabase.from('departments').select('*').eq('status', 'active').order('name'),
@@ -295,7 +295,7 @@ export default function EmployeesPage() {
       const location = rawLoc === 'cmk' ? 'cmk' : 'office'
 
       // Normalise role
-      const validRoles = ['employee','admin','super_admin','cmk_coordinator']
+      const validRoles = ['employee','manager','super_admin','cmk_coordinator']
       const rawRole = (row.role ?? '').toLowerCase().trim()
       const empRole = validRoles.includes(rawRole) ? rawRole : 'employee'
 

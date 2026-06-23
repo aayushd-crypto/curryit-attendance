@@ -22,7 +22,7 @@ interface Balance {
 
 export default function LeavePage() {
   const { user, profile, role } = useAuth()
-  const isAdmin = role === 'admin' || role === 'super_admin'
+  const isAdmin = role === 'manager' || role === 'super_admin'
 
   const [leaves, setLeaves]     = useState<Req[]>([])
   const [balance, setBalance]   = useState<Balance | null>(null)
@@ -93,7 +93,7 @@ export default function LeavePage() {
         action: `Applied casual leave (${days}d)` })
       // Notify all admins & super_admins
       const { data: admins } = await supabase
-        .from('profiles').select('id').in('role', ['admin', 'super_admin'])
+        .from('profiles').select('id').in('role', ['manager', 'super_admin'])
       if (admins && admins.length > 0) {
         await supabase.from('notifications').insert(
           admins.map((a: any) => ({

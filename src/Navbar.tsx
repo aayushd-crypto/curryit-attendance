@@ -20,7 +20,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   const { value, pick } = useUserAvatar()
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
   const navigate = useNavigate()
-  const isAdmin = role === 'admin' || role === 'super_admin'
+  const isAdmin = role === 'manager' || role === 'super_admin'
   const [now, setNow] = useState(new Date())
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t) }, [])
   const today = format(now, 'EEEE, dd MMM yyyy')

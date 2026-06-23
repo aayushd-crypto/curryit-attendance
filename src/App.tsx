@@ -54,19 +54,19 @@ export default function App() {
               <Route path="/attendance/:date" element={<AttendanceDayPage />} />
 
               <Route path="/employees/:id" element={
-                <ProtectedRoute allowedRoles={['super_admin','admin']}>
+                <ProtectedRoute allowedRoles={['super_admin','manager']}>
                   <EmployeeDetailPage />
                 </ProtectedRoute>
               } />
 
               <Route path="/employees" element={
-                <ProtectedRoute allowedRoles={['super_admin','admin']}>
+                <ProtectedRoute allowedRoles={['super_admin','manager']}>
                   <EmployeesPage />
                 </ProtectedRoute>
               } />
 
               <Route path="/reports" element={
-                <ProtectedRoute allowedRoles={['super_admin','admin','cmk_coordinator']}>
+                <ProtectedRoute allowedRoles={['super_admin','manager','cmk_coordinator']}>
                   <ReportsPage />
                 </ProtectedRoute>
               } />
