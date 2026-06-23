@@ -353,12 +353,9 @@ export default function Dashboard() {
 
       // Resolve scoped employee IDs for manager/cmk_coordinator
       let scopedEmpIds: string[] | null = null
-      if (role === 'manager' && profile?.email) {
-        const { data: mp } = await supabase.from('profiles').select('id').eq('email', profile.email).maybeSingle()
-        if (mp?.id) {
-          const { data: myEmps } = await supabase.from('employees').select('id').eq('manager_id', mp.id).eq('status', 'active')
-          scopedEmpIds = (myEmps ?? []).map((e: any) => e.id)
-        }
+      if (role === 'manager' && user?.id) {
+        const { data: myEmps } = await supabase.from('employees').select('id').eq('manager_id', user.id).eq('status', 'active')
+        scopedEmpIds = (myEmps ?? []).map((e: any) => e.id)
       } else if (role === 'cmk_coordinator') {
         const { data: cmkEmps } = await supabase.from('employees').select('id').eq('location', 'cmk').eq('status', 'active')
         scopedEmpIds = (cmkEmps ?? []).map((e: any) => e.id)

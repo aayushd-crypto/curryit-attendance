@@ -101,9 +101,8 @@ export default function EmployeesPage() {
       } catch { deptId = null }
     }
     let empQuery = supabase.from('employees').select('*, departments(name, location)').order('name')
-    if (role === 'manager') {
-      const { data: mp } = await supabase.from('profiles').select('id').eq('email', profile?.email ?? '').maybeSingle()
-      if (mp?.id) empQuery = empQuery.eq('manager_id', mp.id)
+    if (role === 'manager' && user?.id) {
+      empQuery = empQuery.eq('manager_id', user.id)
     } else if (role === 'cmk_coordinator') {
       empQuery = empQuery.eq('location', 'cmk')
     }

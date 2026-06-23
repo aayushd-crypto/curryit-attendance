@@ -56,9 +56,8 @@ export default function LeavePage() {
       if (myEmpId) lq = lq.eq('employee_id', myEmpId)
     } else if (role === 'manager') {
       // Manager sees only their assigned employees' leaves
-      const { data: mp } = await supabase.from('profiles').select('id').eq('email', profile?.email ?? '').maybeSingle()
-      if (mp?.id) {
-        const { data: myEmps } = await supabase.from('employees').select('id').eq('manager_id', mp.id)
+      if (user?.id) {
+        const { data: myEmps } = await supabase.from('employees').select('id').eq('manager_id', user.id)
         const empIds = (myEmps ?? []).map((e: any) => e.id)
         if (empIds.length > 0) lq = lq.in('employee_id', empIds)
         else lq = lq.eq('employee_id', 'none') // no employees → no leaves
