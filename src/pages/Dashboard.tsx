@@ -775,41 +775,78 @@ export default function Dashboard() {
 
             {/* ── CHECKED IN, NOT OUT ── */}
             {checkedIn && !checkedOut && (
-              <div className="text-center py-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5"
-                  style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
-                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                  <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Working now</span>
+              <div className="flex flex-col gap-5">
+                {/* Status badge */}
+                <div className="flex items-center justify-between">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
+                    style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                    <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Working now</span>
+                  </div>
+                  <span className="text-xs text-gray-400 font-medium">
+                    {todayRecord!.work_mode === 'remote' ? '🏠 Remote' : '🏢 Office'}
+                  </span>
                 </div>
 
-                <p className="text-5xl font-black text-gray-900 tracking-tight mb-1 tabular-nums">
-                  {liveWorked !== null ? fmtMins(liveWorked) : '—'}
-                </p>
-                <p className="text-sm text-gray-400 mb-2">
-                  Checked in at {formatTime(todayRecord!.check_in_time ?? '')}
-                  {' · '}
-                  {todayRecord!.work_mode === 'remote' ? '🏠 Remote' : '🏢 Office'}
-                </p>
-                {liveWorked !== null && liveWorked > 540 && (
-                  <p className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 mb-3">
-                    <Zap size={12} /> Overtime: {fmtMins(liveWorked - 540)}
+                {/* Timer + progress */}
+                <div className="text-center">
+                  <p className="text-6xl font-black text-gray-900 tracking-tight tabular-nums leading-none mb-1">
+                    {liveWorked !== null ? fmtMins(liveWorked) : '—'}
                   </p>
+                  <p className="text-sm text-gray-400">
+                    Since {formatTime(todayRecord!.check_in_time ?? '')}
+                  </p>
+                </div>
+
+                {/* Progress bar toward 9h */}
+                {liveWorked !== null && (
+                  <div>
+                    <div className="flex justify-between text-[11px] text-gray-400 mb-1.5 font-medium">
+                      <span>Progress</span>
+                      <span>{Math.min(100, Math.round((liveWorked / 540) * 100))}% of 9h</span>
+                    </div>
+                    <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-1000"
+                        style={{
+                          width: `${Math.min(100, (liveWorked / 540) * 100)}%`,
+                          background: liveWorked >= 540
+                            ? 'linear-gradient(90deg,#f59e0b,#d97706)'
+                            : 'linear-gradient(90deg,#10b981,#059669)'
+                        }} />
+                    </div>
+                    {liveWorked >= 540 && (
+                      <p className="text-xs font-bold text-amber-600 mt-1.5 flex items-center gap-1">
+                        <Zap size={11} /> Overtime: {fmtMins(liveWorked - 540)}
+                      </p>
+                    )}
+                  </div>
                 )}
 
+                {/* Info row */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-3 rounded-xl bg-gray-50 text-center">
+                    <p className="text-xs text-gray-400 font-medium">Checked in</p>
+                    <p className="font-bold text-gray-900 text-sm mt-0.5">{formatTime(todayRecord!.check_in_time ?? '')}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-gray-50 text-center">
+                    <p className="text-xs text-gray-400 font-medium">Remaining</p>
+                    <p className="font-bold text-gray-900 text-sm mt-0.5">
+                      {liveWorked !== null && liveWorked < 540 ? fmtMins(540 - liveWorked) : '—'}
+                    </p>
+                  </div>
+                </div>
+
                 {attError && (
-                  <div className="mb-4 px-4 py-3 rounded-xl text-sm text-red-600 text-left"
+                  <div className="px-4 py-3 rounded-xl text-sm text-red-600"
                     style={{ background: 'rgba(239,68,68,0.06)' }}>{attError}</div>
                 )}
 
                 <button onClick={checkOut} disabled={attBusy}
                   className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl text-base font-semibold text-white transition-all"
-                  style={{ background: 'linear-gradient(135deg,#374151,#1F2937)', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
+                  style={{ background: 'linear-gradient(135deg,#374151,#1F2937)', boxShadow: '0 4px 15px rgba(0,0,0,0.15)' }}>
                   {attBusy ? <Spinner size="sm" /> : <LogOut size={19} />}
                   {attBusy ? 'Checking out...' : 'Check Out'}
                 </button>
-                <p className="text-xs text-gray-400 mt-3 flex items-center justify-center gap-1.5">
-                  <Clock size={11} /> Standard day: 9 hours · overtime tracked automatically
-                </p>
               </div>
             )}
 
