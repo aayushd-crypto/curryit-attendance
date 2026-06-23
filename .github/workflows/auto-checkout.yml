@@ -1,0 +1,16 @@
+name: Auto Checkout
+
+on:
+  schedule:
+    - cron: '30 16 * * *'
+  workflow_dispatch:
+
+jobs:
+  auto-checkout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger auto-checkout
+        run: |
+          curl -s -X POST "${{ secrets.SUPABASE_FUNCTION_URL }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json"
