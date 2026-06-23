@@ -570,7 +570,7 @@ export default function EmployeesPage() {
 
       {/* ── HISTORY Modal ── */}
       {histEmp && (
-        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "rgba(0,0,0,0.5)" }}>
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", background: "rgba(15,23,42,0.25)" }}>
           <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]">
             {/* Header */}
@@ -750,27 +750,25 @@ export default function EmployeesPage() {
 
       {/* ── ADD Employee Modal ── */}
       <Modal isOpen={modalOpen && !editing} onClose={() => { setModalOpen(false); setSuccessMsg(null) }}
-        title="Add new employee" size="lg">
+        title="Add new employee" size="xl">
 
         {successMsg ? (
-          <div className="space-y-4">
-            <div className="p-5 rounded-2xl text-center" style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)' }}>
-              <div className="text-3xl mb-2">✅</div>
+          <div className="space-y-3">
+            <div className="p-4 rounded-2xl text-center" style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)' }}>
+              <div className="text-3xl mb-1.5">✅</div>
               <p className="font-black text-gray-900 text-lg mb-1">Employee created!</p>
               <p className="text-sm text-gray-500">{successMsg}</p>
             </div>
-            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Share login details</p>
+            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex gap-6">
               <p className="text-sm text-gray-700"><span className="font-semibold">Email:</span> {form.email}</p>
-              <p className="text-sm text-gray-700 mt-1"><span className="font-semibold">Password:</span> {form.temp_password}</p>
+              <p className="text-sm text-gray-700"><span className="font-semibold">Password:</span> {form.temp_password}</p>
             </div>
-            <button onClick={() => { setModalOpen(false); setSuccessMsg(null) }} className="btn-primary w-full justify-center">
-              Done
-            </button>
+            <button onClick={() => { setModalOpen(false); setSuccessMsg(null) }} className="btn-primary w-full justify-center">Done</button>
           </div>
         ) : (
-          <form onSubmit={addEmployee} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={addEmployee} className="space-y-3">
+            {/* Row 1: Name, Mobile, Email, Designation */}
+            <div className="grid grid-cols-4 gap-3">
               <div>
                 <label className="label">Full name</label>
                 <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="input" required placeholder="Ravi Kumar" />
@@ -780,18 +778,21 @@ export default function EmployeesPage() {
                 <input value={form.mobile} onChange={e => setForm({ ...form, mobile: e.target.value })} className="input" placeholder="9876543210" maxLength={10} />
               </div>
               <div>
-                <label className="label">Email (used for login)</label>
+                <label className="label">Email (login)</label>
                 <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="input" required placeholder="ravi@curryit.in" />
               </div>
               <div>
                 <label className="label">Designation</label>
-                <input value={form.designation} onChange={e => setForm({ ...form, designation: e.target.value })} className="input" required placeholder="e.g. Operations Executive" />
+                <input value={form.designation} onChange={e => setForm({ ...form, designation: e.target.value })} className="input" required placeholder="Operations Executive" />
               </div>
+            </div>
+            {/* Row 2: Department, Location, Joining Date, Role */}
+            <div className="grid grid-cols-4 gap-3">
               <div>
                 <label className="label">Department</label>
                 <div className="relative">
                   <select value={form.department_id} onChange={e => setForm({ ...form, department_id: e.target.value })} className="input pr-8 appearance-none">
-                    <option value="">Select department</option>
+                    <option value="">Select dept</option>
                     {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                   <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -817,17 +818,16 @@ export default function EmployeesPage() {
                   <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} className="input pr-8 appearance-none">
                     <option value="employee">Employee</option>
                     <option value="cmk_coordinator">CMK Coordinator</option>
-                    <option value="admin">Admin</option>
+                    <option value="manager">Manager</option>
                   </select>
                   <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
               </div>
             </div>
-
-            {/* Temp password */}
+            {/* Row 3: Temp password */}
             <div>
               <label className="label">Temporary password — share with employee</label>
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2">
                 <div className="relative flex-1">
                   <input type={showPw ? 'text' : 'password'} value={form.temp_password}
                     onChange={e => setForm({ ...form, temp_password: e.target.value })}
@@ -837,22 +837,21 @@ export default function EmployeesPage() {
                     {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
-                <button type="button" onClick={copyPassword}
-                  className="btn-secondary px-4 flex-shrink-0">
+                <button type="button" onClick={copyPassword} className="btn-secondary px-4 flex-shrink-0">
                   {copied ? <CheckCheck size={15} className="text-green-500" /> : <Copy size={15} />}
                   {copied ? 'Copied!' : 'Copy'}
                 </button>
               </div>
-              <p className="text-xs text-gray-400 mt-1.5">Employee logs in with their email + this password. They can change it later.</p>
+              <p className="text-xs text-gray-400 mt-1">Employee logs in with their email + this password. They can change it later.</p>
             </div>
 
             {error && (
-              <div className="px-4 py-3 rounded-xl text-sm text-red-600" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
+              <div className="px-4 py-2.5 rounded-xl text-sm text-red-600" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
                 {error}
               </div>
             )}
 
-            <div className="flex gap-3 pt-1">
+            <div className="flex gap-3 pt-0.5">
               <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
               <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center">
                 {saving && <Spinner size="sm" />}
@@ -864,9 +863,10 @@ export default function EmployeesPage() {
       </Modal>
 
       {/* ── EDIT Modal ── */}
-      <Modal isOpen={modalOpen && !!editing} onClose={() => setModalOpen(false)} title={`Edit — ${editing?.name}`} size="lg">
-        <form onSubmit={saveEdit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+      <Modal isOpen={modalOpen && !!editing} onClose={() => setModalOpen(false)} title={`Edit — ${editing?.name}`} size="xl">
+        <form onSubmit={saveEdit} className="space-y-3">
+          {/* Row 1: Name, Mobile, Designation, Joining date */}
+          <div className="grid grid-cols-4 gap-3">
             <div>
               <label className="label">Full name</label>
               <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="input" required />
@@ -880,10 +880,17 @@ export default function EmployeesPage() {
               <input value={editForm.designation} onChange={e => setEditForm({ ...editForm, designation: e.target.value })} className="input" required />
             </div>
             <div>
+              <label className="label">Joining date</label>
+              <input type="date" value={editForm.joining_date} onChange={e => setEditForm({ ...editForm, joining_date: e.target.value })} className="input" required />
+            </div>
+          </div>
+          {/* Row 2: Department, Location, Status + optional Manager */}
+          <div className="grid grid-cols-4 gap-3">
+            <div>
               <label className="label">Department</label>
               <div className="relative">
                 <select value={editForm.department_id} onChange={e => setEditForm({ ...editForm, department_id: e.target.value })} className="input pr-8 appearance-none">
-                  <option value="">Select department</option>
+                  <option value="">Select dept</option>
                   {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
                 <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -900,10 +907,6 @@ export default function EmployeesPage() {
               </div>
             </div>
             <div>
-              <label className="label">Joining date</label>
-              <input type="date" value={editForm.joining_date} onChange={e => setEditForm({ ...editForm, joining_date: e.target.value })} className="input" required />
-            </div>
-            <div className={role === 'super_admin' ? '' : 'col-span-2'}>
               <label className="label">Status</label>
               <div className="relative">
                 <select value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value as EmployeeStatus })} className="input pr-8 appearance-none">
@@ -914,20 +917,20 @@ export default function EmployeesPage() {
               </div>
             </div>
             {role === 'super_admin' && (
-              <div className="col-span-2">
+              <div>
                 <label className="label">Assign to Manager</label>
                 <div className="relative">
                   <select value={editForm.manager_id ?? ''} onChange={e => setEditForm({ ...editForm, manager_id: e.target.value || null })} className="input pr-8 appearance-none">
                     <option value="">No manager</option>
-                    {managers.map(m => <option key={m.id} value={m.id}>{m.full_name} ({m.email})</option>)}
+                    {managers.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
                   </select>
                   <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
               </div>
             )}
           </div>
-          {error && <p className="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">{error}</p>}
-          <div className="flex gap-3 pt-1">
+          {error && <p className="text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-xl">{error}</p>}
+          <div className="flex gap-3 pt-0.5">
             <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1 justify-center">Cancel</button>
             <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center">
               {saving && <Spinner size="sm" />} {saving ? 'Saving...' : 'Save changes'}
@@ -938,7 +941,7 @@ export default function EmployeesPage() {
 
       {/* ── RESET PASSWORD MODAL (super_admin) ── */}
       {pwEmp && (
-        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "rgba(0,0,0,0.5)" }}>
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", background: "rgba(15,23,42,0.25)" }}>
           <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">

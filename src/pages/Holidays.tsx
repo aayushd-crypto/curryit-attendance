@@ -250,7 +250,7 @@ export default function Holidays() {
 
       {/* ── Add Holiday Modal ─────────────────────────────────────────────── */}
       {addModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', background: 'rgba(15,23,42,0.25)' }}>
           <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -290,7 +290,7 @@ export default function Holidays() {
 
       {/* ── Bulk CSV Modal ────────────────────────────────────────────────── */}
       {csvModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', background: 'rgba(15,23,42,0.25)' }}>
           <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
