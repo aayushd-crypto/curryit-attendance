@@ -194,28 +194,118 @@ export default function SettingsPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner size="lg" /></div>
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4">
+    <div className="max-w-7xl mx-auto space-y-6">
       <div className="page-header flex-wrap gap-2">
         <div>
           <h1 className="page-title">Settings</h1>
-          <p className="page-subtitle">Tap any section to expand</p>
+          <p className="page-subtitle">Manage departments, geo-fencing, holidays &amp; more</p>
         </div>
       </div>
 
       {success && <div className="bg-green-50 border border-green-100 rounded-2xl px-4 py-3 text-sm text-green-700">✓ {success}</div>}
 
-      {/* ── Departments ── */}
-      <Section
-        icon={<Building2 size={15} style={{ color: '#E8531D' }} />}
-        title="Departments"
-        subtitle={`${departments.filter(d => d.status === 'active').length} active`}
-        >
-        <div className="p-5 border-t border-gray-50">
-          <div className="flex justify-end mb-4">
-            <button onClick={() => setDeptModal(true)} className="btn-primary">
-              <Plus size={15} /> Add department
-            </button>
+      {/* ── Top row: Account + Admin Management ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Account card */}
+        <div className="card overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
+              <Key size={15} style={{ color: '#E8531D' }} />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm">Account</h3>
+              <p className="text-xs text-gray-400">Password &amp; profile</p>
+            </div>
           </div>
+          <div className="p-5">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+              <div>
+                <p className="font-semibold text-gray-900">{profile?.full_name}</p>
+                <p className="text-sm text-gray-500">{profile?.email}</p>
+              </div>
+              <button onClick={() => setPwModal(true)} className="btn-secondary">
+                <Key size={15} /> Change password
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Admin Management card (super_admin only) */}
+        {isSuperAdmin && (
+          <div className="card overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+              <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
+                <Users size={15} style={{ color: '#E8531D' }} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm">Admin Management</h3>
+                <p className="text-xs text-gray-400">Assign department scope to each admin</p>
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="overflow-x-auto rounded-2xl border border-gray-100">
+                <table className="w-full">
+                  <thead><tr><th>Admin</th><th>Department</th><th></th></tr></thead>
+                  <tbody>
+                    {admins.map(a => (
+                      <tr key={a.id}>
+                        <td>
+                          <p className="font-semibold text-gray-900 text-xs">{a.full_name}</p>
+                          <p className="text-gray-400 text-[10px]">{a.email}</p>
+                        </td>
+                        <td>
+                          <select defaultValue={a.department_id ?? ''}
+                            onChange={e => { a._newDept = e.target.value }}
+                            className="input py-1.5 text-xs appearance-none">
+                            <option value="">All departments</option>
+                            {departments.filter(d => d.status === 'active').map(d => (
+                              <option key={d.id} value={d.id}>{d.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>
+                          <button disabled={savingAdmin === a.id}
+                            onClick={async () => {
+                              setSavingAdmin(a.id)
+                              const deptId = a._newDept !== undefined ? a._newDept : a.department_id
+                              await supabase.from('profiles').update({ department_id: deptId || null }).eq('id', a.id)
+                              await loadAdmins(); setSavingAdmin(null)
+                            }}
+                            className="btn-primary py-1.5 text-xs px-3">
+                            {savingAdmin === a.id ? 'Saving…' : 'Save'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {admins.length === 0 && (
+                      <tr><td colSpan={3} className="text-center text-gray-400 py-6 text-sm">No admin accounts found</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Departments — full row ── */}
+      <div className="card overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
+              <Building2 size={15} style={{ color: '#E8531D' }} />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm">Departments</h3>
+              <p className="text-xs text-gray-400">{departments.filter(d => d.status === 'active').length} active</p>
+            </div>
+          </div>
+          <button onClick={() => setDeptModal(true)} className="btn-primary">
+            <Plus size={15} /> Add department
+          </button>
+        </div>
+        <div className="p-5">
           <div className="overflow-x-auto rounded-2xl border border-gray-100">
             <table className="w-full">
               <thead>
@@ -240,57 +330,42 @@ export default function SettingsPage() {
             </table>
           </div>
         </div>
-      </Section>
+      </div>
 
-      {/* ── Account ── */}
-      <Section
-        icon={<Key size={15} style={{ color: '#E8531D' }} />}
-        title="Account"
-        subtitle="Password & profile">
-        <div className="p-5 border-t border-gray-50">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-            <div>
-              <p className="font-semibold text-gray-900">{profile?.full_name}</p>
-              <p className="text-sm text-gray-500">{profile?.email}</p>
-            </div>
-            <button onClick={() => setPwModal(true)} className="btn-secondary">
-              <Key size={15} /> Change password
-            </button>
-          </div>
-        </div>
-      </Section>
-
-      {/* ── Geo-Fencing ── */}
+      {/* ── Geo-Fencing — 2-col map grid ── */}
       {isSuperAdmin && (
-        <Section
-          icon={<MapPin size={15} style={{ color: '#E8531D' }} />}
-          title="Geo-Fencing"
-          subtitle="Office & CMK location boundaries">
-          <div className="p-4 sm:p-5 border-t border-gray-50 space-y-5">
-            {['office', 'cmk'].map(loc => {
-              const s = geoSettings[loc] ?? { lat: 0, lng: 0, radius_m: 200, enabled: false }
-              const hasCoords = s.lat !== 0 || s.lng !== 0
-              return (
-                <div key={loc} className="rounded-2xl border border-gray-100 overflow-hidden">
-                  {/* Card header */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-gray-50/60">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-full ${loc === 'cmk' ? 'bg-brand-500' : 'bg-blue-500'}`} />
-                      <h4 className="font-bold text-gray-800 text-sm">{loc === 'cmk' ? 'CMK Location' : 'Office Location'}</h4>
-                    </div>
-                    <div className="flex items-center gap-2 cursor-pointer"
-                      onClick={() => setGeoSettings(p => ({ ...p, [loc]: { ...p[loc], enabled: !p[loc]?.enabled } }))}>
-                      <span className="text-xs font-semibold text-gray-400">Enforce</span>
-                      <div className="w-10 h-5 rounded-full transition-colors relative flex-shrink-0"
-                        style={{ background: s.enabled ? '#E8531D' : '#E5E7EB' }}>
-                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${s.enabled ? 'left-5' : 'left-0.5'}`} />
+        <div className="card overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
+            <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
+              <MapPin size={15} style={{ color: '#E8531D' }} />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm">Geo-Fencing</h3>
+              <p className="text-xs text-gray-400">Office &amp; CMK location boundaries</p>
+            </div>
+          </div>
+          <div className="p-4 sm:p-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {['office', 'cmk'].map(loc => {
+                const s = geoSettings[loc] ?? { lat: 0, lng: 0, radius_m: 200, enabled: false }
+                const hasCoords = s.lat !== 0 || s.lng !== 0
+                return (
+                  <div key={loc} className="rounded-2xl border border-gray-100 overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 bg-gray-50/60">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${loc === 'cmk' ? 'bg-brand-500' : 'bg-blue-500'}`} />
+                        <h4 className="font-bold text-gray-800 text-sm">{loc === 'cmk' ? 'CMK Location' : 'Office Location'}</h4>
+                      </div>
+                      <div className="flex items-center gap-2 cursor-pointer"
+                        onClick={() => setGeoSettings(p => ({ ...p, [loc]: { ...p[loc], enabled: !p[loc]?.enabled } }))}>
+                        <span className="text-xs font-semibold text-gray-400">Enforce</span>
+                        <div className="w-10 h-5 rounded-full transition-colors relative flex-shrink-0"
+                          style={{ background: s.enabled ? '#E8531D' : '#E5E7EB' }}>
+                          <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${s.enabled ? 'left-5' : 'left-0.5'}`} />
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Map */}
-                  <div className="p-4 space-y-4">
-                    <div className="rounded-xl overflow-hidden border border-gray-100">
+                    <div className="p-4 space-y-3">
                       {hasCoords ? (
                         <GeoPickerMap
                           lat={s.lat} lng={s.lng} radiusM={s.radius_m}
@@ -299,137 +374,86 @@ export default function SettingsPage() {
                           }
                         />
                       ) : (
-                        <div className="flex flex-col items-center justify-center h-40 bg-gray-50 text-gray-400 text-sm gap-2">
+                        <div className="flex flex-col items-center justify-center h-40 bg-gray-50 rounded-xl text-gray-400 text-sm gap-2">
                           <MapPin size={24} className="text-gray-300" />
-                          <p>Click "Use my location" or enter coordinates below to set up the map</p>
+                          <p className="text-center text-xs">Use the locate button to set up this location</p>
                         </div>
                       )}
-                    </div>
-
-                    {/* Coords display (read-only) */}
-                    {hasCoords && (
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="bg-gray-50 rounded-xl px-3 py-2">
-                          <p className="text-gray-400 font-semibold uppercase tracking-wider text-[10px] mb-0.5">Latitude</p>
-                          <p className="font-mono font-bold text-gray-700">{s.lat.toFixed(6)}</p>
+                      {hasCoords && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="bg-gray-50 rounded-xl px-3 py-2">
+                            <p className="text-gray-400 font-semibold uppercase tracking-wider text-[10px] mb-0.5">Latitude</p>
+                            <p className="font-mono font-bold text-gray-700 text-xs">{s.lat.toFixed(6)}</p>
+                          </div>
+                          <div className="bg-gray-50 rounded-xl px-3 py-2">
+                            <p className="text-gray-400 font-semibold uppercase tracking-wider text-[10px] mb-0.5">Longitude</p>
+                            <p className="font-mono font-bold text-gray-700 text-xs">{s.lng.toFixed(6)}</p>
+                          </div>
                         </div>
-                        <div className="bg-gray-50 rounded-xl px-3 py-2">
-                          <p className="text-gray-400 font-semibold uppercase tracking-wider text-[10px] mb-0.5">Longitude</p>
-                          <p className="font-mono font-bold text-gray-700">{s.lng.toFixed(6)}</p>
+                      )}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="label mb-0">Allowed radius</label>
+                          <span className="text-sm font-black text-brand-600">{s.radius_m}m</span>
+                        </div>
+                        <input type="range" min={50} max={1000} step={10} value={s.radius_m}
+                          onChange={e => setGeoSettings(p => ({ ...p, [loc]: { ...p[loc], radius_m: parseInt(e.target.value) } }))}
+                          className="w-full accent-brand-500" />
+                        <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+                          <span>50m</span><span>500m</span><span>1000m</span>
                         </div>
                       </div>
-                    )}
-
-                    {/* Radius slider */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="label mb-0">Allowed radius</label>
-                        <span className="text-sm font-black text-brand-600">{s.radius_m}m</span>
+                      <div className="flex gap-2">
+                        <button onClick={() => useMyLocation(loc)} className="btn-secondary flex-1 justify-center text-xs">
+                          <Navigation size={12} /> My location
+                        </button>
+                        <button onClick={() => saveGeo(loc)} disabled={geoSaving === loc} className="btn-primary flex-1 justify-center text-xs">
+                          {geoSaving === loc ? <Spinner size="sm" /> : <MapPin size={12} />}
+                          Save {loc === 'cmk' ? 'CMK' : 'Office'}
+                        </button>
                       </div>
-                      <input type="range" min={50} max={1000} step={10} value={s.radius_m}
-                        onChange={e => setGeoSettings(p => ({ ...p, [loc]: { ...p[loc], radius_m: parseInt(e.target.value) } }))}
-                        className="w-full accent-brand-500" />
-                      <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-                        <span>50m</span><span>500m</span><span>1000m</span>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                      <button onClick={() => useMyLocation(loc)} className="btn-secondary flex-1 justify-center text-sm">
-                        <Navigation size={13} /> Use my location
-                      </button>
-                      <button onClick={() => saveGeo(loc)} disabled={geoSaving === loc} className="btn-primary flex-1 justify-center text-sm">
-                        {geoSaving === loc ? <Spinner size="sm" /> : <MapPin size={13} />}
-                        Save {loc === 'cmk' ? 'CMK' : 'Office'}
-                      </button>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-        </Section>
-      )}
-
-      {/* ── Admin Management ── */}
-      {isSuperAdmin && (
-        <Section
-          icon={<Users size={15} style={{ color: '#E8531D' }} />}
-          title="Admin Management"
-          subtitle="Assign department scope to each admin">
-          <div className="p-5 border-t border-gray-50">
-            <div className="overflow-x-auto rounded-2xl border border-gray-100">
-              <table className="w-full">
-                <thead><tr><th>Admin</th><th>Email</th><th>Department</th><th>Save</th></tr></thead>
-                <tbody>
-                  {admins.map(a => (
-                    <tr key={a.id}>
-                      <td className="font-semibold text-gray-900">{a.full_name}</td>
-                      <td className="text-gray-500 text-xs">{a.email}</td>
-                      <td>
-                        <select defaultValue={a.department_id ?? ''}
-                          onChange={e => { a._newDept = e.target.value }}
-                          className="input py-1.5 text-xs appearance-none">
-                          <option value="">All departments</option>
-                          {departments.filter(d => d.status === 'active').map(d => (
-                            <option key={d.id} value={d.id}>{d.name}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <button disabled={savingAdmin === a.id}
-                          onClick={async () => {
-                            setSavingAdmin(a.id)
-                            const deptId = a._newDept !== undefined ? a._newDept : a.department_id
-                            await supabase.from('profiles').update({ department_id: deptId || null }).eq('id', a.id)
-                            await loadAdmins(); setSavingAdmin(null)
-                          }}
-                          className="btn-primary py-1.5 text-xs px-3">
-                          {savingAdmin === a.id ? 'Saving…' : 'Save'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {admins.length === 0 && (
-                    <tr><td colSpan={4} className="text-center text-gray-400 py-6 text-sm">No admin accounts found</td></tr>
-                  )}
-                </tbody>
-              </table>
+                )
+              })}
             </div>
           </div>
-        </Section>
+        </div>
       )}
 
-
-      {/* ── Holidays ── */}
+      {/* ── Holidays — full row ── */}
       {isSuperAdmin && (
-        <Section
-          icon={<CalendarDays size={15} style={{ color: '#E8531D' }} />}
-          title="Holidays"
-          subtitle={`${holidays.length} holidays in ${hYear}`}>
-          <div className="p-5 border-t border-gray-50 space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <button onClick={() => setHYear(y => y - 1)} className="p-1.5 rounded-xl border border-gray-200 hover:bg-gray-50"><ChevronLeft size={15} /></button>
-                <span className="text-lg font-black text-gray-900 min-w-[50px] text-center">{hYear}</span>
-                <button onClick={() => setHYear(y => y + 1)} className="p-1.5 rounded-xl border border-gray-200 hover:bg-gray-50"><ChevronRight size={15} /></button>
+        <div className="card overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50 flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl" style={{ background: 'rgba(232,83,29,0.08)' }}>
+                <CalendarDays size={15} style={{ color: '#E8531D' }} />
               </div>
-              <div className="flex gap-2 flex-wrap">
-                {delIds.size > 0 && (
-                  <button onClick={deleteSelected} disabled={delBusy} className="btn-secondary text-red-600 border-red-200">
-                    {delBusy ? <Spinner size="sm" /> : <Trash2 size={14} />} Delete ({delIds.size})
-                  </button>
-                )}
-                <button onClick={() => { setCsvModal(true); setImportDone(false) }} className="btn-secondary">
-                  <Upload size={14} /> Bulk Import
-                </button>
-                <button onClick={() => { setAddHModal(true); setHSaveErr(null) }} className="btn-primary">
-                  <Plus size={14} /> Add Holiday
-                </button>
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm">Holidays</h3>
+                <p className="text-xs text-gray-400">{holidays.length} holidays in {hYear}</p>
               </div>
             </div>
-
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1">
+                <button onClick={() => setHYear(y => y - 1)} className="p-1.5 rounded-xl border border-gray-200 hover:bg-gray-50"><ChevronLeft size={14} /></button>
+                <span className="text-sm font-black text-gray-900 min-w-[44px] text-center">{hYear}</span>
+                <button onClick={() => setHYear(y => y + 1)} className="p-1.5 rounded-xl border border-gray-200 hover:bg-gray-50"><ChevronRight size={14} /></button>
+              </div>
+              {delIds.size > 0 && (
+                <button onClick={deleteSelected} disabled={delBusy} className="btn-secondary text-red-600 border-red-200">
+                  {delBusy ? <Spinner size="sm" /> : <Trash2 size={14} />} Delete ({delIds.size})
+                </button>
+              )}
+              <button onClick={() => { setCsvModal(true); setImportDone(false) }} className="btn-secondary">
+                <Upload size={14} /> Import
+              </button>
+              <button onClick={() => { setAddHModal(true); setHSaveErr(null) }} className="btn-primary">
+                <Plus size={14} /> Add Holiday
+              </button>
+            </div>
+          </div>
+          <div className="p-5">
             {hLoading ? <div className="flex justify-center py-8"><Spinner /></div> : (
               Object.keys(hByMonth).length === 0 ? (
                 <div className="text-center py-8 text-gray-400">
@@ -437,7 +461,7 @@ export default function SettingsPage() {
                   <p className="text-sm">No holidays for {hYear}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {Object.entries(hByMonth).map(([mStr, hols]) => {
                     const m = Number(mStr)
                     return (
@@ -468,10 +492,10 @@ export default function SettingsPage() {
               )
             )}
           </div>
-        </Section>
+        </div>
       )}
 
-      {/* Add department modal */}
+            {/* Add department modal */}
       <Modal isOpen={deptModal} onClose={() => setDeptModal(false)} title="Add department" size="sm">
         <form onSubmit={addDepartment} className="space-y-4">
           <div>
