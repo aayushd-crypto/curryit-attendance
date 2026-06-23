@@ -351,10 +351,26 @@ export default function Dashboard() {
         } catch { adminDeptId = null }
       }
 
+      // Resolve scoped employee IDs for manager/cmk_coordinator
+      let scopedEmpIds: string[] | null = null
+      if (role === 'manager' && profile?.email) {
+        const { data: mp } = await supabase.from('profiles').select('id').eq('email', profile.email).maybeSingle()
+        if (mp?.id) {
+          const { data: myEmps } = await supabase.from('employees').select('id').eq('manager_id', mp.id).eq('status', 'active')
+          scopedEmpIds = (myEmps ?? []).map((e: any) => e.id)
+        }
+      } else if (role === 'cmk_coordinator') {
+        const { data: cmkEmps } = await supabase.from('employees').select('id').eq('location', 'cmk').eq('status', 'active')
+        scopedEmpIds = (cmkEmps ?? []).map((e: any) => e.id)
+      }
+
       // Total active employees
       let empQuery = supabase.from('employees').select('*', { count: 'exact', head: true }).eq('status', 'active')
-      if (!isAdmin && myLocation) empQuery = empQuery.eq('location', myLocation)
-      if (role === 'manager' && profile?.email) { const { data: mp } = await supabase.from('profiles').select('id').eq('email', profile.email).maybeSingle(); if (mp?.id) empQuery = empQuery.eq('manager_id', mp.id) } else if (role === 'manager' && adminDeptId) { empQuery = empQuery.eq('department_id', adminDeptId) }
+      if (scopedEmpIds !== null) {
+        empQuery = scopedEmpIds.length > 0 ? empQuery.in('id', scopedEmpIds) : empQuery.eq('id', 'none')
+      } else if (!isAdmin && myLocation) {
+        empQuery = empQuery.eq('location', myLocation)
+      }
       const { count: totalEmployees } = await empQuery
 
       // Fetch employee name map
@@ -362,10 +378,12 @@ export default function Dashboard() {
       const empMap: Record<string, string> = Object.fromEntries((allEmps ?? []).map((e: any) => [e.id, e.name]))
       setEmpMap(empMap)
 
-      // Today's attendance
-      const { data: todayAtt } = await supabase.from('attendance')
-        .select('status, work_mode, location, employee_id')
-        .eq('date', todayStr)
+      // Today's attendance — scoped for manager/cmk_coordinator
+      let attQuery = supabase.from('attendance').select('status, work_mode, location, employee_id').eq('date', todayStr)
+      if (scopedEmpIds !== null) {
+        attQuery = scopedEmpIds.length > 0 ? attQuery.in('employee_id', scopedEmpIds) : attQuery.eq('employee_id', 'none')
+      }
+      const { data: todayAtt } = await attQuery
       setTodayAttFull((todayAtt ?? []).map((r: any) => ({ ...r, empName: empMap[r.employee_id] ?? '—' })) as any[])
 
       const att = todayAtt ?? []
@@ -393,9 +411,12 @@ export default function Dashboard() {
 
       // Current month attendance summary (admin only)
       if (isAdmin) {
-        const { data: monthAtt } = await supabase
-          .from('attendance').select('status, work_mode, employee_id')
+        let maQuery = supabase.from('attendance').select('status, work_mode, employee_id')
           .gte('date', monthStart).lte('date', monthEnd)
+        if (scopedEmpIds !== null) {
+          maQuery = scopedEmpIds.length > 0 ? maQuery.in('employee_id', scopedEmpIds) : maQuery.eq('employee_id', 'none')
+        }
+        const { data: monthAtt } = await maQuery
         const ma = monthAtt ?? []
         const uniqueEmps = new Set(ma.map(r => r.employee_id)).size
         setMonthSummary({
@@ -408,12 +429,15 @@ export default function Dashboard() {
 
       // Pending leaves (admin only)
       if (isAdmin) {
-        const { data: leaves } = await supabase
-          .from('leave_requests')
+        let leavesQuery = supabase.from('leave_requests')
           .select('id, leave_type, start_date, end_date, total_days, employees(name)')
           .eq('status', 'pending')
           .order('created_at', { ascending: false })
           .limit(5)
+        if (scopedEmpIds !== null) {
+          leavesQuery = scopedEmpIds.length > 0 ? leavesQuery.in('employee_id', scopedEmpIds) : leavesQuery.eq('employee_id', 'none')
+        }
+        const { data: leaves } = await leavesQuery
 
         setPending((leaves ?? []).map((l: any) => ({
           id: l.id,
