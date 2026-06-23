@@ -11,9 +11,6 @@ import { Modal } from '../Modal'
 import { useAuth } from '../AuthContext'
 import { formatDate, formatTime, statusLabel, logAudit } from '../helpers'
 
-// ── Locked CMK geo-fence — cannot be changed from Settings ───────────────────
-const CMK_GEO = { lat: 28.46670448416244, lng: 77.15012178466036, radius_m: 200 } as const
-
 
 
 interface TodaySummary {
@@ -519,15 +516,10 @@ export default function Dashboard() {
   useEffect(() => {
     if ((!isEmployee && !isAdmin) || !empLocation || !navigator.geolocation) return
     const checkGeo = async () => {
-      // CMK geo is hardcoded and locked — office geo comes from DB
-      let geoLat: number, geoLng: number, geoRadius: number
-      if (empLocation === 'cmk') {
-        geoLat = CMK_GEO.lat; geoLng = CMK_GEO.lng; geoRadius = CMK_GEO.radius_m
-      } else {
-        const { data: geo } = await supabase.from('geo_settings').select('*').eq('location', empLocation).single()
-        if (!geo?.lat || !geo?.lng) return
-        geoLat = geo.lat; geoLng = geo.lng; geoRadius = geo.radius_m
-      }
+      // Both office and CMK geo come from DB (configurable in Settings)
+      const { data: geo } = await supabase.from('geo_settings').select('*').eq('location', empLocation).single()
+      if (!geo?.lat || !geo?.lng) return
+      const geoLat = geo.lat, geoLng = geo.lng, geoRadius = geo.radius_m
       navigator.geolocation.getCurrentPosition(pos => {
         const R = 6371000
         const dLat = (geoLat - pos.coords.latitude) * Math.PI / 180
@@ -558,13 +550,10 @@ export default function Dashboard() {
     // For CMK coordinators, always use 'cmk' location (safety guard)
     const effectiveLocation = role === 'cmk_coordinator' ? 'cmk' : empLocation
 
-    // CMK geo is hardcoded and locked — office geo comes from DB
+    // Both office and CMK geo come from DB (configurable in Settings)
+    const { data: geo } = await supabase.from('geo_settings').select('*').eq('location', effectiveLocation).single()
     let geoLat: number, geoLng: number, geoRadius: number
-    if (effectiveLocation === 'cmk') {
-      geoLat = CMK_GEO.lat; geoLng = CMK_GEO.lng; geoRadius = CMK_GEO.radius_m
-    } else {
-      const { data: geo } = await supabase.from('geo_settings').select('*').eq('location', effectiveLocation).single()
-      if (!geo || (!geo.lat && !geo.lng)) {
+    if (!geo || (!geo.lat && !geo.lng)) {
         setGeoError('Location not configured. Contact admin to set up geo-fencing in Settings.')
         setGeoChecking(false); return
       }
