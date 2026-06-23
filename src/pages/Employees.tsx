@@ -42,6 +42,7 @@ export default function EmployeesPage() {
 
   const [employees, setEmployees]     = useState<Employee[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
+  const [managers, setManagers] = useState<any[]>([])
   const [loading, setLoading]         = useState(true)
   const [search, setSearch]           = useState(params.get('q') ?? '')
   const [locFilter, setLocFilter]     = useState<'all' | Location>('all')
@@ -83,7 +84,7 @@ export default function EmployeesPage() {
   })
   const [editForm, setEditForm] = useState({
     name: '', mobile: '', department_id: '', designation: '',
-    location: 'office' as Location, joining_date: '', status: 'active' as EmployeeStatus,
+    location: 'office' as Location, joining_date: '', status: 'active' as EmployeeStatus, manager_id: '' as string | null,
   })
 
   useEffect(() => { const q = params.get('q'); if (q) setSearch(q) }, [params])
@@ -101,12 +102,14 @@ export default function EmployeesPage() {
     }
     let empQuery = supabase.from('employees').select('*, departments(name, location)').order('name')
     if (role === 'manager') { const { data: mp } = await supabase.from('profiles').select('id').eq('email', profile?.email ?? '').maybeSingle(); if (mp?.id) empQuery = empQuery.eq('manager_id', mp.id) }
-    const [{ data: emps }, { data: depts }] = await Promise.all([
+    const [{ data: emps }, { data: depts }, { data: mgrs }] = await Promise.all([
       empQuery,
       supabase.from('departments').select('*').eq('status', 'active').order('name'),
+      supabase.from('profiles').select('id, full_name, email').eq('role', 'manager').order('full_name'),
     ])
     setEmployees((emps ?? []) as unknown as Employee[])
     setDepartments((depts ?? []) as Department[])
+    setManagers(mgrs ?? [])
     setLoading(false)
   }
 
@@ -124,7 +127,7 @@ export default function EmployeesPage() {
     setEditing(emp)
     setEditForm({ name: emp.name, mobile: emp.mobile, department_id: emp.department_id,
       designation: emp.designation, location: emp.location,
-      joining_date: emp.joining_date, status: emp.status })
+      joining_date: emp.joining_date, status: emp.status, manager_id: (emp as any).manager_id ?? '' })
     setError(null); setModalOpen(true)
   }
 
@@ -904,6 +907,18 @@ export default function EmployeesPage() {
                 <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
             </div>
+            {role === 'super_admin' && (
+              <div className="col-span-2">
+                <label className="label">Assign to Manager</label>
+                <div className="relative">
+                  <select value={editForm.manager_id ?? ''} onChange={e => setEditForm({ ...editForm, manager_id: e.target.value || null })} className="input pr-8 appearance-none">
+                    <option value="">No manager</option>
+                    {managers.map(m => <option key={m.id} value={m.id}>{m.full_name} ({m.email})</option>)}
+                  </select>
+                  <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+            )}
           </div>
           {error && <p className="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">{error}</p>}
           <div className="flex gap-3 pt-1">
