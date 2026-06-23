@@ -157,18 +157,21 @@ function AttendanceCalendar({ employeeId, location, compact, small, empMap, onDa
         </div>
       </div>
 
-      {/* Legend */}
-      {!compact && !small && (
-        <div className="flex flex-wrap gap-2 mb-4">
+      {/* Legend — shown for all non-compact modes */}
+      {!compact && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
           {[
-            { label: 'Present', cls: 'bg-green-100 text-green-700 border border-green-200' },
-            { label: 'Remote',  cls: 'bg-yellow-100 text-yellow-700 border border-yellow-200' },
-            { label: 'Absent',  cls: 'bg-red-100 text-red-600 border border-red-200' },
-            { label: 'Leave',   cls: 'bg-red-100 text-red-600 border border-red-200' },
-            { label: 'Sunday',  cls: 'bg-gray-100 text-gray-400 border border-gray-200' },
-            { label: 'Holiday', cls: 'bg-gray-900 text-white border border-gray-800' },
+            { label: 'Present', dot: '#16a34a' },
+            { label: 'Remote',  dot: '#d97706' },
+            { label: 'Absent',  dot: '#dc2626' },
+            { label: 'Leave',   dot: '#f97316' },
+            { label: 'Sunday',  dot: '#9ca3af' },
+            { label: 'Holiday', dot: '#111827' },
           ].map(l => (
-            <span key={l.label} className={`text-xs px-2 py-0.5 rounded-full ${l.cls}`}>{l.label}</span>
+            <span key={l.label} className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-600 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: l.dot }} />
+              {l.label}
+            </span>
           ))}
         </div>
       )}
@@ -176,10 +179,10 @@ function AttendanceCalendar({ employeeId, location, compact, small, empMap, onDa
       {loading ? (
         <div className="flex justify-center py-8"><Spinner size="md" /></div>
       ) : (
-        <div className="grid grid-cols-7 gap-0.5">
+        <div className={`grid grid-cols-7 ${small ? 'gap-1' : 'gap-1'}`}>
           {/* Week day headers */}
           {(compact ? weekDaysShort : weekDays).map((d, i) => (
-            <div key={`${d}-${i}`} className={`text-center font-medium py-1 ${compact ? 'text-[10px]' : 'text-xs'} ${i === 0 ? 'text-red-500 font-bold' : 'text-gray-900 font-semibold'}`}>
+            <div key={`${d}-${i}`} className={`text-center font-semibold py-1.5 ${compact ? 'text-[10px]' : 'text-[11px]'} ${i === 0 ? 'text-red-500' : 'text-gray-700'}`}>
               {d}
             </div>
           ))}
@@ -194,10 +197,11 @@ function AttendanceCalendar({ employeeId, location, compact, small, empMap, onDa
             const status = getDayStatus(day)
             const today  = isToday(day)
             const worked = getWorkedMins(day)
+            const holiday = getHoliday(day)
             return (
               <button
                 key={day.toISOString()}
-                title={getHoliday(day)?.name ?? (onDayClick && status !== 'none' && status !== 'sunday' && status !== 'festival' ? 'Click for details' : '')}
+                title={holiday?.name ?? (onDayClick && status !== 'none' && status !== 'sunday' && status !== 'festival' ? 'Click for details' : '')}
                 onClick={() => {
                   if (!onDayClick || status === 'sunday' || status === 'festival' || status === 'none') return
                   const dateStr = format(day, 'yyyy-MM-dd')
@@ -205,18 +209,29 @@ function AttendanceCalendar({ employeeId, location, compact, small, empMap, onDa
                   onDayClick(dateStr, dayRecs)
                 }}
                 className={`
-                  flex flex-col items-center justify-center rounded-lg w-full
-                  ${compact ? 'py-1' : small ? 'h-8' : 'aspect-square text-xs'}
+                  relative flex flex-col items-center justify-center rounded-xl w-full overflow-hidden
+                  ${compact ? 'py-1' : small ? 'h-10' : 'aspect-square text-xs'}
                   ${statusStyle[status]}
                   ${today ? 'ring-2 ring-brand-500 ring-offset-1' : ''}
                   ${onDayClick && status !== 'none' && status !== 'sunday' && status !== 'festival' ? 'hover:brightness-95 cursor-pointer' : 'cursor-default'}
                 `}
               >
-                <span className={compact || small ? 'text-[10px] leading-tight' : 'text-xs'}>{format(day, 'd')}</span>
-                {worked != null && worked > 0 && (
-                  <span className={`leading-tight font-normal opacity-70 ${compact || small ? 'text-[8px]' : 'text-[10px]'}`}>
+                <span className={`font-semibold leading-tight ${compact ? 'text-[10px]' : small ? 'text-xs' : 'text-sm'}`}>{format(day, 'd')}</span>
+                {/* Holiday label */}
+                {holiday && !compact && (
+                  <span className="text-[7px] leading-none opacity-80 mt-0.5">🎉</span>
+                )}
+                {/* Worked hours */}
+                {worked != null && worked > 0 && !holiday && (
+                  <span className={`leading-none font-normal opacity-60 mt-0.5 ${compact || small ? 'text-[7px]' : 'text-[9px]'}`}>
                     {fmtHrsShort(worked)}
                   </span>
+                )}
+                {/* Bottom color bar for non-compact */}
+                {!compact && status !== 'none' && status !== 'festival' && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-xl opacity-60"
+                    style={{ background: status === 'present' ? '#16a34a' : status === 'remote' ? '#d97706' : status === 'absent' ? '#dc2626' : status === 'leave' ? '#f97316' : '#9ca3af' }}
+                  />
                 )}
               </button>
             )
@@ -225,26 +240,26 @@ function AttendanceCalendar({ employeeId, location, compact, small, empMap, onDa
       )}
 
       {/* Monthly summary */}
-      <div className={`grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-gray-100 ${compact ? 'gap-1' : ''}`}>
+      <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-gray-100">
         {[
-          { label: 'Present', count: records.filter(r => r.status === 'present' && r.work_mode !== 'remote').length, cls: 'text-green-600' },
-          { label: 'Remote',  count: records.filter(r => r.work_mode === 'remote').length, cls: 'text-purple-600' },
-          { label: 'Absent',  count: records.filter(r => r.status === 'absent').length,  cls: 'text-red-600' },
-          { label: 'Leave',   count: records.filter(r => r.status === 'leave').length,   cls: 'text-orange-600' },
+          { label: 'Present', count: records.filter(r => r.status === 'present' && r.work_mode !== 'remote').length, cls: 'text-green-600', bg: 'bg-green-50' },
+          { label: 'Remote',  count: records.filter(r => r.work_mode === 'remote').length,                           cls: 'text-amber-600',  bg: 'bg-amber-50'  },
+          { label: 'Absent',  count: records.filter(r => r.status === 'absent').length,                              cls: 'text-red-600',    bg: 'bg-red-50'    },
+          { label: 'Leave',   count: records.filter(r => r.status === 'leave').length,                               cls: 'text-orange-600', bg: 'bg-orange-50' },
         ].map(s => (
-          <div key={s.label} className="text-center">
-            <p className={`font-bold ${s.cls} ${compact || small ? 'text-sm' : 'text-xl'}`}>{s.count}</p>
-            <p className={`text-gray-400 mt-0.5 ${compact || small ? 'text-[10px]' : 'text-xs'}`}>{s.label}</p>
+          <div key={s.label} className={`text-center py-2 rounded-xl ${s.bg}`}>
+            <p className={`font-bold ${s.cls} ${compact || small ? 'text-base' : 'text-2xl'}`}>{s.count}</p>
+            <p className={`text-gray-500 mt-0.5 ${compact || small ? 'text-[9px]' : 'text-[10px]'} font-medium`}>{s.label}</p>
           </div>
         ))}
       </div>
 
       {holidays.length > 0 && !compact && (
-        <div className="mt-4 pt-4 border-t border-gray-100">
+        <div className="mt-3 pt-3 border-t border-gray-100">
           <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-2">Holidays this month</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {holidays.map(h => (
-              <span key={h.holiday_date} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white"
+              <span key={h.holiday_date} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-white"
                 style={{ background: '#111827', border: '1px solid #1f2937' }}>
                 🎉 {h.name} · {format(parseISO(h.holiday_date), 'dd MMM')}
               </span>
