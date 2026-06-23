@@ -22,7 +22,7 @@
 
 @layer base {
   * { box-sizing: border-box; }
-  html { font-family: 'Inter', system-ui, sans-serif; font-size: 14px; }
+  html { font-family: 'Inter', system-ui, sans-serif; font-size: 13px; }
   body {
     @apply text-gray-900 antialiased;
     background: var(--app-bg);
