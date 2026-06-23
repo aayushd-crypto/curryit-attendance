@@ -1094,17 +1094,16 @@ export default function Dashboard() {
         </div>
 
         {/* Today's breakdown — enhanced card */}
-        <div className="card p-5 flex flex-col gap-4">
+        <div className="card p-5 flex flex-col justify-between" style={{ minHeight: 0 }}>
           {/* Header */}
-          <div>
+          <div className="mb-4">
             <h3 className="font-bold text-gray-900 text-base">Today's breakdown</h3>
             <p className="text-xs text-gray-400 mt-0.5">{format(new Date(), 'EEEE, dd MMM yyyy')}</p>
           </div>
 
           {(() => {
             const total = pieData.reduce((s, d) => s + d.value, 0)
-            // Build donut segments
-            let offset = 25 // start from top
+            let offset = 25
             const segments = pieData.map(({ value, color }) => {
               const pct = total > 0 ? (value / total) * 100 : 0
               const seg = { pct, color, offset }
@@ -1112,20 +1111,20 @@ export default function Dashboard() {
               return seg
             })
             return (
-              <>
-                {/* Donut + center stats */}
-                <div className="flex items-center gap-4">
-                  <div className="relative flex-shrink-0" style={{ width: 100, height: 100 }}>
+              <div className="flex flex-col flex-1 gap-4">
+                {/* Donut + stat pills */}
+                <div className="flex items-center gap-4 flex-1">
+                  {/* Donut */}
+                  <div className="relative flex-shrink-0" style={{ width: 96, height: 96 }}>
                     <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                      {/* Track */}
                       <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f3f4f6" strokeWidth="3.5" />
                       {total === 0 ? (
                         <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e5e7eb" strokeWidth="3.5"
                           strokeDasharray="100 0" strokeDashoffset="-25" />
-                      ) : segments.map(({ pct, color, offset }, i) => pct > 0 ? (
+                      ) : segments.map(({ pct, color, offset: off }, i) => pct > 0 ? (
                         <circle key={i} cx="18" cy="18" r="15.9" fill="none" stroke={color} strokeWidth="3.5"
                           strokeDasharray={`${pct} ${100 - pct}`}
-                          strokeDashoffset={-offset}
+                          strokeDashoffset={-off}
                           strokeLinecap="round"
                         />
                       ) : null)}
@@ -1136,17 +1135,17 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Quick stat pills */}
-                  <div className="flex flex-col gap-1.5 flex-1">
+                  {/* Stat pills — stretch to fill height */}
+                  <div className="flex flex-col flex-1 gap-2">
                     {pieData.map(({ name, value, color, bg }) => (
-                      <div key={name} className="flex items-center justify-between px-3 py-1.5 rounded-xl" style={{ background: bg }}>
+                      <div key={name} className="flex items-center justify-between px-3 py-2 rounded-xl flex-1" style={{ background: bg }}>
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
                           <span className="text-xs font-semibold text-gray-700">{name}</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <span className="text-sm font-black" style={{ color }}>{value}</span>
-                          <span className="text-[10px] text-gray-400 w-8 text-right">
+                          <span className="text-[10px] text-gray-400 w-7 text-right">
                             {total > 0 ? `${Math.round((value/total)*100)}%` : '—'}
                           </span>
                         </div>
@@ -1155,16 +1154,15 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Full-width progress bar */}
-                <div className="h-2.5 rounded-full overflow-hidden flex gap-0.5 bg-gray-100">
-                  {total === 0 ? (
-                    <div className="h-full w-full rounded-full bg-gray-200" />
-                  ) : pieData.map(({ name, value, color }) => value > 0 ? (
-                    <div key={name} className="h-full rounded-full transition-all"
-                      style={{ width: `${(value/total)*100}%`, background: color }} />
-                  ) : null)}
+                {/* Progress bar */}
+                <div className="h-2.5 rounded-full overflow-hidden flex bg-gray-100">
+                  {total === 0
+                    ? <div className="h-full w-full bg-gray-200 rounded-full" />
+                    : pieData.map(({ name, value, color }) => value > 0 ? (
+                      <div key={name} className="h-full transition-all" style={{ width: `${(value/total)*100}%`, background: color }} />
+                    ) : null)}
                 </div>
-              </>
+              </div>
             )
           })()}
         </div>
