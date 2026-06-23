@@ -852,29 +852,67 @@ export default function Dashboard() {
 
             {/* ── CHECKED OUT ── */}
             {checkedOut && (
-              <div className="text-center py-4">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5"
-                  style={{ background: 'linear-gradient(135deg,#D1FAE5,#A7F3D0)', boxShadow: '0 8px 30px rgba(16,185,129,0.2)' }}>
-                  <CheckCircle2 size={38} className="text-emerald-600" />
+              <div className="flex flex-col gap-5">
+                {/* Header */}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'linear-gradient(135deg,#D1FAE5,#A7F3D0)' }}>
+                    <CheckCircle2 size={20} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <h2 className="font-black text-gray-900 text-lg leading-tight">Day complete!</h2>
+                    <p className="text-xs text-gray-400">{formatDate(todayStr)}</p>
+                  </div>
                 </div>
-                <h2 className="text-xl font-black text-gray-900 mb-4">Day complete!</h2>
-                <div className="grid grid-cols-3 gap-3 mb-4">
+
+                {/* Big worked time */}
+                <div className="text-center py-4 rounded-2xl" style={{ background: 'linear-gradient(135deg,#f0fdf4,#dcfce7)' }}>
+                  <p className="text-5xl font-black text-emerald-700 tabular-nums leading-none">
+                    {fmtMins(todayRecord!.worked_minutes ?? 0)}
+                  </p>
+                  <p className="text-xs text-emerald-600 font-semibold mt-1.5 uppercase tracking-wide">Total worked</p>
+                </div>
+
+                {/* Stats grid */}
+                <div className="grid grid-cols-2 gap-3">
                   {[
-                    { label: 'Check in',  val: formatTime(todayRecord!.check_in_time ?? '') },
-                    { label: 'Check out', val: formatTime(todayRecord!.check_out_time ?? '') },
-                    { label: 'Worked',    val: fmtMins(todayRecord!.worked_minutes ?? 0) },
+                    { label: 'Check in',  val: formatTime(todayRecord!.check_in_time ?? ''),  icon: '🟢' },
+                    { label: 'Check out', val: formatTime(todayRecord!.check_out_time ?? ''), icon: '🔴' },
                   ].map(s => (
-                    <div key={s.label} className="p-3 rounded-2xl bg-gray-50">
-                      <p className="text-sm font-black text-gray-900">{s.val}</p>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">{s.label}</p>
+                    <div key={s.label} className="p-4 rounded-2xl bg-gray-50">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{s.icon} {s.label}</p>
+                      <p className="text-base font-black text-gray-900">{s.val}</p>
                     </div>
                   ))}
                 </div>
+
+                {/* Progress bar — full if 9h done */}
+                <div>
+                  <div className="flex justify-between text-[11px] text-gray-400 mb-1.5 font-medium">
+                    <span>Day progress</span>
+                    <span>{Math.min(100, Math.round(((todayRecord!.worked_minutes ?? 0) / 540) * 100))}% of 9h</span>
+                  </div>
+                  <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                    <div className="h-full rounded-full"
+                      style={{
+                        width: `${Math.min(100, ((todayRecord!.worked_minutes ?? 0) / 540) * 100)}%`,
+                        background: (todayRecord!.worked_minutes ?? 0) >= 540
+                          ? 'linear-gradient(90deg,#f59e0b,#d97706)'
+                          : 'linear-gradient(90deg,#10b981,#059669)'
+                      }} />
+                  </div>
+                </div>
+
+                {/* Overtime badge */}
                 {(todayRecord!.overtime_minutes ?? 0) > 0 && (
-                  <p className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-amber-700"
-                    style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                    <Zap size={12} /> Overtime: {fmtMins(todayRecord!.overtime_minutes)}
-                  </p>
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-2xl"
+                    style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                    <Zap size={15} className="text-amber-500 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-amber-700">Overtime logged</p>
+                      <p className="text-sm font-black text-amber-800">{fmtMins(todayRecord!.overtime_minutes)}</p>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
