@@ -100,7 +100,7 @@ export default function EmployeesPage() {
       } catch { deptId = null }
     }
     let empQuery = supabase.from('employees').select('*, departments(name, location)').order('name')
-    if ((role === 'manager') && deptId) empQuery = empQuery.eq('department_id', deptId)
+    if (role === 'manager') { const { data: mp } = await supabase.from('profiles').select('id').eq('email', profile?.email ?? '').maybeSingle(); if (mp?.id) empQuery = empQuery.eq('manager_id', mp.id) }
     const [{ data: emps }, { data: depts }] = await Promise.all([
       empQuery,
       supabase.from('departments').select('*').eq('status', 'active').order('name'),

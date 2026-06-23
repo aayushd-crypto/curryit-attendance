@@ -354,7 +354,7 @@ export default function Dashboard() {
       // Total active employees
       let empQuery = supabase.from('employees').select('*', { count: 'exact', head: true }).eq('status', 'active')
       if (!isAdmin && myLocation) empQuery = empQuery.eq('location', myLocation)
-      if ((role === 'manager') && adminDeptId) empQuery = empQuery.eq('department_id', adminDeptId)
+      if (role === 'manager' && profile?.email) { const { data: mp } = await supabase.from('profiles').select('id').eq('email', profile.email).maybeSingle(); if (mp?.id) empQuery = empQuery.eq('manager_id', mp.id) } else if (role === 'manager' && adminDeptId) { empQuery = empQuery.eq('department_id', adminDeptId) }
       const { count: totalEmployees } = await empQuery
 
       // Fetch employee name map

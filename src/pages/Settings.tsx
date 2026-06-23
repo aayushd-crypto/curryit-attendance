@@ -64,12 +64,55 @@ export default function SettingsPage() {
 
   const [admins, setAdmins] = useState<any[]>([])
   const [savingAdmin, setSavingAdmin] = useState<string | null>(null)
+  const [allEmployees, setAllEmployees] = useState<any[]>([])
+  const [expandedManager, setExpandedManager] = useState<string | null>(null)
+  const [savingEmpAssign, setSavingEmpAssign] = useState(false)
+  const [pendingAssign, setPendingAssign] = useState<Record<string, Set<string>>>({})
 
   const loadAdmins = async () => {
     const { data } = await supabase
       .from('profiles').select('id, full_name, email, role, department_id')
       .in('role', ['manager']).order('full_name')
     setAdmins(data ?? [])
+  }
+
+  const loadAllEmployees = async () => {
+    const { data } = await supabase
+      .from('employees').select('id, name, email, department_id, manager_id')
+      .eq('status', 'active').order('name')
+    setAllEmployees(data ?? [])
+    // seed pending assign from current manager_id values
+    const map: Record<string, Set<string>> = {}
+    ;(data ?? []).forEach((e: any) => {
+      if (e.manager_id) {
+        if (!map[e.manager_id]) map[e.manager_id] = new Set()
+        map[e.manager_id].add(e.id)
+      }
+    })
+    setPendingAssign(map)
+  }
+
+  const toggleEmployeeForManager = (managerId: string, empId: string) => {
+    setPendingAssign(prev => {
+      const current = new Set(prev[managerId] ?? [])
+      current.has(empId) ? current.delete(empId) : current.add(empId)
+      return { ...prev, [managerId]: current }
+    })
+  }
+
+  const saveEmployeeAssignment = async (managerId: string) => {
+    setSavingEmpAssign(true)
+    const selected = pendingAssign[managerId] ?? new Set()
+    // Clear existing assignments for this manager
+    await supabase.from('employees').update({ manager_id: null }).eq('manager_id', managerId)
+    // Set new assignments
+    if (selected.size > 0) {
+      await supabase.from('employees').update({ manager_id: managerId }).in('id', [...selected])
+    }
+    await loadAllEmployees()
+    setSavingEmpAssign(false)
+    setSuccess('Employee assignments saved!')
+    setTimeout(() => setSuccess(null), 2000)
   }
 
   const loadGeo = async () => {
@@ -102,7 +145,7 @@ export default function SettingsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { loadDepts(); loadGeo(); if (profile?.role === 'super_admin') loadAdmins() }, [profile?.role])
+  useEffect(() => { loadDepts(); loadGeo(); if (profile?.role === 'super_admin') { loadAdmins(); loadAllEmployees() } }, [profile?.role])
 
   const addDepartment = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -222,50 +265,88 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        {/* Admin Management accordion (super_admin only) */}
+        {/* Manager Management accordion (super_admin only) */}
         {isSuperAdmin && (
-          <Section icon={<Users size={15} style={{ color: '#E8531D' }} />} title="Manager Management" subtitle="Assign department to each manager">
-            <div className="p-5">
-              <div className="overflow-x-auto rounded-2xl border border-gray-100">
-                <table className="w-full">
-                  <thead><tr><th>Manager</th><th>Department</th><th></th></tr></thead>
-                  <tbody>
-                    {admins.map(a => (
-                      <tr key={a.id}>
-                        <td>
-                          <p className="font-semibold text-gray-900 text-xs">{a.full_name}</p>
-                          <p className="text-gray-400 text-[10px]">{a.email}</p>
-                        </td>
-                        <td>
-                          <select defaultValue={a.department_id ?? ''}
-                            onChange={e => { a._newDept = e.target.value }}
-                            className="input py-1.5 text-xs appearance-none">
-                            <option value="">All departments</option>
-                            {departments.filter(d => d.status === 'active').map(d => (
-                              <option key={d.id} value={d.id}>{d.name}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td>
-                          <button disabled={savingAdmin === a.id}
-                            onClick={async () => {
-                              setSavingAdmin(a.id)
-                              const deptId = a._newDept !== undefined ? a._newDept : a.department_id
-                              await supabase.from('profiles').update({ department_id: deptId || null }).eq('id', a.id)
-                              await loadAdmins(); setSavingAdmin(null)
-                            }}
-                            className="btn-primary py-1.5 text-xs px-3">
-                            {savingAdmin === a.id ? 'Saving…' : 'Save'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {admins.length === 0 && (
-                      <tr><td colSpan={3} className="text-center text-gray-400 py-6 text-sm">No manager accounts found</td></tr>
+          <Section icon={<Users size={15} style={{ color: '#E8531D' }} />} title="Manager Management" subtitle="Assign departments and employees to managers">
+            <div className="p-5 space-y-3">
+              {admins.length === 0 && (
+                <p className="text-center text-gray-400 py-6 text-sm">No manager accounts found</p>
+              )}
+              {admins.map(a => {
+                const assignedIds = pendingAssign[a.id] ?? new Set()
+                const isExpanded = expandedManager === a.id
+                const assignedCount = allEmployees.filter(e => {
+                  const saved = allEmployees.find(x => x.id === e.id)?.manager_id === a.id
+                  return assignedIds.has(e.id)
+                }).length
+                return (
+                  <div key={a.id} className="rounded-2xl border border-gray-100 overflow-hidden">
+                    {/* Manager row */}
+                    <div className="flex items-center gap-3 px-4 py-3 bg-gray-50/60">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 text-xs">{a.full_name}</p>
+                        <p className="text-gray-400 text-[10px]">{a.email}</p>
+                      </div>
+                      {/* Department select */}
+                      <select defaultValue={a.department_id ?? ''}
+                        onChange={e => { a._newDept = e.target.value }}
+                        className="input py-1 text-xs appearance-none w-36 flex-shrink-0">
+                        <option value="">No dept</option>
+                        {departments.filter(d => d.status === 'active').map(d => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                      <button disabled={savingAdmin === a.id}
+                        onClick={async () => {
+                          setSavingAdmin(a.id)
+                          const deptId = a._newDept !== undefined ? a._newDept : a.department_id
+                          await supabase.from('profiles').update({ department_id: deptId || null }).eq('id', a.id)
+                          await loadAdmins(); setSavingAdmin(null)
+                        }}
+                        className="btn-secondary py-1 text-xs px-3 flex-shrink-0">
+                        {savingAdmin === a.id ? 'Saving…' : 'Save dept'}
+                      </button>
+                      {/* Toggle employees */}
+                      <button
+                        onClick={() => setExpandedManager(isExpanded ? null : a.id)}
+                        className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold border border-gray-200 bg-white hover:bg-gray-50 flex-shrink-0">
+                        <Users size={12} />
+                        {assignedCount} employees
+                        <ChevronDown size={12} style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                      </button>
+                    </div>
+                    {/* Employee checklist */}
+                    {isExpanded && (
+                      <div className="p-4 border-t border-gray-100">
+                        {allEmployees.length === 0 ? (
+                          <p className="text-xs text-gray-400 text-center py-3">No active employees found</p>
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-3 max-h-64 overflow-y-auto">
+                              {allEmployees.map(emp => (
+                                <label key={emp.id} className={`flex items-center gap-2 p-2.5 rounded-xl cursor-pointer transition-colors ${assignedIds.has(emp.id) ? 'bg-brand-50 border border-brand-200' : 'bg-gray-50 border border-transparent hover:bg-gray-100'}`}>
+                                  <input type="checkbox" checked={assignedIds.has(emp.id)}
+                                    onChange={() => toggleEmployeeForManager(a.id, emp.id)}
+                                    className="w-3.5 h-3.5 accent-brand-500 flex-shrink-0" />
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-gray-800 truncate">{emp.name}</p>
+                                    <p className="text-[10px] text-gray-400 truncate">{emp.email}</p>
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                            <button onClick={() => saveEmployeeAssignment(a.id)} disabled={savingEmpAssign}
+                              className="btn-primary text-xs py-1.5 w-full justify-center">
+                              {savingEmpAssign ? <Spinner size="sm" /> : null}
+                              Save employee assignments
+                            </button>
+                          </>
+                        )}
+                      </div>
                     )}
-                  </tbody>
-                </table>
-              </div>
+                  </div>
+                )
+              })}
             </div>
           </Section>
         )}
