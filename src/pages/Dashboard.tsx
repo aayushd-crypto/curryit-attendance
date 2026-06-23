@@ -597,16 +597,29 @@ export default function Dashboard() {
     if (!user || !profile || !todayRecord || !empId) return
     setAttBusy(true); setAttError(null)
 
+    // Calculate real IST time client-side (no server trigger needed)
+    const now = new Date()
+    const istOffset = 5.5 * 60 * 60 * 1000
+    const istNow = new Date(now.getTime() + istOffset)
+    const checkOutTime = istNow.toISOString().split('T')[1].split('.')[0] // HH:MM:SS
+
+    // Calculate worked minutes from check_in_time
+    let workedMins: number | null = null
+    if (todayRecord.check_in_time) {
+      const [ih, im, is_] = todayRecord.check_in_time.split(':').map(Number)
+      const [oh, om, os] = checkOutTime.split(':').map(Number)
+      const inMins = ih * 60 + im + (is_ || 0) / 60
+      const outMins = oh * 60 + om + (os || 0) / 60
+      workedMins = Math.max(0, Math.round(outMins - inMins))
+    }
+
     const { error: e } = await supabase
       .from('attendance')
-      .update({ check_out_time: '00:00:00' }) // server trigger overwrites with real IST time
+      .update({ check_out_time: checkOutTime, worked_minutes: workedMins })
       .eq('id', todayRecord.id)
 
     if (e) {
-      if (e.message?.includes('ALREADY_CHECKED_OUT'))
-        setAttError('You have already checked out today.')
-      else
-        setAttError(`Check-out failed: ${e.message}`)
+      setAttError(`Check-out failed: ${e.message}`)
     } else {
       await logAudit({ userId: user.id, userName: profile.full_name, userRole: role!, action: 'Checked out' })
       await loadAttendance(empId)
