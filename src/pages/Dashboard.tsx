@@ -269,7 +269,7 @@ export default function Dashboard() {
   const [pendingLeaves, setPending]     = useState<PendingLeave[]>([])
   const [loading, setLoading]           = useState(true)
   const [empId, setEmpId]               = useState<string | null>(null)
-  const [empLocation, setEmpLocation]   = useState<string>('office')
+  const [empLocation, setEmpLocation]   = useState<string>(role === 'cmk_coordinator' ? 'cmk' : 'office')
   const [calendarLocation, setCalendarLocation] = useState<string>('office')
   const todayStr   = format(new Date(), 'yyyy-MM-dd')
   const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd')
@@ -312,8 +312,10 @@ export default function Dashboard() {
           .maybeSingle()
         if (emp) {
           setEmpId(emp.id)
-          setEmpLocation(emp.location)
-          myLocation = emp.location
+          // CMK coordinators always use 'cmk' location regardless of employee record
+          const resolvedLoc = role === 'cmk_coordinator' ? 'cmk' : (emp.location ?? 'office')
+          setEmpLocation(resolvedLoc)
+          myLocation = resolvedLoc
         }
       }
 
@@ -463,8 +465,11 @@ export default function Dashboard() {
     }
     setGeoError(null); setGeoChecking(true)
 
+    // For CMK coordinators, always use 'cmk' location (safety guard)
+    const effectiveLocation = role === 'cmk_coordinator' ? 'cmk' : empLocation
+
     // Load geo settings for this employee's location
-    const { data: geo, error: geoFetchErr } = await supabase.from('geo_settings').select('*').eq('location', empLocation).single()
+    const { data: geo, error: geoFetchErr } = await supabase.from('geo_settings').select('*').eq('location', effectiveLocation).single()
     console.log('[GEO] settings:', geo, 'fetchErr:', geoFetchErr, 'workMode:', workMode)
 
     let checkInLat: number | null = null
@@ -490,7 +495,7 @@ export default function Dashboard() {
       const dist = distanceM(checkInLat, checkInLng, geo.lat, geo.lng)
       console.log('[GEO] distance:', dist, 'radius:', geo.radius_m, 'blocking:', dist > geo.radius_m)
       if (dist > geo.radius_m) {
-        setGeoError(`You are ${Math.round(dist)}m away. Check-in requires being within ${geo.radius_m}m of ${empLocation === 'cmk' ? 'CMK' : 'the office'}.`)
+        setGeoError(`You are ${Math.round(dist)}m away. Check-in requires being within ${geo.radius_m}m of ${effectiveLocation === 'cmk' ? 'CMK' : 'the office'}.`)
         setGeoChecking(false); return
       }
     }
@@ -501,8 +506,9 @@ export default function Dashboard() {
       employee_id: empId,
       date: todayStr,
       check_in_time: '00:00:00',
-      location: empLocation as any,
-      work_mode: workMode,
+      location: effectiveLocation as any,
+      // CMK employees don't have office/remote work modes — save null
+      work_mode: effectiveLocation === 'cmk' ? null : workMode,
       ...(checkInLat !== null ? { check_in_lat: checkInLat, check_in_lng: checkInLng } : {}),
       status: 'present',
       source: 'self_marked',
