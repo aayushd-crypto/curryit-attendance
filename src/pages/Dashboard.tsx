@@ -114,13 +114,13 @@ function AttendanceCalendar({ employeeId, location, compact, small, empMap, onDa
   }
 
   const statusStyle: Record<string, string> = {
-    present:  'bg-green-100 text-green-700 font-semibold border border-green-200',
-    remote:   'bg-yellow-100 text-yellow-700 font-semibold border border-yellow-200',
-    absent:   'bg-red-100 text-red-600 font-semibold border border-red-200',
-    leave:    'bg-red-100 text-red-600 font-semibold border border-red-200',
-    sunday:   'bg-gray-100 text-gray-400 border border-gray-200',
+    present:  'bg-green-100 text-green-700 font-semibold border border-green-400',
+    remote:   'bg-yellow-100 text-yellow-700 font-semibold border border-yellow-400',
+    absent:   'bg-red-100 text-red-600 font-semibold border border-red-400',
+    leave:    'bg-red-100 text-red-600 font-semibold border border-red-400',
+    sunday:   'bg-gray-100 text-gray-400 border border-gray-300',
     festival: 'bg-gray-900 text-white font-bold border border-gray-800',
-    none:     'bg-white text-gray-400 border border-gray-100',
+    none:     'bg-white text-gray-400 border border-gray-200',
   }
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
