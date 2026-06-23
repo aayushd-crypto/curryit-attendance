@@ -22,7 +22,7 @@ interface Balance {
 
 export default function LeavePage() {
   const { user, profile, role } = useAuth()
-  const isAdmin = role === 'manager' || role === 'super_admin'
+  const isAdmin = role === 'manager' || role === 'super_admin' || role === 'cmk_coordinator'
 
   const [leaves, setLeaves]     = useState<Req[]>([])
   const [balance, setBalance]   = useState<Balance | null>(null)
@@ -50,8 +50,27 @@ export default function LeavePage() {
       setEmpId(myEmpId)
     }
 
-    let lq = supabase.from('leave_requests').select('*, employees(name)').order('created_at', { ascending: false })
-    if (!isAdmin && myEmpId) lq = lq.eq('employee_id', myEmpId)
+    let lq = supabase.from('leave_requests').select('*, employees(name, location, manager_id)').order('created_at', { ascending: false })
+    if (role === 'employee') {
+      // Employee sees only their own
+      if (myEmpId) lq = lq.eq('employee_id', myEmpId)
+    } else if (role === 'manager') {
+      // Manager sees only their assigned employees' leaves
+      const { data: mp } = await supabase.from('profiles').select('id').eq('email', profile?.email ?? '').maybeSingle()
+      if (mp?.id) {
+        const { data: myEmps } = await supabase.from('employees').select('id').eq('manager_id', mp.id)
+        const empIds = (myEmps ?? []).map((e: any) => e.id)
+        if (empIds.length > 0) lq = lq.in('employee_id', empIds)
+        else lq = lq.eq('employee_id', 'none') // no employees → no leaves
+      }
+    } else if (role === 'cmk_coordinator') {
+      // CMK coordinator sees CMK employees' leaves
+      const { data: cmkEmps } = await supabase.from('employees').select('id').eq('location', 'cmk').eq('status', 'active')
+      const empIds = (cmkEmps ?? []).map((e: any) => e.id)
+      if (empIds.length > 0) lq = lq.in('employee_id', empIds)
+      else lq = lq.eq('employee_id', 'none')
+    }
+    // super_admin sees all — no filter
 
     const { data: l } = await lq
     setLeaves((l ?? []) as Req[])
@@ -166,7 +185,7 @@ export default function LeavePage() {
           <h1 className="page-title">Leave</h1>
           <p className="page-subtitle">{leaves.filter(l => l.status === 'pending').length} pending requests</p>
         </div>
-        {(role === 'employee' || role === 'cmk_coordinator') && (
+        {(role === 'employee' || role === 'cmk_coordinator' || role === 'manager') && (
           <button onClick={() => { setModal(true); setError(null) }} className="btn-primary">
             <Plus size={15} /> Apply leave
           </button>
@@ -174,7 +193,7 @@ export default function LeavePage() {
       </div>
 
       {/* Casual leave balance card — employees */}
-      {(role === 'employee' || role === 'cmk_coordinator') && balance && (
+      {(role === 'employee' || role === 'cmk_coordinator' || role === 'manager') && balance && (
         <div className="card p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6">
           <div className="p-3 rounded-xl bg-blue-50">
             <Wallet size={20} className="text-blue-500" />
