@@ -997,62 +997,162 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Admin self check-in card */}
+      {/* ── Personal section (same as employee view) ── */}
       {isAdmin && empId && (
-        <div className="card-elevated rounded-3xl p-4 sm:p-6">
-          {!todayRecord ? (
-            <>
-              <h2 className="font-black text-gray-900 text-lg mb-1 tracking-tight">My Check-in</h2>
-              <p className="text-xs text-gray-400 mb-4">Time is recorded by the server and cannot be edited.</p>
-              {/* Work mode selector */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                {[
-                  { mode: 'office' as const, label: 'In Office', icon: Building2, activeColor: 'linear-gradient(135deg,#E8531D,#C44010)' },
-                  { mode: 'remote' as const, label: 'Remote',    icon: Wifi,      activeColor: 'linear-gradient(135deg,#8B5CF6,#7C3AED)' },
-                ].map(({ mode, label, icon: Icon, activeColor }) => (
-                  <button key={mode} onClick={() => setWorkMode(mode)}
-                    className="flex flex-col items-center gap-2 py-3 px-2 rounded-2xl border-2 transition-all"
-                    style={{ borderColor: workMode === mode ? 'transparent' : '#E5E7EB', background: workMode === mode ? activeColor : '#F9FAFB' }}>
-                    <Icon size={20} className={workMode === mode ? 'text-white' : 'text-gray-400'} />
-                    <span className={`text-xs font-bold ${workMode === mode ? 'text-white' : 'text-gray-500'}`}>{label}</span>
+        <>
+          {/* Month stats pills */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {([
+              { label: 'Present', sublabel: 'this month', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: '✅', rows: history.filter((r: any) => r.status === 'present' && r.work_mode !== 'remote') },
+              { label: 'Remote',  sublabel: 'this month', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe', icon: '🏠', rows: history.filter((r: any) => r.work_mode === 'remote') },
+              { label: 'Absent',  sublabel: 'this month', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: '❌', rows: history.filter((r: any) => r.status === 'absent') },
+              { label: 'On Leave',sublabel: 'this month', color: '#ea580c', bg: '#fff7ed', border: '#fed7aa', icon: '🏖️', rows: history.filter((r: any) => r.status === 'leave') },
+            ] as any[]).map(({ label, sublabel, color, bg, border, icon, rows }) => (
+              <button key={label}
+                onClick={() => setDrillModal({ title: `${label} — ${sublabel}`, rows: rows.map((r: any) => ({ name: formatDate(r.date), sub: r.check_in_time ? `${formatTime(r.check_in_time)}${r.check_out_time ? ' → ' + formatTime(r.check_out_time) : ''}` : undefined })) })}
+                className="card p-4 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all text-left"
+                style={{ background: bg, borderColor: border }}>
+                <span className="text-2xl flex-shrink-0">{icon}</span>
+                <div className="min-w-0">
+                  <p className="text-xl sm:text-2xl font-black leading-none" style={{ color }}>{rows.length}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate font-medium">{label}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Check-in widget + personal calendar */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Full check-in/out widget */}
+            <div className="card-elevated rounded-3xl p-4 sm:p-5 flex flex-col gap-0">
+              {/* ── NOT CHECKED IN ── */}
+              {!todayRecord && !attError && (
+                <>
+                  <h2 className="font-black text-gray-900 text-xl mb-1 tracking-tight">Check in</h2>
+                  <p className="text-sm text-gray-400 mb-6">Time is recorded by the server and cannot be edited.</p>
+                  <div className="grid grid-cols-2 gap-3 mb-6">
+                    <button onClick={() => setWorkMode('office')}
+                      className={`flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all ${workMode === 'office' ? 'border-brand-500 shadow-xl shadow-brand-500/15' : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'}`}>
+                      <div className="p-3 rounded-xl" style={{ background: workMode === 'office' ? 'linear-gradient(135deg,#E8531D,#C44010)' : '#E5E7EB' }}>
+                        <Building2 size={22} className={workMode === 'office' ? 'text-white' : 'text-gray-400'} />
+                      </div>
+                      <div className="text-center">
+                        <p className={`font-bold text-sm ${workMode === 'office' ? 'text-brand-700' : 'text-gray-500'}`}>In Office</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Working from office</p>
+                      </div>
+                    </button>
+                    <button onClick={() => setWorkMode('remote')}
+                      className={`flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all ${workMode === 'remote' ? 'border-violet-500 shadow-xl shadow-violet-500/15' : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'}`}>
+                      <div className="p-3 rounded-xl" style={{ background: workMode === 'remote' ? 'linear-gradient(135deg,#8B5CF6,#7C3AED)' : '#E5E7EB' }}>
+                        <Wifi size={22} className={workMode === 'remote' ? 'text-white' : 'text-gray-400'} />
+                      </div>
+                      <div className="text-center">
+                        <p className={`font-bold text-sm ${workMode === 'remote' ? 'text-violet-700' : 'text-gray-500'}`}>Remote</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Working from home</p>
+                      </div>
+                    </button>
+                  </div>
+                  {geoStatus && (
+                    <div className="mb-4 rounded-2xl overflow-hidden border border-gray-100">
+                      <div className="relative w-full overflow-hidden">
+                        <LiveMap
+                          lat={geoStatus.lat} lng={geoStatus.lng}
+                          targetLat={geoStatus.officeLat || undefined}
+                          targetLng={geoStatus.officeLng || undefined}
+                          radiusM={geoStatus.radius || undefined}
+                          onUpdate={(lat, lng, dist) => setGeoStatus(prev => prev ? { ...prev, lat, lng, dist, ok: dist <= prev.radius } : prev)}
+                        />
+                      </div>
+                      <div className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold ${geoStatus.radius === 0 ? 'bg-gray-50 text-gray-500' : geoStatus.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 animate-pulse ${geoStatus.radius === 0 ? 'bg-gray-400' : geoStatus.ok ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                        {geoStatus.radius === 0 ? '📍 Location detected' : geoStatus.ok ? `✓ Within range · ${geoStatus.dist}m from office` : `✗ Too far · ${geoStatus.dist}m away (max ${geoStatus.radius}m)`}
+                      </div>
+                    </div>
+                  )}
+                  <button onClick={checkIn} disabled={attBusy || geoChecking}
+                    className="btn-primary w-full justify-center py-4 rounded-2xl text-base">
+                    {(attBusy || geoChecking) ? <Spinner size="sm" /> : <LogIn size={19} />}
+                    {geoChecking ? 'Verifying location...' : attBusy ? 'Checking in...' : 'Check In'}
                   </button>
-                ))}
-              </div>
-              {geoStatus && workMode !== 'remote' && (
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold mb-3 ${geoStatus.radius === 0 ? 'bg-gray-50 text-gray-500' : geoStatus.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${geoStatus.radius === 0 ? 'bg-gray-400' : geoStatus.ok ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                  {geoStatus.radius === 0 ? 'Geo-fence not configured' : geoStatus.ok ? `In range — ${geoStatus.dist}m away` : `Out of range — ${geoStatus.dist}m away`}
+                  {geoError && <div className="mt-3 px-4 py-3 rounded-xl text-sm text-red-300 text-center" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>📍 {geoError}</div>}
+                  <p className="text-xs text-center text-gray-400 mt-3 flex items-center justify-center gap-1.5"><Clock size={11} /> One entry per day · time is server-stamped</p>
+                </>
+              )}
+              {attError && !todayRecord && (
+                <div className="flex items-start gap-3 px-5 py-4 rounded-2xl text-sm text-red-700" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  <AlertCircle size={16} className="flex-shrink-0 mt-0.5" /><span>{attError}</span>
                 </div>
               )}
-              {geoError && <p className="text-xs text-red-500 mb-3">{geoError}</p>}
-              {attError && <p className="text-xs text-red-500 mb-3">{attError}</p>}
-              <button onClick={checkIn} disabled={attBusy || geoChecking}
-                className="w-full py-3 rounded-2xl font-bold text-white text-sm transition-all"
-                style={{ background: 'linear-gradient(135deg,#E8531D,#C44010)', opacity: attBusy || geoChecking ? 0.6 : 1 }}>
-                {geoChecking ? 'Checking location…' : attBusy ? 'Checking in…' : 'Check In'}
-              </button>
-            </>
-          ) : !todayRecord.check_out_time ? (
-            <>
-              <h2 className="font-black text-gray-900 text-lg mb-1">Checked in ✓</h2>
-              <p className="text-sm text-gray-500 mb-1">Since {todayRecord.check_in_time ? formatTime(todayRecord.check_in_time) : '—'} · {liveWorked !== null ? fmtMins(liveWorked) : '—'}</p>
-              {liveWorked !== null && liveWorked > 540 && (
-                <p className="text-xs font-semibold text-orange-500 mb-3">🔥 Overtime: {fmtMins(liveWorked - 540)}</p>
+              {/* ── CHECKED IN, NOT OUT ── */}
+              {todayRecord && !todayRecord.check_out_time && (
+                <div className="flex flex-col gap-5">
+                  <div className="flex items-center justify-between">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                      <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Working now</span>
+                    </div>
+                    <span className="text-xs text-gray-400 font-medium">{todayRecord.work_mode === 'remote' ? '🏠 Remote' : '🏢 Office'}</span>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-5xl sm:text-6xl font-black text-gray-900 tracking-tight tabular-nums leading-none mb-1">{liveWorked !== null ? fmtMins(liveWorked) : '—'}</p>
+                    <p className="text-sm text-gray-400">Since {formatTime(todayRecord.check_in_time ?? '')}</p>
+                  </div>
+                  {liveWorked !== null && (
+                    <div>
+                      <div className="flex justify-between text-[11px] text-gray-400 mb-1.5 font-medium"><span>Progress</span><span>{Math.min(100, Math.round((liveWorked / 540) * 100))}% of 9h</span></div>
+                      <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, (liveWorked / 540) * 100)}%`, background: liveWorked >= 540 ? 'linear-gradient(90deg,#f59e0b,#d97706)' : 'linear-gradient(90deg,#10b981,#059669)' }} />
+                      </div>
+                      {liveWorked >= 540 && <p className="text-xs font-bold text-amber-600 mt-1.5 flex items-center gap-1"><Zap size={11} /> Overtime: {fmtMins(liveWorked - 540)}</p>}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                    <div className="p-3 rounded-xl bg-gray-50 text-center"><p className="text-xs text-gray-400 font-medium">Checked in</p><p className="font-bold text-gray-900 text-sm mt-0.5">{formatTime(todayRecord.check_in_time ?? '')}</p></div>
+                    <div className="p-3 rounded-xl bg-gray-50 text-center"><p className="text-xs text-gray-400 font-medium">Remaining</p><p className="font-bold text-gray-900 text-sm mt-0.5">{liveWorked !== null && liveWorked < 540 ? fmtMins(540 - liveWorked) : '—'}</p></div>
+                  </div>
+                  {attError && <div className="px-4 py-3 rounded-xl text-sm text-red-600" style={{ background: 'rgba(239,68,68,0.06)' }}>{attError}</div>}
+                  <button onClick={checkOut} disabled={attBusy}
+                    className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl text-base font-semibold text-white transition-all"
+                    style={{ background: 'linear-gradient(135deg,#374151,#1F2937)', boxShadow: '0 4px 15px rgba(0,0,0,0.15)' }}>
+                    {attBusy ? <Spinner size="sm" /> : <LogOut size={19} />}
+                    {attBusy ? 'Checking out...' : 'Check Out'}
+                  </button>
+                </div>
               )}
-              {attError && <p className="text-xs text-red-500 mb-3">{attError}</p>}
-              <button onClick={checkOut} disabled={attBusy}
-                className="w-full py-3 rounded-2xl font-bold text-sm border-2 border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">
-                {attBusy ? 'Checking out…' : 'Check Out'}
-              </button>
-            </>
-          ) : (
-            <div className="text-center py-2">
-              <CheckSquare size={28} className="mx-auto text-green-400 mb-2" />
-              <p className="font-bold text-gray-800">Done for today!</p>
-              <p className="text-xs text-gray-500">{formatTime(todayRecord.check_in_time!)} → {formatTime(todayRecord.check_out_time)}</p>
+              {/* ── CHECKED OUT ── */}
+              {todayRecord?.check_out_time && (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg,#D1FAE5,#A7F3D0)' }}>
+                      <CheckCircle2 size={20} className="text-emerald-600" />
+                    </div>
+                    <div><h2 className="font-black text-gray-900 text-base sm:text-lg leading-tight">Day complete!</h2><p className="text-xs text-gray-400">{formatDate(todayStr)}</p></div>
+                  </div>
+                  <div className="text-center py-4 rounded-2xl" style={{ background: 'linear-gradient(135deg,#f0fdf4,#dcfce7)' }}>
+                    <p className="text-4xl font-black text-emerald-700">{todayRecord.worked_minutes ? fmtMins(todayRecord.worked_minutes) : fmtMins(liveWorked ?? 0)}</p>
+                    <p className="text-xs text-emerald-600 mt-1 font-medium">Total worked</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-3 rounded-xl bg-gray-50 text-center"><p className="text-xs text-gray-400 font-medium">In</p><p className="font-bold text-gray-900 text-sm">{formatTime(todayRecord.check_in_time!)}</p></div>
+                    <div className="p-3 rounded-xl bg-gray-50 text-center"><p className="text-xs text-gray-400 font-medium">Out</p><p className="font-bold text-gray-900 text-sm">{formatTime(todayRecord.check_out_time)}</p></div>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            {/* Personal calendar */}
+            <div>
+              <AttendanceCalendar employeeId={empId} location={empLocation} small onDayClick={(dateStr) => navigate(`/attendance/${dateStr}`)} />
+            </div>
+          </div>
+
+          {/* Divider before team overview */}
+          <div className="flex items-center gap-3 py-1">
+            <div className="flex-1 h-px bg-gray-100" />
+            <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider px-2">Team Overview</span>
+            <div className="flex-1 h-px bg-gray-100" />
+          </div>
+        </>
       )}
 
       {/* Top stat cards */}
