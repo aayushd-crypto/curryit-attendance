@@ -449,12 +449,12 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if ((isEmployee || role === 'admin') && empId) loadAttendance(empId)
+    if ((isEmployee || isAdmin) && empId) loadAttendance(empId)
   }, [isEmployee, empId])
 
   // Background geo check — shows range indicator before check-in
   useEffect(() => {
-    if ((!isEmployee && role !== 'admin') || !empLocation || !navigator.geolocation) return
+    if ((!isEmployee && !isAdmin) || !empLocation || !navigator.geolocation) return
     const checkGeo = async () => {
       // CMK geo is hardcoded and locked — office geo comes from DB
       let geoLat: number, geoLng: number, geoRadius: number
@@ -998,7 +998,7 @@ export default function Dashboard() {
       </div>
 
       {/* Admin self check-in card */}
-      {role === 'admin' && empId && (
+      {isAdmin && empId && (
         <div className="card-elevated rounded-3xl p-4 sm:p-6">
           {!todayRecord ? (
             <>
