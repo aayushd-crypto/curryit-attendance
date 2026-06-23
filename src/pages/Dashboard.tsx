@@ -65,7 +65,7 @@ interface PendingLeave {
 }
 
 // ── Monthly Calendar Component ────────────────────────────────────────────────
-function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick }: { employeeId?: string | null, location?: string, compact?: boolean, empMap?: Record<string, string>, onDayClick?: (dateStr: string, records: DayRecord[]) => void }) {
+function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick, titleExtra }: { employeeId?: string | null, location?: string, compact?: boolean, empMap?: Record<string, string>, onDayClick?: (dateStr: string, records: DayRecord[]) => void, titleExtra?: React.ReactNode }) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [records, setRecords] = useState<DayRecord[]>([])
   const [holidays, setHolidays] = useState<{ holiday_date: string; name: string }[]>([])
@@ -138,7 +138,9 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick 
         <h3 className={compact ? 'font-semibold text-gray-900 text-sm' : 'font-semibold text-gray-900'}>
           {compact ? 'My calendar' : 'Monthly attendance'}
         </h3>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          {titleExtra && <div className="flex items-center gap-1.5 mr-1">{titleExtra}</div>}
+          <div className="flex items-center gap-1">
           <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500">
             <ChevronLeft size={14} />
           </button>
@@ -151,6 +153,7 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick 
           >
             <ChevronRight size={14} />
           </button>
+          </div>
         </div>
       </div>
 
@@ -1036,47 +1039,92 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Calendar + Pie chart row */}
+      {/* Calendar + Breakdown row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 space-y-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCalendarLocation('office')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                calendarLocation === 'office'
-                  ? 'bg-blue-500 text-white border-blue-500'
-                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1.5 align-middle" style={{ background: calendarLocation === 'office' ? '#fff' : '#3b82f6' }} />
-              Office
-            </button>
-            <button
-              onClick={() => setCalendarLocation('cmk')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                calendarLocation === 'cmk'
-                  ? 'bg-brand-500 text-white border-brand-500'
-                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              <span className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" style={{ background: calendarLocation === 'cmk' ? '#fff' : '#E8531D' }} />
-              CMK
-            </button>
-          </div>
-          <AttendanceCalendar location={calendarLocation} empMap={empMap} onDayClick={(dateStr) => navigate(`/attendance/${dateStr}`)} />
+        {/* Calendar with built-in location toggle */}
+        <div className="lg:col-span-2">
+          <AttendanceCalendar
+            location={calendarLocation}
+            empMap={empMap}
+            onDayClick={(dateStr) => navigate(`/attendance/${dateStr}`)}
+            titleExtra={
+              <>
+                <button
+                  onClick={() => setCalendarLocation('office')}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                    calendarLocation === 'office'
+                      ? 'bg-blue-500 text-white border-blue-500'
+                      : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="inline-block w-1.5 h-1.5 rounded-full mr-1 align-middle" style={{ background: calendarLocation === 'office' ? '#fff' : '#3b82f6' }} />
+                  Office
+                </button>
+                <button
+                  onClick={() => setCalendarLocation('cmk')}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                    calendarLocation === 'cmk'
+                      ? 'bg-brand-500 text-white border-brand-500'
+                      : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="inline-block w-1.5 h-1.5 rounded-full mr-1 align-middle" style={{ background: calendarLocation === 'cmk' ? '#fff' : '#E8531D' }} />
+                  CMK
+                </button>
+              </>
+            }
+          />
         </div>
 
-        <div className="card p-5">
-          <h3 className="font-semibold text-gray-900 mb-4">Today's breakdown</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie data={pieData} cx="50%" cy="45%" innerRadius={55} outerRadius={80} dataKey="value" paddingAngle={3}>
-                {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-              </Pie>
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
-            </PieChart>
-          </ResponsiveContainer>
+        {/* Today's breakdown — clean stat card */}
+        <div className="card p-5 flex flex-col">
+          <h3 className="font-semibold text-gray-900 mb-1">Today's breakdown</h3>
+          <p className="text-xs text-gray-400 mb-5">All employees</p>
+
+          {/* Donut visual */}
+          {(() => {
+            const total = pieData.reduce((s, d) => s + d.value, 0)
+            return (
+              <>
+                <div className="flex justify-center mb-5">
+                  <div className="relative w-28 h-28">
+                    <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                      {pieData.reduce((acc, { value, color }) => {
+                        const pct = total > 0 ? (value / total) * 100 : 0
+                        const offset = acc.offset
+                        acc.els.push(
+                          <circle key={color} cx="18" cy="18" r="15.9"
+                            fill="none" stroke={color} strokeWidth="3.2"
+                            strokeDasharray={`${pct} ${100 - pct}`}
+                            strokeDashoffset={-offset}
+                          />
+                        )
+                        acc.offset += pct
+                        return acc
+                      }, { els: [] as React.ReactNode[], offset: 0 }).els}
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-2xl font-black text-gray-900">{total}</span>
+                      <span className="text-[10px] text-gray-400 font-medium">total</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {pieData.map(({ name, value, color }) => (
+                    <div key={name} className="flex items-center gap-3">
+                      <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: color }} />
+                      <span className="text-sm text-gray-600 flex-1">{name}</span>
+                      <span className="font-bold text-gray-900 text-sm">{value}</span>
+                      <div className="w-16 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: total > 0 ? `${(value/total)*100}%` : '0%', background: color }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )
+          })()}
         </div>
       </div>
 
