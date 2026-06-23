@@ -65,7 +65,7 @@ interface PendingLeave {
 }
 
 // ── Monthly Calendar Component ────────────────────────────────────────────────
-function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick, titleExtra }: { employeeId?: string | null, location?: string, compact?: boolean, empMap?: Record<string, string>, onDayClick?: (dateStr: string, records: DayRecord[]) => void, titleExtra?: React.ReactNode }) {
+function AttendanceCalendar({ employeeId, location, compact, small, empMap, onDayClick, titleExtra }: { employeeId?: string | null, location?: string, compact?: boolean, small?: boolean, empMap?: Record<string, string>, onDayClick?: (dateStr: string, records: DayRecord[]) => void, titleExtra?: React.ReactNode }) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [records, setRecords] = useState<DayRecord[]>([])
   const [holidays, setHolidays] = useState<{ holiday_date: string; name: string }[]>([])
@@ -178,8 +178,8 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick,
       ) : (
         <div className="grid grid-cols-7 gap-0.5">
           {/* Week day headers */}
-          {(compact ? weekDaysShort : weekDays).map((d, i) => (
-            <div key={`${d}-${i}`} className={`text-center font-medium py-1 ${compact ? 'text-[10px]' : 'text-xs'} ${i === 0 ? 'text-red-400' : 'text-gray-400'}`}>
+          {(compact || small ? weekDaysShort : weekDays).map((d, i) => (
+            <div key={`${d}-${i}`} className={`text-center font-medium py-1 ${compact || small ? 'text-[10px]' : 'text-xs'} ${i === 0 ? 'text-red-400' : 'text-gray-400'}`}>
               {d}
             </div>
           ))}
@@ -206,15 +206,15 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick,
                 }}
                 className={`
                   flex flex-col items-center justify-center rounded-lg w-full
-                  ${compact ? 'py-1' : 'aspect-square text-xs'}
+                  ${compact ? 'py-1' : small ? 'py-1.5 text-xs' : 'aspect-square text-xs'}
                   ${statusStyle[status]}
                   ${today ? 'ring-2 ring-brand-500 ring-offset-1' : ''}
                   ${onDayClick && status !== 'none' && status !== 'sunday' && status !== 'festival' ? 'hover:brightness-95 cursor-pointer' : 'cursor-default'}
                 `}
               >
-                <span className={compact ? 'text-[10px] leading-tight' : ''}>{format(day, 'd')}</span>
+                <span className={compact || small ? 'text-[10px] leading-tight' : 'text-xs'}>{format(day, 'd')}</span>
                 {worked != null && worked > 0 && (
-                  <span className={`leading-tight font-normal opacity-70 ${compact ? 'text-[8px]' : 'text-[10px]'}`}>
+                  <span className={`leading-tight font-normal opacity-70 ${compact || small ? 'text-[8px]' : 'text-[10px]'}`}>
                     {fmtHrsShort(worked)}
                   </span>
                 )}
@@ -233,8 +233,8 @@ function AttendanceCalendar({ employeeId, location, compact, empMap, onDayClick,
           { label: 'Leave',   count: records.filter(r => r.status === 'leave').length,   cls: 'text-orange-600' },
         ].map(s => (
           <div key={s.label} className="text-center">
-            <p className={`font-bold ${s.cls} ${compact ? 'text-sm' : 'text-xl'}`}>{s.count}</p>
-            <p className={`text-gray-400 mt-0.5 ${compact ? 'text-[10px]' : 'text-xs'}`}>{s.label}</p>
+            <p className={`font-bold ${s.cls} ${compact || small ? 'text-sm' : 'text-xl'}`}>{s.count}</p>
+            <p className={`text-gray-400 mt-0.5 ${compact || small ? 'text-[10px]' : 'text-xs'}`}>{s.label}</p>
           </div>
         ))}
       </div>
@@ -1046,6 +1046,7 @@ export default function Dashboard() {
           <AttendanceCalendar
             location={calendarLocation}
             empMap={empMap}
+            small
             onDayClick={(dateStr) => navigate(`/attendance/${dateStr}`)}
             titleExtra={
               <>
