@@ -547,29 +547,40 @@ export default function Dashboard() {
     }
     setGeoError(null); setGeoChecking(true)
 
+    // Calculate real IST check-in time client-side
+    const nowIst = new Date(Date.now() + 5.5 * 60 * 60 * 1000)
+    const checkInTime = nowIst.toISOString().split('T')[1].split('.')[0] // HH:MM:SS
+
     // For CMK coordinators, always use 'cmk' location (safety guard)
     const effectiveLocation = role === 'cmk_coordinator' ? 'cmk' : empLocation
 
     // Both office and CMK geo come from DB (configurable in Settings)
     const { data: geo } = await supabase.from('geo_settings').select('*').eq('location', effectiveLocation).single()
-    if (!geo || (!geo.lat && !geo.lng)) {
-      setGeoError('Location not configured. Contact admin to set up geo-fencing in Settings.')
-      setGeoChecking(false); return
-    }
-    const geoLat = geo.lat, geoLng = geo.lng, geoRadius = geo.radius_m
 
     let checkInLat: number | null = null
     let checkInLng: number | null = null
 
-    if (workMode !== 'remote') {
-      const pos = await new Promise<GeolocationPosition | null>(resolve => {
+    // Only enforce geo if: geo is configured, enforcement is enabled, and not remote
+    const geoEnforced = geo?.enabled && geo?.lat && geo?.lng && workMode !== 'remote'
+
+    if (geoEnforced) {
+      const geoLat = geo.lat, geoLng = geo.lng, geoRadius = geo.radius_m
+
+      const pos = await new Promise<GeolocationPosition | null>((resolve) => {
         if (!navigator.geolocation) { resolve(null); return }
-        navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 10000 })
+        navigator.geolocation.getCurrentPosition(
+          resolve,
+          (err) => {
+            if (err.code === 1) setGeoError('Location permission denied. Please allow location access in your browser settings and try again.')
+            else if (err.code === 2) setGeoError('GPS signal unavailable. Move to an open area and try again.')
+            else setGeoError('Location timed out. Please check your GPS is on and try again.')
+            resolve(null)
+          },
+          { timeout: 15000, maximumAge: 30000, enableHighAccuracy: false }
+        )
       })
-      if (!pos) {
-        setGeoError('Location access denied. Please enable GPS and try again.')
-        setGeoChecking(false); return
-      }
+      if (!pos) { setGeoChecking(false); return }
+
       checkInLat = pos.coords.latitude
       checkInLng = pos.coords.longitude
       const dist = distanceM(checkInLat, checkInLng, geoLat, geoLng)
@@ -578,13 +589,14 @@ export default function Dashboard() {
         setGeoChecking(false); return
       }
     }
+
     setGeoChecking(false)
     setAttBusy(true); setAttError(null)
 
     const { error: e } = await supabase.from('attendance').insert({
       employee_id: empId,
       date: todayStr,
-      check_in_time: '00:00:00',
+      check_in_time: checkInTime,
       location: effectiveLocation as any,
       // CMK employees don't have office/remote work modes — save null
       work_mode: effectiveLocation === 'cmk' ? null : workMode,
