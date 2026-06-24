@@ -318,6 +318,7 @@ export default function Dashboard() {
   }, [])
 
   const isAdmin    = role === 'manager' || role === 'super_admin'
+  const needsCheckIn = role === 'manager' || role === 'employee' || role === 'cmk_coordinator'
   const isEmployee = role === 'employee' || role === 'cmk_coordinator'
 
   const loadDashboard = async () => {
@@ -509,12 +510,12 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if ((isEmployee || isAdmin) && empId) loadAttendance(empId)
+    if ((isEmployee || needsCheckIn) && empId) loadAttendance(empId)
   }, [isEmployee, empId])
 
   // Background geo check — shows range indicator before check-in
   useEffect(() => {
-    if ((!isEmployee && !isAdmin) || !empLocation || !navigator.geolocation) return
+    if ((!isEmployee && !needsCheckIn) || !empLocation || !navigator.geolocation) return
     const checkGeo = async () => {
       // Both office and CMK geo come from DB (configurable in Settings)
       const { data: geo } = await supabase.from('geo_settings').select('*').eq('location', empLocation).single()
@@ -1073,7 +1074,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Personal section (same as employee view) ── */}
-      {isAdmin && empId && (
+      {needsCheckIn && empId && (
         <>
           {/* Month stats pills */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
